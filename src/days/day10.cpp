@@ -2,8 +2,10 @@
 #include "core/Registry.h"
 #include "days/day10.h"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
+#include <numeric>
 #include <sstream>
 #include <stdexcept>
 
@@ -61,7 +63,10 @@ void Day10::set_input(const vector<string>& lines) {
 
         // buttons
         vector<vector<int>> buttons;
-        string mid = line.substr(rb + 1, lcb == string::npos ? string::npos : lcb - rb - 1);
+        string mid = line.substr(
+            rb + 1,
+            lcb == string::npos ? string::npos : lcb - rb - 1
+        );
 
         size_t pos = 0;
         while ((pos = mid.find('(')) != string::npos) {
@@ -145,7 +150,7 @@ int Day10::solve_lights(const MachineData& m) {
 }
 
 // ------------------------------------------------------------
-// Part 2 — real RREF + integer DFS
+// Part 2 — real RREF + integer DFS (optimized variable order)
 // ------------------------------------------------------------
 
 int Day10::solve_joltage(const MachineData& m) {
@@ -188,6 +193,18 @@ int Day10::solve_joltage(const MachineData& m) {
     for (int c = 0; c < M; ++c)
         if (pivotCol[c] == -1)
             freeVars.push_back(c);
+
+    // 🔥 Optimization #1: sort free variables by constraint strength
+    vector<int> weight(M, 0);
+    for (int c = 0; c < M; ++c)
+        for (int r = 0; r < N; ++r)
+            if (fabs(mat[r][c]) > 1e-9)
+                weight[c]++;
+
+    sort(freeVars.begin(), freeVars.end(),
+         [&](int a, int b) {
+             return weight[a] > weight[b];
+         });
 
     int maxTarget = 0;
     for (int v : m.targetJoltage)
