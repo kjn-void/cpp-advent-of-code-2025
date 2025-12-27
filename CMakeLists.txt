@@ -31,7 +31,7 @@ else()
         FetchContent_Declare(
             googletest
             GIT_REPOSITORY https://github.com/google/googletest.git
-            GIT_TAG release-1.14.0
+            GIT_TAG main
         )
 
         set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
