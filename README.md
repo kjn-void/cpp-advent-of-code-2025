@@ -119,12 +119,91 @@ the program can:
 
 (Exact env var names and behavior depend on your implementation.)
 
-## 🧪 Tests
+## 🧪 Tests (GoogleTest)
 
-If you use GoogleTest:
+This project supports **three ways** of using GoogleTest, in the following priority order:
+
+### 1️⃣ Vendored GoogleTest (preferred)
+
+If a `googletest/` directory exists at the repository root, it is used automatically.
+
+```
+cpp-advent-of-code-2025/
+├── googletest/
+│   ├── CMakeLists.txt
+│   └── …
+```
+
+This is the **recommended setup** for:
+- reproducible builds
+- CI environments
+- avoiding system / distro quirks
+
+To add GoogleTest as a submodule:
 
 ```bash
+git submodule add https://github.com/google/googletest.git googletest
+git submodule update --init --recursive
+```
+
+### 2️⃣ System-installed GoogleTest (fallback)
+
+If googletest/ is not present, CMake falls back to a system-installed GoogleTest via:
+
+```cmake
+find_package(GTest REQUIRED)
+```
+
+On Ubuntu, this typically requires:
+
+```sh
+sudo apt install libgtest-dev
+cd /usr/src/googletest
+sudo cmake -B build
+sudo cmake --build build
+sudo cp build/lib/*.a /usr/lib/
+```
+
+Note: Ubuntu ships GoogleTest as source-only, so the libraries must be built manually.
+
+### 3️⃣ GitHub GoogleTest via FetchContent (alternative)
+
+If you prefer not to vendor GoogleTest as a submodule, you can also fetch it directly from GitHub using CMake’s FetchContent.
+
+This is **not enabled by default**, but can be added easily if desired.
+
+Typical configuration:
+
+```cmake
+include(FetchContent)
+
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG release-1.14.0
+)
+
+FetchContent_MakeAvailable(googletest)
+```
+
+This approach:
+
+* avoids system installs
+* avoids committing GoogleTest to your repo
+* works well in CI
+
+## 🏃 Running the tests
+
+Once built:
+
+```sh
 ./build/tests
+```
+
+or, if CTest integration is enabled:
+
+```sh
+ctest --test-dir build
 ```
 
 ## ⏱️ Benchmarks

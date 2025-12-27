@@ -6,10 +6,27 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(GTest REQUIRED)
-find_package(benchmark REQUIRED)
-
 enable_testing()
+
+# ------------------------------------------------------------------
+# GoogleTest: vendored OR system
+# ------------------------------------------------------------------
+
+if (EXISTS "${CMAKE_SOURCE_DIR}/googletest/CMakeLists.txt")
+    message(STATUS "Using vendored GoogleTest")
+    set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+    add_subdirectory(googletest)
+else()
+    message(STATUS "Using system GoogleTest")
+    find_package(GTest REQUIRED)
+endif()
+
+# ------------------------------------------------------------------
+# Google Benchmark (system or vendored via its own logic)
+# ------------------------------------------------------------------
+
+find_package(benchmark REQUIRED)
 
 # ------------------------------------------------------------------
 # OBJECT library (static registration must live here)
@@ -31,7 +48,6 @@ add_library(aoc2025_obj OBJECT
     src/days/day12.cpp
 )
 
-# ✅ REQUIRED so day01.cpp can include "core/Solution.h"
 target_include_directories(aoc2025_obj PRIVATE src)
 
 # ------------------------------------------------------------------
