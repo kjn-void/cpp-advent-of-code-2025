@@ -170,21 +170,7 @@ Note: Ubuntu ships GoogleTest as source-only, so the libraries must be built man
 
 If you prefer not to vendor GoogleTest as a submodule, you can also fetch it directly from GitHub using CMake’s FetchContent.
 
-This is **not enabled by default**, but can be added easily if desired.
-
-Typical configuration:
-
-```cmake
-include(FetchContent)
-
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG release-1.14.0
-)
-
-FetchContent_MakeAvailable(googletest)
-```
+This is enabled by default.
 
 This approach:
 

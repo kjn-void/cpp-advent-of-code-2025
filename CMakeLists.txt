@@ -8,29 +8,92 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 enable_testing()
 
-# ------------------------------------------------------------------
-# GoogleTest: vendored OR system
-# ------------------------------------------------------------------
+# ================================================================
+# GoogleTest: vendored → system → FetchContent
+# ================================================================
 
 if (EXISTS "${CMAKE_SOURCE_DIR}/googletest/CMakeLists.txt")
     message(STATUS "Using vendored GoogleTest")
     set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
     add_subdirectory(googletest)
+
 else()
-    message(STATUS "Using system GoogleTest")
-    find_package(GTest REQUIRED)
+    find_package(GTest QUIET)
+
+    if (GTest_FOUND)
+        message(STATUS "Using system GoogleTest")
+    else()
+        message(STATUS "Fetching GoogleTest from GitHub (FetchContent)")
+
+        include(FetchContent)
+
+        FetchContent_Declare(
+            googletest
+            GIT_REPOSITORY https://github.com/google/googletest.git
+            GIT_TAG release-1.14.0
+        )
+
+        set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+        set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+
+        FetchContent_MakeAvailable(googletest)
+    endif()
 endif()
 
-# ------------------------------------------------------------------
-# Google Benchmark (system or vendored via its own logic)
-# ------------------------------------------------------------------
+# ---- Normalize GoogleTest targets ----
+if (TARGET gtest AND NOT TARGET GTest::gtest)
+    add_library(GTest::gtest ALIAS gtest)
+endif()
 
-find_package(benchmark REQUIRED)
+if (TARGET gtest_main AND NOT TARGET GTest::gtest_main)
+    add_library(GTest::gtest_main ALIAS gtest_main)
+endif()
 
-# ------------------------------------------------------------------
+# ================================================================
+# Google Benchmark: vendored → system → FetchContent
+# ================================================================
+
+if (EXISTS "${CMAKE_SOURCE_DIR}/benchmark/CMakeLists.txt")
+    message(STATUS "Using vendored Google Benchmark")
+    set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+    add_subdirectory(benchmark)
+
+else()
+    find_package(benchmark QUIET)
+
+    if (benchmark_FOUND)
+        message(STATUS "Using system Google Benchmark")
+    else()
+        message(STATUS "Fetching Google Benchmark from GitHub (FetchContent)")
+
+        include(FetchContent)
+
+        FetchContent_Declare(
+            benchmark
+            GIT_REPOSITORY https://github.com/google/benchmark.git
+            GIT_TAG v1.8.3
+        )
+
+        set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+        set(BENCHMARK_DOWNLOAD_DEPENDENCIES ON CACHE BOOL "" FORCE)
+
+        FetchContent_MakeAvailable(benchmark)
+    endif()
+endif()
+
+# ---- Normalize Google Benchmark targets ----
+if (TARGET benchmark AND NOT TARGET benchmark::benchmark)
+    add_library(benchmark::benchmark ALIAS benchmark)
+endif()
+
+if (TARGET benchmark_main AND NOT TARGET benchmark::benchmark_main)
+    add_library(benchmark::benchmark_main ALIAS benchmark_main)
+endif()
+
+# ================================================================
 # OBJECT library (static registration must live here)
-# ------------------------------------------------------------------
+# ================================================================
 
 add_library(aoc2025_obj OBJECT
     src/core/Registry.cpp
@@ -50,9 +113,9 @@ add_library(aoc2025_obj OBJECT
 
 target_include_directories(aoc2025_obj PRIVATE src)
 
-# ------------------------------------------------------------------
+# ================================================================
 # Main executable
-# ------------------------------------------------------------------
+# ================================================================
 
 add_executable(aoc2025
     src/main.cpp
@@ -61,9 +124,9 @@ add_executable(aoc2025
 
 target_include_directories(aoc2025 PRIVATE src)
 
-# ------------------------------------------------------------------
+# ================================================================
 # Unit tests
-# ------------------------------------------------------------------
+# ================================================================
 
 add_executable(tests
     tests/test_day01.cpp
@@ -92,9 +155,9 @@ target_link_libraries(tests
 
 add_test(NAME aoc2025_tests COMMAND tests)
 
-# ------------------------------------------------------------------
+# ================================================================
 # Benchmarks
-# ------------------------------------------------------------------
+# ================================================================
 
 add_executable(benchmarks
     benchmarks/bench_days.cpp
