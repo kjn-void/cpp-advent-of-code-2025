@@ -2,13 +2,18 @@
 #include "core/Registry.h"
 #include <fstream>
 #include <iostream>
+#include <filesystem>
 
 static std::vector<std::string> read_input(int day) {
     char buf[32];
     std::snprintf(buf, sizeof(buf), "input/day%02d.txt", day);
     std::ifstream f(buf);
 
-    if (!f) throw std::runtime_error("Missing input file");
+    if (!f) {
+        std::filesystem::path cwd = std::filesystem::current_path();
+		std::cerr << "Could not open input file: " << buf << " cwd is " << cwd << "\n";
+        throw std::runtime_error("Missing input file");
+    }
 
     std::vector<std::string> lines;
     std::string s;
