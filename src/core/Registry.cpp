@@ -1,6 +1,8 @@
 #include "Registry.h"
 #include "Solution.h"
 
+#include <algorithm>
+
 Registry& Registry::instance() {
     static Registry inst;
     return inst;

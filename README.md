@@ -49,11 +49,18 @@ cpp-advent-of-code-2025/
 
 ## 🚀 Building & Running
 
-Configure + build:
+Configure + build MacOS/Linux:
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
+```
+
+Configure + build Windows:
+
+```bash
+cmake -S . -B build
+cmake --build build --config Release
 ```
 
 Run a single day:
