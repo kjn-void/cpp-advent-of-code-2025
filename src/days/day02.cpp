@@ -145,7 +145,8 @@ std::string Day02::part2() {
 
                 for (int64_t d = cmin; d <= cmax; ++d) {
                     std::string ds = std::to_string(d);
-                    if (smallest_block(ds) != static_cast<int>(ds.size())) continue;
+                    if (smallest_block(ds) != static_cast<int>(ds.size()))
+                        continue;
                     total += d * rep;
                 }
             }

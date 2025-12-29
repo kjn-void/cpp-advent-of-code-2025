@@ -25,7 +25,7 @@ private:
     std::vector<Edge> edges;
 
     // helpers
-    static int max_area_inclusive(const std::vector<Pt>& pts);
+    static int64_t max_area_inclusive(const std::vector<Pt>& pts);
     void build_edges();
 
     bool point_inside_or_on(const Pt& p) const;

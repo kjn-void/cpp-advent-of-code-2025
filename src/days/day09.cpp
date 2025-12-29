@@ -39,13 +39,13 @@ string Day09::part1() {
     return to_string(max_area_inclusive(reds));
 }
 
-int Day09::max_area_inclusive(const vector<Pt>& pts) {
+int64_t Day09::max_area_inclusive(const vector<Pt>& pts) {
     int n = (int)pts.size();
-    int best = 0;
+    int64_t best = 0;
 
     for (int i = 0; i < n; ++i) {
         for (int j = i + 1; j < n; ++j) {
-            int dx = abs_int(pts[i].x - pts[j].x) + 1;
+            int64_t dx = abs_int(pts[i].x - pts[j].x) + 1;
             int dy = abs_int(pts[i].y - pts[j].y) + 1;
             best = max(best, dx * dy);
         }

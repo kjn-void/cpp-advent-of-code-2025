@@ -53,14 +53,14 @@ Configure + build MacOS/Linux:
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
+cmake --build build --parallel
 ```
 
 Configure + build Windows:
 
 ```bash
 cmake -S . -B build
-cmake --build build --config Release
+cmake --build build --config Release --parallel
 ```
 
 Run a single day:

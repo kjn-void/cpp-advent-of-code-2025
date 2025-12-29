@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "configure AoC2025",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "-S", "${workspaceFolder}",
+        "-B", "${workspaceFolder}/build",
+        "-DCMAKE_BUILD_TYPE=Debug"
+      ],
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "build AoC2025",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build",
+        "${workspaceFolder}/build",
+        "--parallel"
+      ],
+      "dependsOn": ["configure AoC2025"],
+      "group": "build",
+      "problemMatcher": ["$gcc"]
+    }
+  ]
+}
