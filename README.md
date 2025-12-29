@@ -72,10 +72,10 @@ Run a single day:
 Run multiple days:
 
 ```bash
-./build/aoc2025 1 4 5
+./build/aoc2025 1 4 5 7
 ```
 
-The CLI accepts any number of days (e.g. 1–25 if you implement more).
+The CLI accepts day 1 to 12
 
 ## 🌐 Automatic Input Download From adventofcode.com (optional)
 
