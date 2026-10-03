@@ -2,7 +2,7 @@
 #include "test_utils.h"
 #include <gtest/gtest.h>
 
-static const char* example = R"(
+static const char* usSample = R"(
 0:
 ###
 ##.
@@ -39,7 +39,7 @@ static const char* example = R"(
 )";
 
 TEST(Day12, ExamplePart1) {
-    Day12 d;
-    d.set_input(splitLines(example));
-    EXPECT_EQ(d.part1(), "2");
+    Day12 slvDay;
+    slvDay.SetInput(RgusSplitLines(usSample));
+    EXPECT_EQ(slvDay.TxtPart1(), "2");
 }

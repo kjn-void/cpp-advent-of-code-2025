@@ -9,104 +9,110 @@
 
 // Registration
 namespace {
-const core::DayRegistration<Day08> registration{8};
+const core::Drg<Day08> drgDay{8};
 } // namespace
 
 // -----------------------------------------------------------
 // Parsing
 // -----------------------------------------------------------
 
-static Day08::Vec3 parse_vec3(const std::string& line) {
-    std::stringstream ss(line);
-    Day08::Vec3 v{};
-    char first_comma{}, second_comma{};
-    if (!(ss >> v.x >> first_comma >> v.y >> second_comma >> v.z) || first_comma != ',' ||
-        second_comma != ',' || !(ss >> std::ws).eof())
+static Day08::Pt PtParse(const std::string& usLine) {
+    std::stringstream inCoordinates(usLine);
+    Day08::Pt ptParsed{};
+    char chFirstComma{}, chSecondComma{};
+    if (!(inCoordinates >> ptParsed.xJunction >> chFirstComma >> ptParsed.yJunction >>
+          chSecondComma >> ptParsed.zJunction) ||
+        chFirstComma != ',' || chSecondComma != ',' || !(inCoordinates >> std::ws).eof())
         throw std::invalid_argument("Expected three comma-separated coordinates");
-    return v;
+    return ptParsed;
 }
 
-void Day08::set_input(const std::vector<std::string>& lines) {
-    points.clear();
+void Day08::SetInput(const std::vector<std::string>& rgusLines) {
+    rgpt.clear();
 
-    for (const auto& ln : lines) {
-        if (!ln.empty()) {
-            points.push_back(parse_vec3(ln));
+    for (const auto& usLine : rgusLines) {
+        if (!usLine.empty()) {
+            rgpt.push_back(PtParse(usLine));
         }
     }
 
-    edges = build_sorted_edges(points);
+    rgedgConnections = RgedgBuildSorted(rgpt);
 }
 
 // -----------------------------------------------------------
 // Distance & Edge Preparation
 // -----------------------------------------------------------
 
-std::int64_t Day08::squared_dist(const Vec3& a, const Vec3& b) {
-    std::int64_t total = 0;
-    const auto add_square = [&](std::int64_t left, std::int64_t right) {
+std::int64_t Day08::DistSquared(const Pt& ptFirst, const Pt& ptSecond) {
+    std::int64_t distSquared = 0;
+    const auto fnAddSquaredDistance = [&](std::int64_t valFirstCoordinate,
+                                          std::int64_t valSecondCoordinate) {
         // Unsigned subtraction also handles differences spanning the signed range.
-        const auto distance = left >= right ? std::uint64_t(left) - std::uint64_t(right)
-                                            : std::uint64_t(right) - std::uint64_t(left);
-        if (distance > 3037000499ULL)
+        const auto distAxis =
+            valFirstCoordinate >= valSecondCoordinate
+                ? std::uint64_t(valFirstCoordinate) - std::uint64_t(valSecondCoordinate)
+                : std::uint64_t(valSecondCoordinate) - std::uint64_t(valFirstCoordinate);
+        if (distAxis > 3037000499ULL)
             throw std::overflow_error("Squared distance exceeds int64_t");
-        const auto squared = static_cast<std::int64_t>(distance * distance);
-        if (squared > std::numeric_limits<std::int64_t>::max() - total)
+        const auto distAxisSquared = static_cast<std::int64_t>(distAxis * distAxis);
+        if (distAxisSquared > std::numeric_limits<std::int64_t>::max() - distSquared)
             throw std::overflow_error("Squared distance exceeds int64_t");
-        total += squared;
+        distSquared += distAxisSquared;
     };
-    add_square(a.x, b.x);
-    add_square(a.y, b.y);
-    add_square(a.z, b.z);
-    return total;
+    fnAddSquaredDistance(ptFirst.xJunction, ptSecond.xJunction);
+    fnAddSquaredDistance(ptFirst.yJunction, ptSecond.yJunction);
+    fnAddSquaredDistance(ptFirst.zJunction, ptSecond.zJunction);
+    return distSquared;
 }
 
-std::vector<Day08::Edge> Day08::build_sorted_edges(std::span<const Vec3> pts) {
-    const int n = static_cast<int>(pts.size());
-    std::vector<Edge> out;
-    if (n > 1)
-        out.reserve(pts.size() * (pts.size() - 1) / 2);
+std::vector<Day08::Edg> Day08::RgedgBuildSorted(std::span<const Pt> rgpt) {
+    const int cpt = static_cast<int>(rgpt.size());
+    std::vector<Edg> rgedgSorted;
+    if (cpt > 1)
+        rgedgSorted.reserve(rgpt.size() * (rgpt.size() - 1) / 2);
 
-    for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) {
-            out.push_back({squared_dist(pts[i], pts[j]), i, j});
+    for (int iptFirst = 0; iptFirst < cpt; ++iptFirst) {
+        for (int iptSecond = iptFirst + 1; iptSecond < cpt; ++iptSecond) {
+            rgedgSorted.push_back(
+                {DistSquared(rgpt[iptFirst], rgpt[iptSecond]), iptFirst, iptSecond});
         }
     }
 
-    std::ranges::sort(out, [](const Edge& a, const Edge& b) {
-        return std::tie(a.dist2, a.i, a.j) < std::tie(b.dist2, b.i, b.j);
+    std::ranges::sort(rgedgSorted, [](const Edg& edgFirst, const Edg& edgSecond) {
+        return std::tie(edgFirst.distSquared, edgFirst.iptFirst, edgFirst.iptSecond) <
+               std::tie(edgSecond.distSquared, edgSecond.iptFirst, edgSecond.iptSecond);
     });
 
-    return out;
+    return rgedgSorted;
 }
 
 // -----------------------------------------------------------
 // DSU
 // -----------------------------------------------------------
 
-Day08::DSU::DSU(int n) : parent(n), size(n, 1) {
-    for (int i = 0; i < n; ++i)
-        parent[i] = i;
+Day08::Dsu::Dsu(int cpt) : mpiptiptParent(cpt), mpiptcntSize(cpt, 1) {
+    for (int iptFirst = 0; iptFirst < cpt; ++iptFirst)
+        mpiptiptParent[iptFirst] = iptFirst;
 }
 
-int Day08::DSU::find(int x) {
-    while (parent[x] != x) {
-        parent[x] = parent[parent[x]];
-        x = parent[x];
+int Day08::Dsu::IptFind(int iptRoot) {
+    while (mpiptiptParent[iptRoot] != iptRoot) {
+        mpiptiptParent[iptRoot] = mpiptiptParent[mpiptiptParent[iptRoot]];
+        iptRoot = mpiptiptParent[iptRoot];
     }
-    return x;
+    return iptRoot;
 }
 
-bool Day08::DSU::unite(int a, int b) {
-    a = find(a);
-    b = find(b);
-    if (a == b)
+bool Day08::Dsu::FUnite(int iptFirstRoot, int iptSecondRoot) {
+    iptFirstRoot = IptFind(iptFirstRoot);
+    iptSecondRoot = IptFind(iptSecondRoot);
+    if (iptFirstRoot == iptSecondRoot)
         return false;
 
-    if (size[a] < size[b])
-        std::swap(a, b);
-    parent[b] = a;
-    size[a] += size[b];
+    if (mpiptcntSize[iptFirstRoot] < mpiptcntSize[iptSecondRoot])
+        std::swap(iptFirstRoot, iptSecondRoot);
+    mpiptiptParent[iptSecondRoot] = iptFirstRoot;
+    mpiptcntSize[iptFirstRoot] += mpiptcntSize[iptSecondRoot];
     return true;
 }
 
@@ -114,84 +120,86 @@ bool Day08::DSU::unite(int a, int b) {
 // Core helpers
 // -----------------------------------------------------------
 
-std::vector<int> Day08::run_connections(std::span<const Vec3> pts, std::span<const Edge> eds,
-                                        int k) {
-    if (pts.empty())
+std::vector<int> Day08::RgcntRunConnections(std::span<const Pt> rgpt,
+                                            std::span<const Edg> rgedgConnections, int cedg) {
+    if (rgpt.empty())
         return {};
 
-    DSU uf(static_cast<int>(pts.size()));
-    k = std::min(k, static_cast<int>(eds.size()));
+    Dsu dsu(static_cast<int>(rgpt.size()));
+    cedg = std::min(cedg, static_cast<int>(rgedgConnections.size()));
 
-    for (int i = 0; i < k; ++i) {
-        uf.unite(eds[i].i, eds[i].j);
+    for (int iedg = 0; iedg < cedg; ++iedg) {
+        dsu.FUnite(rgedgConnections[iedg].iptFirst, rgedgConnections[iedg].iptSecond);
     }
 
-    std::vector<int> sizes;
-    for (int i = 0; i < static_cast<int>(pts.size()); ++i) {
-        if (uf.find(i) == i)
-            sizes.push_back(uf.size[i]);
+    std::vector<int> rgcntCircuitSizes;
+    for (int iptFirst = 0; iptFirst < static_cast<int>(rgpt.size()); ++iptFirst) {
+        if (dsu.IptFind(iptFirst) == iptFirst)
+            rgcntCircuitSizes.push_back(dsu.mpiptcntSize[iptFirst]);
     }
 
-    std::ranges::sort(sizes, std::greater<>{});
-    return sizes;
+    std::ranges::sort(rgcntCircuitSizes, std::greater<>{});
+    return rgcntCircuitSizes;
 }
 
-std::pair<int, int> Day08::run_until_single_circuit(std::span<const Vec3> pts,
-                                                    std::span<const Edge> eds) {
-    if (pts.size() < 2)
+std::pair<int, int> Day08::LinkConnectAll(std::span<const Pt> rgpt,
+                                          std::span<const Edg> rgedgConnections) {
+    if (rgpt.size() < 2)
         return {0, 0};
 
-    DSU uf(static_cast<int>(pts.size()));
-    int components = static_cast<int>(pts.size());
-    int last_i = 0, last_j = 0;
+    Dsu dsu(static_cast<int>(rgpt.size()));
+    int cntCircuits = static_cast<int>(rgpt.size());
+    int iptFirstLast = 0, iptSecondLast = 0;
 
-    for (const auto& e : eds) {
-        if (uf.unite(e.i, e.j)) {
-            --components;
-            last_i = e.i;
-            last_j = e.j;
-            if (components == 1)
+    for (const auto& edg : rgedgConnections) {
+        if (dsu.FUnite(edg.iptFirst, edg.iptSecond)) {
+            --cntCircuits;
+            iptFirstLast = edg.iptFirst;
+            iptSecondLast = edg.iptSecond;
+            if (cntCircuits == 1)
                 break;
         }
     }
 
-    return {last_i, last_j};
+    return {iptFirstLast, iptSecondLast};
 }
 
 // -----------------------------------------------------------
 // Parts
 // -----------------------------------------------------------
 
-std::string Day08::part1() {
-    auto sizes = run_connections(points, edges, 1000);
-    if (sizes.size() < 3)
+std::string Day08::TxtPart1() {
+    auto rgcntCircuitSizes = RgcntRunConnections(rgpt, rgedgConnections, 1000);
+    if (rgcntCircuitSizes.size() < 3)
         return "0";
 
-    std::int64_t result = std::int64_t(sizes[0]) * std::int64_t(sizes[1]) * std::int64_t(sizes[2]);
+    std::int64_t valProductCircuitSizes = std::int64_t(rgcntCircuitSizes[0]) *
+                                          std::int64_t(rgcntCircuitSizes[1]) *
+                                          std::int64_t(rgcntCircuitSizes[2]);
 
-    return std::to_string(result);
+    return std::to_string(valProductCircuitSizes);
 }
 
-std::string Day08::part2() {
-    if (points.size() < 2)
+std::string Day08::TxtPart2() {
+    if (rgpt.size() < 2)
         return "0";
 
-    auto [i, j] = run_until_single_circuit(points, edges);
-    const auto a = points[i].x;
-    const auto b = points[j].x;
-    const auto magnitude = [](std::int64_t value) {
-        const auto bits = static_cast<std::uint64_t>(value);
-        return value < 0 ? std::uint64_t{0} - bits : bits;
+    auto [iptFirst, iptSecond] = LinkConnectAll(rgpt, rgedgConnections);
+    const auto xFirst = rgpt[iptFirst].xJunction;
+    const auto xSecond = rgpt[iptSecond].xJunction;
+    const auto fnMagnitude = [](std::int64_t valSigned) {
+        const auto maskSignedBits = static_cast<std::uint64_t>(valSigned);
+        return valSigned < 0 ? std::uint64_t{0} - maskSignedBits : maskSignedBits;
     };
-    const bool negative = (a < 0) != (b < 0);
-    const auto limit =
-        static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) + negative;
-    const auto left = magnitude(a), right = magnitude(b);
-    if (right != 0 && left > limit / right)
+    const bool fNegative = (xFirst < 0) != (xSecond < 0);
+    const auto valMagnitudeLast =
+        static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) + fNegative;
+    const auto valFirstMagnitude = fnMagnitude(xFirst), valSecondMagnitude = fnMagnitude(xSecond);
+    if (valSecondMagnitude != 0 && valFirstMagnitude > valMagnitudeLast / valSecondMagnitude)
         throw std::overflow_error("Junction coordinate product exceeds int64_t");
-    const auto product = left * right;
-    if (negative && product == limit)
+    const auto valProductMagnitude = valFirstMagnitude * valSecondMagnitude;
+    if (fNegative && valProductMagnitude == valMagnitudeLast)
         return std::to_string(std::numeric_limits<std::int64_t>::min());
-    const auto signed_product = static_cast<std::int64_t>(product);
-    return std::to_string(negative ? -signed_product : signed_product);
+    const auto valProductSigned = static_cast<std::int64_t>(valProductMagnitude);
+    return std::to_string(fNegative ? -valProductSigned : valProductSigned);
 }

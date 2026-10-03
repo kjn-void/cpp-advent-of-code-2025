@@ -7,15 +7,15 @@
 #include "core/Solution.h"
 #include <vector>
 
-class Day03 final : public Solution {
+class Day03 final : public Slv {
   public:
-    void set_input(const std::vector<std::string>& lines) override;
-    std::string part1() override;
-    std::string part2() override;
+    void SetInput(const std::vector<std::string>& rgusLines) override;
+    std::string TxtPart1() override;
+    std::string TxtPart2() override;
 
   private:
-    std::vector<std::vector<int>> banks;
+    std::vector<std::vector<int>> rgbnk_;
 
-    std::string max_joltage(int pick) const;
-    static std::int64_t stack_to_number(std::span<const int> stack);
+    std::string TxtMaxJoltage(int cdigToSelect) const;
+    static std::int64_t JolFromDigits(std::span<const int> rgdigSelected);
 };

@@ -6,18 +6,18 @@
 #include <string>
 #include <vector>
 
-class Day09 final : public Solution {
+class Day09 final : public Slv {
   public:
-    void set_input(const std::vector<std::string>& lines) override;
-    std::string part1() override;
-    std::string part2() override;
+    void SetInput(const std::vector<std::string>& rgusLines) override;
+    std::string TxtPart1() override;
+    std::string TxtPart2() override;
 
   private:
     struct Pt {
-        int x, y;
+        int xTile, yTile;
     };
 
-    std::vector<Pt> reds;
+    std::vector<Pt> rgptRed_;
 
-    static std::int64_t max_area_inclusive(const std::vector<Pt>& points);
+    static std::int64_t AreaMaxInclusive(const std::vector<Pt>& rgpt);
 };

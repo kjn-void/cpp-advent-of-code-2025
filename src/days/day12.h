@@ -6,53 +6,55 @@
 #include <string>
 #include <vector>
 
-class Day12 final : public Solution {
+class Day12 final : public Slv {
   public:
-    void set_input(const std::vector<std::string>& lines) override;
-    std::string part1() override;
-    std::string part2() override;
+    void SetInput(const std::vector<std::string>& rgusLines) override;
+    std::string TxtPart1() override;
+    std::string TxtPart2() override;
 
   private:
     // ------------------------------------------------------------
     // Data types
     // ------------------------------------------------------------
 
-    struct Point {
-        int x, y;
+    struct Delta {
+        int dxCell, dyCell;
     };
 
-    struct Variant {
-        int width, height;
-        std::vector<Point> cells;
+    struct Var {
+        int ccol, crw;
+        std::vector<Delta> rgdelta;
     };
 
-    struct Shape {
-        int area = 0;
-        std::vector<Variant> variants;
+    struct Shp {
+        int areaOccupied = 0;
+        std::vector<Var> rgvar;
     };
 
-    struct Region {
-        int width, height;
-        std::vector<int> counts;
+    struct Reg {
+        int ccol, crw;
+        std::vector<int> mpishpcnt;
     };
 
-    std::vector<Shape> shapes;
-    std::vector<Region> regions;
+    std::vector<Shp> rgshp_;
+    std::vector<Reg> rgreg_;
 
     // ------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------
 
-    static Shape build_shape(const std::vector<std::string>& rows);
-    static std::vector<std::vector<bool>> rotate_grid(const std::vector<std::vector<bool>>& g);
-    static std::vector<std::vector<bool>> flip_grid_h(const std::vector<std::vector<bool>>& g);
-    static Variant grid_to_variant(const std::vector<std::vector<bool>>& g);
-    static std::string variant_key(const Variant& v);
+    static Shp ShpBuild(const std::vector<std::string>& rgusShapeRows);
+    static std::vector<std::vector<bool>>
+    GridRotate(const std::vector<std::vector<bool>>& gridSource);
+    static std::vector<std::vector<bool>>
+    GridReflect(const std::vector<std::vector<bool>>& gridSource);
+    static Var VarFromGrid(const std::vector<std::vector<bool>>& gridSource);
+    static std::string TxtVariantKey(const Var& var);
 
-    bool region_can_fit(const Region& r) const;
+    bool FRegionFits(const Reg& reg) const;
 
-    bool can_pack_region(const Region& r) const;
-    bool pack(std::vector<bool>& board, std::vector<int>& counts,
-              const std::vector<std::vector<std::vector<std::size_t>>>& placements,
-              std::vector<std::size_t>& first_placement) const;
+    bool FCanPackRegion(const Reg& reg) const;
+    bool FPack(std::vector<bool>& mpicelfOccupied, std::vector<int>& mpishpcnt,
+               const std::vector<std::vector<std::vector<std::size_t>>>& mpishprgplc,
+               std::vector<std::size_t>& mpishpiplcFirst) const;
 };

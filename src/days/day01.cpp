@@ -8,54 +8,54 @@
 #include <string_view>
 #include <vector>
 
-class Day01 final : public Solution {
+class Day01 final : public Slv {
   public:
-    void set_input(const std::vector<std::string>& lines) override {
-        moves_.clear();
-        moves_.reserve(lines.size());
-        for (const auto& line : lines) {
-            const auto text = core::trim(line);
-            if (text.empty())
+    void SetInput(const std::vector<std::string>& rgusLines) override {
+        rgmov_.clear();
+        rgmov_.reserve(rgusLines.size());
+        for (const auto& usLine : rgusLines) {
+            const auto usRotation = core::UsTrim(usLine);
+            if (usRotation.empty())
                 continue;
-            if (text.front() != 'L' && text.front() != 'R') {
+            if (usRotation.front() != 'L' && usRotation.front() != 'R') {
                 throw std::invalid_argument("Rotation must start with L or R");
             }
-            const auto distance = core::parse_integer<std::int64_t>(text.substr(1));
-            if (distance < 0)
+            const auto dposRotation = core::ValParseInteger<std::int64_t>(usRotation.substr(1));
+            if (dposRotation < 0)
                 throw std::invalid_argument("Rotation distance must be nonnegative");
-            moves_.push_back({text.front() == 'L', distance});
+            rgmov_.push_back({usRotation.front() == 'L', dposRotation});
         }
     }
 
-    std::string part1() override { return solve(false); }
-    std::string part2() override { return solve(true); }
+    std::string TxtPart1() override { return TxtSolve(false); }
+    std::string TxtPart2() override { return TxtSolve(true); }
 
   private:
-    struct Move {
-        bool left;
-        std::int64_t distance;
+    struct Mov {
+        bool fLeft;
+        std::int64_t dposRotation;
     };
-    std::vector<Move> moves_;
+    std::vector<Mov> rgmov_;
 
-    std::string solve(bool count_crossings) const {
-        int position = 50;
-        std::int64_t zeros = 0;
-        for (const auto& [left, distance] : moves_) {
-            const auto remainder = static_cast<int>(distance % 100);
-            if (count_crossings) {
-                zeros += distance / 100;
+    std::string TxtSolve(bool fCountCrossings) const {
+        int posDial = 50;
+        std::int64_t cntZeros = 0;
+        for (const auto& [fLeft, dposRotation] : rgmov_) {
+            const auto dposRemainder = static_cast<int>(dposRotation % 100);
+            if (fCountCrossings) {
+                cntZeros += dposRotation / 100;
                 // Starting on zero does not itself count as a crossing.
-                const int to_zero = left ? (position == 0 ? 100 : position) : 100 - position;
-                zeros += remainder >= to_zero;
+                const int dposToZero = fLeft ? (posDial == 0 ? 100 : posDial) : 100 - posDial;
+                cntZeros += dposRemainder >= dposToZero;
             }
-            position = (position + (left ? -remainder : remainder) + 100) % 100;
-            if (!count_crossings && position == 0)
-                ++zeros;
+            posDial = (posDial + (fLeft ? -dposRemainder : dposRemainder) + 100) % 100;
+            if (!fCountCrossings && posDial == 0)
+                ++cntZeros;
         }
-        return std::to_string(zeros);
+        return std::to_string(cntZeros);
     }
 };
 
 namespace {
-const core::DayRegistration<Day01> registration{1};
+const core::Drg<Day01> drgDay{1};
 } // namespace

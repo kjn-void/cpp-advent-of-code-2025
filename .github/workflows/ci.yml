@@ -1,0 +1,55 @@
+name: C++20 validation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests-and-naming:
+    name: Tests and Apps Hungarian naming
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install development tools
+        run: brew install cmake llvm clang-format python googletest google-benchmark
+      - name: Configure all source files for naming validation
+        # Benchmark sources are linted, but their executable is neither built nor run in CI.
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DAOC_BUILD_BENCHMARKS=ON
+      - name: Test the naming guardrails
+        run: python3 tools/test_style_guardrails.py
+      - name: Validate formatting and Apps Hungarian names
+        run: python3 tools/check_style.py --build-dir build
+      - name: Build application and tests
+        run: cmake --build build --parallel --target aoc2025 tests
+      - name: Run all unit and CLI tests
+        run: ctest --test-dir build --output-on-failure
+      - name: Build with sanitizers
+        run: >-
+          cmake -S . -B build-sanitize -DCMAKE_BUILD_TYPE=Debug
+          -DBUILD_TESTING=ON -DAOC_BUILD_BENCHMARKS=OFF
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+      - run: cmake --build build-sanitize --parallel
+      - name: Run all tests with sanitizers
+        run: ctest --test-dir build-sanitize --output-on-failure
+      - name: Check standalone CLI build
+        run: |
+          cmake -S . -B build-cli -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DAOC_BUILD_BENCHMARKS=OFF
+          cmake --build build-cli --parallel
+      - name: Upload test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-diagnostics
+          path: |
+            build/Testing/Temporary/
+            build-sanitize/Testing/Temporary/
+          if-no-files-found: ignore

@@ -7,29 +7,30 @@
 #include <string>
 #include <vector>
 
-class Day06 final : public Solution {
+class Day06 final : public Slv {
   public:
-    void set_input(const std::vector<std::string>& lines) override;
-    std::string part1() override;
-    std::string part2() override;
+    void SetInput(const std::vector<std::string>& rgusLines) override;
+    std::string TxtPart1() override;
+    std::string TxtPart2() override;
 
   private:
-    struct Block {
-        int start;
-        int end;
+    struct Blk {
+        int colFirst;
+        int colLast;
     };
 
-    std::vector<std::string> grid_;
-    int R_ = 0;
-    int C_ = 0;
+    std::vector<std::string> gridWorksheet_;
+    int crw_ = 0;
+    int ccol_ = 0;
 
-    std::vector<Block> find_blocks() const;
-    char get_operator(const Block& b) const;
+    std::vector<Blk> RgblkFind() const;
+    char ChGetOperator(const Blk& blk) const;
 
-    std::vector<std::int64_t> extract_part1(const Block& b) const;
-    std::vector<std::int64_t> extract_part2(const Block& b) const;
+    std::vector<std::int64_t> RgvalExtractPart1(const Blk& blk) const;
+    std::vector<std::int64_t> RgvalExtractPart2(const Blk& blk) const;
 
-    template <typename Extractor> std::int64_t evaluate_blocks(Extractor&& extractor) const;
+    template <typename Fn> std::int64_t ValEvaluateBlocks(Fn&& fnExtractOperands) const;
 
-    static std::int64_t eval_numbers(std::span<const std::int64_t> nums, char op);
+    static std::int64_t ValEvaluateOperands(std::span<const std::int64_t> rgvalOperands,
+                                            char chOperator);
 };

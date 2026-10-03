@@ -6,15 +6,15 @@
 #include <string>
 #include <vector>
 
-class Day07 final : public Solution {
+class Day07 final : public Slv {
   public:
-    void set_input(const std::vector<std::string>& lines) override;
-    std::string part1() override;
-    std::string part2() override;
+    void SetInput(const std::vector<std::string>& rgusLines) override;
+    std::string TxtPart1() override;
+    std::string TxtPart2() override;
 
   private:
-    std::vector<std::string> grid_;
-    int rows_ = 0;
-    int cols_ = 0;
-    int start_col_ = -1;
+    std::vector<std::string> gridManifold_;
+    int crw_ = 0;
+    int ccol_ = 0;
+    int colStart_ = -1;
 };

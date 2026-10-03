@@ -9,74 +9,74 @@
 // Registration
 // -----------------------------------------------------------------------------
 namespace {
-const core::DayRegistration<Day06> registration{6};
+const core::Drg<Day06> drgDay{6};
 } // namespace
 
 // -----------------------------------------------------------------------------
 // Input
 // -----------------------------------------------------------------------------
 
-void Day06::set_input(const std::vector<std::string>& lines) {
-    grid_ = lines;
+void Day06::SetInput(const std::vector<std::string>& rgusLines) {
+    gridWorksheet_ = rgusLines;
 
     // normalize width
-    C_ = 0;
-    for (const auto& row : grid_) {
-        C_ = std::max(C_, static_cast<int>(row.size()));
+    ccol_ = 0;
+    for (const auto& usRow : gridWorksheet_) {
+        ccol_ = std::max(ccol_, static_cast<int>(usRow.size()));
     }
-    for (auto& row : grid_) {
-        if (static_cast<int>(row.size()) < C_) {
-            row.append(C_ - row.size(), ' ');
+    for (auto& usRow : gridWorksheet_) {
+        if (static_cast<int>(usRow.size()) < ccol_) {
+            usRow.append(ccol_ - usRow.size(), ' ');
         }
     }
 
-    R_ = static_cast<int>(grid_.size());
+    crw_ = static_cast<int>(gridWorksheet_.size());
 }
 
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
 
-std::vector<Day06::Block> Day06::find_blocks() const {
-    std::vector<bool> blank(C_, true);
+std::vector<Day06::Blk> Day06::RgblkFind() const {
+    std::vector<bool> mpcolfBlank(ccol_, true);
 
-    for (int c = 0; c < C_; ++c) {
-        for (int r = 0; r < R_; ++r) {
-            if (grid_[r][c] != ' ') {
-                blank[c] = false;
+    for (int col = 0; col < ccol_; ++col) {
+        for (int rw = 0; rw < crw_; ++rw) {
+            if (gridWorksheet_[rw][col] != ' ') {
+                mpcolfBlank[col] = false;
                 break;
             }
         }
     }
 
-    std::vector<Block> blocks;
-    bool in_block = false;
-    int start = 0;
+    std::vector<Blk> rgblk;
+    bool fInBlock = false;
+    int colFirst = 0;
 
-    for (int c = 0; c < C_; ++c) {
-        if (!blank[c]) {
-            if (!in_block) {
-                in_block = true;
-                start = c;
+    for (int col = 0; col < ccol_; ++col) {
+        if (!mpcolfBlank[col]) {
+            if (!fInBlock) {
+                fInBlock = true;
+                colFirst = col;
             }
-        } else if (in_block) {
-            blocks.push_back({start, c - 1});
-            in_block = false;
+        } else if (fInBlock) {
+            rgblk.push_back({colFirst, col - 1});
+            fInBlock = false;
         }
     }
 
-    if (in_block) {
-        blocks.push_back({start, C_ - 1});
+    if (fInBlock) {
+        rgblk.push_back({colFirst, ccol_ - 1});
     }
 
-    return blocks;
+    return rgblk;
 }
 
-char Day06::get_operator(const Block& b) const {
-    const auto& row = grid_[R_ - 1];
-    for (int c = b.start; c <= b.end; ++c) {
-        if (row[c] == '+' || row[c] == '*') {
-            return row[c];
+char Day06::ChGetOperator(const Blk& blk) const {
+    const auto& usRow = gridWorksheet_[crw_ - 1];
+    for (int col = blk.colFirst; col <= blk.colLast; ++col) {
+        if (usRow[col] == '+' || usRow[col] == '*') {
+            return usRow[col];
         }
     }
     throw std::invalid_argument("Missing worksheet operator");
@@ -86,72 +86,76 @@ char Day06::get_operator(const Block& b) const {
 // Extractors
 // -----------------------------------------------------------------------------
 
-std::vector<std::int64_t> Day06::extract_part1(const Block& b) const {
-    std::vector<std::int64_t> nums;
-    nums.reserve(R_);
+std::vector<std::int64_t> Day06::RgvalExtractPart1(const Blk& blk) const {
+    std::vector<std::int64_t> rgvalOperands;
+    rgvalOperands.reserve(crw_);
 
-    for (int r = 0; r < R_ - 1; ++r) {
-        std::string s = grid_[r].substr(b.start, b.end - b.start + 1);
-        s.erase(0, s.find_first_not_of(' '));
-        s.erase(s.find_last_not_of(' ') + 1);
-        nums.push_back(core::parse_integer<std::int64_t>(s));
+    for (int rw = 0; rw < crw_ - 1; ++rw) {
+        std::string usNumber =
+            gridWorksheet_[rw].substr(blk.colFirst, blk.colLast - blk.colFirst + 1);
+        usNumber.erase(0, usNumber.find_first_not_of(' '));
+        usNumber.erase(usNumber.find_last_not_of(' ') + 1);
+        rgvalOperands.push_back(core::ValParseInteger<std::int64_t>(usNumber));
     }
-    return nums;
+    return rgvalOperands;
 }
 
-std::vector<std::int64_t> Day06::extract_part2(const Block& b) const {
-    std::vector<std::int64_t> nums;
-    nums.reserve(b.end - b.start + 1);
+std::vector<std::int64_t> Day06::RgvalExtractPart2(const Blk& blk) const {
+    std::vector<std::int64_t> rgvalOperands;
+    rgvalOperands.reserve(blk.colLast - blk.colFirst + 1);
 
-    for (int c = b.start; c <= b.end; ++c) {
-        std::string s;
-        for (int r = 0; r < R_ - 1; ++r) {
-            char ch = grid_[r][c];
-            if (ch != ' ')
-                s.push_back(ch);
+    for (int col = blk.colFirst; col <= blk.colLast; ++col) {
+        std::string usNumber;
+        for (int rw = 0; rw < crw_ - 1; ++rw) {
+            char chDigit = gridWorksheet_[rw][col];
+            if (chDigit != ' ')
+                usNumber.push_back(chDigit);
         }
-        nums.push_back(core::parse_integer<std::int64_t>(s));
+        rgvalOperands.push_back(core::ValParseInteger<std::int64_t>(usNumber));
     }
-    return nums;
+    return rgvalOperands;
 }
 
 // -----------------------------------------------------------------------------
 // Evaluation
 // -----------------------------------------------------------------------------
 
-std::int64_t Day06::eval_numbers(std::span<const std::int64_t> nums, char op) {
-    if (op == '+') {
-        std::int64_t sum = 0;
-        for (auto v : nums)
-            sum += v;
-        return sum;
+std::int64_t Day06::ValEvaluateOperands(std::span<const std::int64_t> rgvalOperands,
+                                        char chOperator) {
+    if (chOperator == '+') {
+        std::int64_t valSumOperands = 0;
+        for (auto valOperand : rgvalOperands)
+            valSumOperands += valOperand;
+        return valSumOperands;
     }
 
-    std::int64_t prod = 1;
-    for (auto v : nums)
-        prod *= v;
-    return prod;
+    std::int64_t valProductOperands = 1;
+    for (auto valOperand : rgvalOperands)
+        valProductOperands *= valOperand;
+    return valProductOperands;
 }
 
-template <typename Extractor> std::int64_t Day06::evaluate_blocks(Extractor&& extractor) const {
-    std::int64_t total = 0;
+template <typename Fn> std::int64_t Day06::ValEvaluateBlocks(Fn&& fnExtractOperands) const {
+    std::int64_t valSumProblems = 0;
 
-    for (const auto& b : find_blocks()) {
-        auto nums = extractor(b);
-        char op = get_operator(b);
-        total += eval_numbers(nums, op);
+    for (const auto& blk : RgblkFind()) {
+        auto rgvalOperands = fnExtractOperands(blk);
+        char chOperator = ChGetOperator(blk);
+        valSumProblems += ValEvaluateOperands(rgvalOperands, chOperator);
     }
-    return total;
+    return valSumProblems;
 }
 
 // -----------------------------------------------------------------------------
 // Parts
 // -----------------------------------------------------------------------------
 
-std::string Day06::part1() {
-    return std::to_string(evaluate_blocks([this](const Block& b) { return extract_part1(b); }));
+std::string Day06::TxtPart1() {
+    return std::to_string(
+        ValEvaluateBlocks([this](const Blk& blk) { return RgvalExtractPart1(blk); }));
 }
 
-std::string Day06::part2() {
-    return std::to_string(evaluate_blocks([this](const Block& b) { return extract_part2(b); }));
+std::string Day06::TxtPart2() {
+    return std::to_string(
+        ValEvaluateBlocks([this](const Blk& blk) { return RgvalExtractPart2(blk); }));
 }

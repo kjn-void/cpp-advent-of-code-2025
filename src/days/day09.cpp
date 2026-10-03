@@ -9,12 +9,12 @@
 
 // Registration
 namespace {
-const core::DayRegistration<Day09> registration{9};
+const core::Drg<Day09> drgDay{9};
 
-std::int64_t rectangle_area(std::int64_t width, std::int64_t height) {
-    if (width > std::numeric_limits<std::int64_t>::max() / height)
+std::int64_t AreaRectangle(std::int64_t lenWidth, std::int64_t lenHeight) {
+    if (lenWidth > std::numeric_limits<std::int64_t>::max() / lenHeight)
         throw std::overflow_error("Rectangle area exceeds int64_t");
-    return width * height;
+    return lenWidth * lenHeight;
 }
 } // namespace
 
@@ -22,18 +22,19 @@ std::int64_t rectangle_area(std::int64_t width, std::int64_t height) {
 // Input
 // ----------------------------------------------------------
 
-void Day09::set_input(const std::vector<std::string>& lines) {
-    reds.clear();
+void Day09::SetInput(const std::vector<std::string>& rgusLines) {
+    rgptRed_.clear();
 
-    for (const auto& line : lines) {
-        if (line.empty())
+    for (const auto& usLine : rgusLines) {
+        if (usLine.empty())
             continue;
-        auto comma = line.find(',');
-        if (comma == std::string::npos)
+        auto offComma = usLine.find(',');
+        if (offComma == std::string::npos)
             throw std::invalid_argument("Expected a coordinate pair");
-        const auto x = core::parse_integer<int>(std::string_view(line).substr(0, comma));
-        const auto y = core::parse_integer<int>(std::string_view(line).substr(comma + 1));
-        reds.push_back({x, y});
+        const auto xTile = core::ValParseInteger<int>(std::string_view(usLine).substr(0, offComma));
+        const auto yTile =
+            core::ValParseInteger<int>(std::string_view(usLine).substr(offComma + 1));
+        rgptRed_.push_back({xTile, yTile});
     }
 }
 
@@ -41,124 +42,141 @@ void Day09::set_input(const std::vector<std::string>& lines) {
 // Part 1
 // ----------------------------------------------------------
 
-std::string Day09::part1() {
-    return std::to_string(max_area_inclusive(reds));
+std::string Day09::TxtPart1() {
+    return std::to_string(AreaMaxInclusive(rgptRed_));
 }
 
-std::int64_t Day09::max_area_inclusive(const std::vector<Pt>& pts) {
-    int n = static_cast<int>(pts.size());
-    std::int64_t best = 0;
+std::int64_t Day09::AreaMaxInclusive(const std::vector<Pt>& rgpt) {
+    int cpt = static_cast<int>(rgpt.size());
+    std::int64_t areaLargest = 0;
 
-    for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) {
-            std::int64_t dx = std::abs(std::int64_t{pts[i].x} - pts[j].x) + 1;
-            std::int64_t dy = std::abs(std::int64_t{pts[i].y} - pts[j].y) + 1;
-            best = std::max(best, rectangle_area(dx, dy));
+    for (int iptFirst = 0; iptFirst < cpt; ++iptFirst) {
+        for (int iptSecond = iptFirst + 1; iptSecond < cpt; ++iptSecond) {
+            std::int64_t lenWidth =
+                std::abs(std::int64_t{rgpt[iptFirst].xTile} - rgpt[iptSecond].xTile) + 1;
+            std::int64_t lenHeight =
+                std::abs(std::int64_t{rgpt[iptFirst].yTile} - rgpt[iptSecond].yTile) + 1;
+            areaLargest = std::max(areaLargest, AreaRectangle(lenWidth, lenHeight));
         }
     }
-    return best;
+    return areaLargest;
 }
 
 // ----------------------------------------------------------
 // Part 2
 // ----------------------------------------------------------
 
-std::string Day09::part2() {
-    if (reds.size() < 2)
+std::string Day09::TxtPart2() {
+    if (rgptRed_.size() < 2)
         return "0";
 
     // Each boundary coordinate and its successor start a distinct interval of
     // integer tiles. Interior gaps can be represented by a single compressed cell.
-    std::vector<std::int64_t> xs, ys;
-    for (const auto& point : reds) {
-        xs.push_back(point.x);
-        xs.push_back(std::int64_t{point.x} + 1);
-        ys.push_back(point.y);
-        ys.push_back(std::int64_t{point.y} + 1);
+    std::vector<std::int64_t> rgx, rgy;
+    for (const auto& ptRed : rgptRed_) {
+        rgx.push_back(ptRed.xTile);
+        rgx.push_back(std::int64_t{ptRed.xTile} + 1);
+        rgy.push_back(ptRed.yTile);
+        rgy.push_back(std::int64_t{ptRed.yTile} + 1);
     }
-    const auto compress = [](auto& coordinates) {
-        std::ranges::sort(coordinates);
-        const auto duplicates = std::ranges::unique(coordinates);
-        coordinates.erase(duplicates.begin(), duplicates.end());
+    const auto fnCompress = [](auto& rgxy) {
+        std::ranges::sort(rgxy);
+        const auto rngDuplicates = std::ranges::unique(rgxy);
+        rgxy.erase(rngDuplicates.begin(), rngDuplicates.end());
     };
-    compress(xs);
-    compress(ys);
+    fnCompress(rgx);
+    fnCompress(rgy);
 
-    struct Cell {
-        std::size_t x, y;
+    struct Cel {
+        std::size_t colCompressed, rwCompressed;
     };
-    std::vector<Cell> vertices;
-    for (const auto& point : reds) {
-        vertices.push_back(
-            {static_cast<std::size_t>(std::ranges::lower_bound(xs, point.x) - xs.begin()),
-             static_cast<std::size_t>(std::ranges::lower_bound(ys, point.y) - ys.begin())});
+    std::vector<Cel> rgcelVertices;
+    for (const auto& ptRed : rgptRed_) {
+        rgcelVertices.push_back(
+            {static_cast<std::size_t>(std::ranges::lower_bound(rgx, ptRed.xTile) - rgx.begin()),
+             static_cast<std::size_t>(std::ranges::lower_bound(rgy, ptRed.yTile) - rgy.begin())});
     }
-    struct Segment {
-        std::size_t left, right, bottom, top;
-        bool horizontal;
+    struct Seg {
+        std::size_t colFirst, colLast, rwFirst, rwLast;
+        bool fHorizontal;
     };
-    std::vector<Segment> segments;
-    for (std::size_t i = 0; i < vertices.size(); ++i) {
-        const auto a = vertices[i];
-        const auto b = vertices[(i + 1) % vertices.size()];
-        if (a.x != b.x && a.y != b.y)
+    std::vector<Seg> rgseg;
+    for (std::size_t icelFirst = 0; icelFirst < rgcelVertices.size(); ++icelFirst) {
+        const auto celFirst = rgcelVertices[icelFirst];
+        const auto celSecond = rgcelVertices[(icelFirst + 1) % rgcelVertices.size()];
+        if (celFirst.colCompressed != celSecond.colCompressed &&
+            celFirst.rwCompressed != celSecond.rwCompressed)
             throw std::invalid_argument("Polygon edges must be axis-aligned");
-        segments.push_back({std::min(a.x, b.x), std::max(a.x, b.x), std::min(a.y, b.y),
-                            std::max(a.y, b.y), a.y == b.y});
+        rgseg.push_back({std::min(celFirst.colCompressed, celSecond.colCompressed),
+                         std::max(celFirst.colCompressed, celSecond.colCompressed),
+                         std::min(celFirst.rwCompressed, celSecond.rwCompressed),
+                         std::max(celFirst.rwCompressed, celSecond.rwCompressed),
+                         celFirst.rwCompressed == celSecond.rwCompressed});
     }
 
     // Scan each compressed row, then build a prefix sum of forbidden cells.
     // A rectangle is valid precisely when its forbidden-cell count is zero.
-    const auto stride = xs.size();
-    std::vector<std::int64_t> outside(stride * ys.size(), 0);
-    std::vector<int> difference(stride);
-    std::vector<std::size_t> crossings;
-    for (std::size_t y = 0; y + 1 < ys.size(); ++y) {
-        std::ranges::fill(difference, 0);
-        crossings.clear();
-        const auto cover = [&](std::size_t left, std::size_t right) {
-            ++difference[left];
-            --difference[right + 1];
+    const auto ccolPrefix = rgx.size();
+    std::vector<std::int64_t> gridForbiddenPrefix(ccolPrefix * rgy.size(), 0);
+    std::vector<int> mpcolcntDelta(ccolPrefix);
+    std::vector<std::size_t> rgcolCrossings;
+    for (std::size_t rwCompressed = 0; rwCompressed + 1 < rgy.size(); ++rwCompressed) {
+        std::ranges::fill(mpcolcntDelta, 0);
+        rgcolCrossings.clear();
+        const auto fnCoverInterval = [&](std::size_t colFirst, std::size_t colLast) {
+            ++mpcolcntDelta[colFirst];
+            --mpcolcntDelta[colLast + 1];
         };
-        for (const auto& edge : segments) {
-            if (edge.horizontal) {
-                if (y == edge.bottom)
-                    cover(edge.left, edge.right);
+        for (const auto& seg : rgseg) {
+            if (seg.fHorizontal) {
+                if (rwCompressed == seg.rwFirst)
+                    fnCoverInterval(seg.colFirst, seg.colLast);
             } else {
-                if (y >= edge.bottom && y <= edge.top)
-                    cover(edge.left, edge.left);
+                if (rwCompressed >= seg.rwFirst && rwCompressed <= seg.rwLast)
+                    fnCoverInterval(seg.colFirst, seg.colFirst);
                 // Half-open vertical edges count each polygon vertex once.
-                if (y >= edge.bottom && y < edge.top)
-                    crossings.push_back(edge.left);
+                if (rwCompressed >= seg.rwFirst && rwCompressed < seg.rwLast)
+                    rgcolCrossings.push_back(seg.colFirst);
             }
         }
-        std::ranges::sort(crossings);
-        if (crossings.size() % 2 != 0)
+        std::ranges::sort(rgcolCrossings);
+        if (rgcolCrossings.size() % 2 != 0)
             throw std::invalid_argument("Invalid polygon boundary");
-        for (std::size_t i = 0; i < crossings.size(); i += 2)
-            cover(crossings[i], crossings[i + 1]);
-        int coverage = 0;
-        for (std::size_t x = 0; x + 1 < xs.size(); ++x) {
-            coverage += difference[x];
-            outside[(y + 1) * stride + x + 1] = (coverage == 0) + outside[y * stride + x + 1] +
-                                                outside[(y + 1) * stride + x] -
-                                                outside[y * stride + x];
+        for (std::size_t icolCrossing = 0; icolCrossing < rgcolCrossings.size(); icolCrossing += 2)
+            fnCoverInterval(rgcolCrossings[icolCrossing], rgcolCrossings[icolCrossing + 1]);
+        int cntCoveringIntervals = 0;
+        for (std::size_t colCompressed = 0; colCompressed + 1 < rgx.size(); ++colCompressed) {
+            cntCoveringIntervals += mpcolcntDelta[colCompressed];
+            gridForbiddenPrefix[(rwCompressed + 1) * ccolPrefix + colCompressed + 1] =
+                (cntCoveringIntervals == 0) +
+                gridForbiddenPrefix[rwCompressed * ccolPrefix + colCompressed + 1] +
+                gridForbiddenPrefix[(rwCompressed + 1) * ccolPrefix + colCompressed] -
+                gridForbiddenPrefix[rwCompressed * ccolPrefix + colCompressed];
         }
     }
 
-    std::int64_t best = 0;
-    for (std::size_t i = 0; i < vertices.size(); ++i) {
-        for (std::size_t j = i + 1; j < vertices.size(); ++j) {
-            const auto left = std::min(vertices[i].x, vertices[j].x);
-            const auto right = std::max(vertices[i].x, vertices[j].x) + 1;
-            const auto bottom = std::min(vertices[i].y, vertices[j].y);
-            const auto top = std::max(vertices[i].y, vertices[j].y) + 1;
-            const auto forbidden = outside[top * stride + right] -
-                                   outside[bottom * stride + right] - outside[top * stride + left] +
-                                   outside[bottom * stride + left];
-            if (forbidden == 0)
-                best = std::max(best, rectangle_area(xs[right] - xs[left], ys[top] - ys[bottom]));
+    std::int64_t areaLargest = 0;
+    for (std::size_t icelFirst = 0; icelFirst < rgcelVertices.size(); ++icelFirst) {
+        for (std::size_t icelSecond = icelFirst + 1; icelSecond < rgcelVertices.size();
+             ++icelSecond) {
+            const auto colFirst = std::min(rgcelVertices[icelFirst].colCompressed,
+                                           rgcelVertices[icelSecond].colCompressed);
+            const auto colLim = std::max(rgcelVertices[icelFirst].colCompressed,
+                                         rgcelVertices[icelSecond].colCompressed) +
+                                1;
+            const auto rwFirst = std::min(rgcelVertices[icelFirst].rwCompressed,
+                                          rgcelVertices[icelSecond].rwCompressed);
+            const auto rwLim = std::max(rgcelVertices[icelFirst].rwCompressed,
+                                        rgcelVertices[icelSecond].rwCompressed) +
+                               1;
+            const auto cntForbiddenCells = gridForbiddenPrefix[rwLim * ccolPrefix + colLim] -
+                                           gridForbiddenPrefix[rwFirst * ccolPrefix + colLim] -
+                                           gridForbiddenPrefix[rwLim * ccolPrefix + colFirst] +
+                                           gridForbiddenPrefix[rwFirst * ccolPrefix + colFirst];
+            if (cntForbiddenCells == 0)
+                areaLargest = std::max(areaLargest, AreaRectangle(rgx[colLim] - rgx[colFirst],
+                                                                  rgy[rwLim] - rgy[rwFirst]));
         }
     }
-    return std::to_string(best);
+    return std::to_string(areaLargest);
 }

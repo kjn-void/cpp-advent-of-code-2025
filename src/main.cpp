@@ -4,45 +4,46 @@
 #include "core/Solution.h"
 #include <iostream>
 
-int main(int argc, char** argv) {
-    if (argc < 2) {
+int main(int cusArgs, char** rgusArgs) {
+    if (cusArgs < 2) {
         std::cerr << "Usage: aoc2025 DAY [DAY ...]\n";
         return 1;
     }
 
-    int exitCode = 0;
+    int rcProgram = 0;
 
-    for (int argIndex = 1; argIndex < argc; argIndex++) {
-        int day = 0;
+    for (int iusArg = 1; iusArg < cusArgs; iusArg++) {
+        int idDay = 0;
         try {
-            day = core::parse_integer<int>(argv[argIndex]);
-        } catch (const std::exception& ex) {
-            std::cerr << "Invalid day argument '" << argv[argIndex] << "': " << ex.what() << "\n";
-            exitCode = 1;
+            idDay = core::ValParseInteger<int>(rgusArgs[iusArg]);
+        } catch (const std::exception& errFailure) {
+            std::cerr << "Invalid day argument '" << rgusArgs[iusArg] << "': " << errFailure.what()
+                      << "\n";
+            rcProgram = 1;
             continue;
         }
 
-        auto solver = Registry::instance().make(day);
-        if (!solver) {
-            std::cerr << "Day " << day << " not implemented\n";
-            exitCode = 1;
+        auto pslvDay = Regy::RegyInstance().PslvMake(idDay);
+        if (!pslvDay) {
+            std::cerr << "Day " << idDay << " not implemented\n";
+            rcProgram = 1;
             continue;
         }
 
         try {
-            auto lines = core::read_input(day);
-            solver->set_input(lines);
+            auto rgusLines = core::RgusReadInput(idDay);
+            pslvDay->SetInput(rgusLines);
 
-            const auto part1 = solver->part1();
-            const auto part2 = solver->part2();
-            std::cout << "Day " << day << "\n";
-            std::cout << "  Part 1: " << part1 << "\n";
-            std::cout << "  Part 2: " << part2 << "\n";
-        } catch (const std::exception& ex) {
-            std::cerr << "Day " << day << " failed: " << ex.what() << "\n";
-            exitCode = 1;
+            const auto txtPart1 = pslvDay->TxtPart1();
+            const auto txtPart2 = pslvDay->TxtPart2();
+            std::cout << "Day " << idDay << "\n";
+            std::cout << "  Part 1: " << txtPart1 << "\n";
+            std::cout << "  Part 2: " << txtPart2 << "\n";
+        } catch (const std::exception& errFailure) {
+            std::cerr << "Day " << idDay << " failed: " << errFailure.what() << "\n";
+            rcProgram = 1;
         }
     }
 
-    return exitCode;
+    return rcProgram;
 }

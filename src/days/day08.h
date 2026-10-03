@@ -10,41 +10,41 @@
 #include <string>
 #include <vector>
 
-class Day08 final : public Solution {
+class Day08 final : public Slv {
   public:
-    void set_input(const std::vector<std::string>& lines) override;
-    std::string part1() override;
-    std::string part2() override;
+    void SetInput(const std::vector<std::string>& rgusLines) override;
+    std::string TxtPart1() override;
+    std::string TxtPart2() override;
 
-    struct Vec3 {
-        std::int64_t x, y, z;
+    struct Pt {
+        std::int64_t xJunction, yJunction, zJunction;
     };
 
-    struct Edge {
-        std::int64_t dist2;
-        int i, j;
+    struct Edg {
+        std::int64_t distSquared;
+        int iptFirst, iptSecond;
     };
 
-    std::vector<Vec3> points;
-    std::vector<Edge> edges;
+    std::vector<Pt> rgpt;
+    std::vector<Edg> rgedgConnections;
 
     // Helpers
-    static std::int64_t squared_dist(const Vec3& a, const Vec3& b);
-    static std::vector<Edge> build_sorted_edges(std::span<const Vec3> pts);
+    static std::int64_t DistSquared(const Pt& ptFirst, const Pt& ptSecond);
+    static std::vector<Edg> RgedgBuildSorted(std::span<const Pt> rgpt);
 
     // DSU
-    struct DSU {
-        std::vector<int> parent;
-        std::vector<int> size;
+    struct Dsu {
+        std::vector<int> mpiptiptParent;
+        std::vector<int> mpiptcntSize;
 
-        explicit DSU(int n);
-        int find(int x);
-        bool unite(int a, int b);
+        explicit Dsu(int cpt);
+        int IptFind(int iptRoot);
+        bool FUnite(int iptFirstRoot, int iptSecondRoot);
     };
 
-    static std::vector<int> run_connections(std::span<const Vec3> points,
-                                            std::span<const Edge> edges, int k);
+    static std::vector<int> RgcntRunConnections(std::span<const Pt> rgpt,
+                                                std::span<const Edg> rgedgConnections, int cedg);
 
-    static std::pair<int, int> run_until_single_circuit(std::span<const Vec3> points,
-                                                        std::span<const Edge> edges);
+    static std::pair<int, int> LinkConnectAll(std::span<const Pt> rgpt,
+                                              std::span<const Edg> rgedgConnections);
 };

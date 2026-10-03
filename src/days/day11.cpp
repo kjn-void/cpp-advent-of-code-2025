@@ -8,38 +8,38 @@
 
 // Registration
 namespace {
-const core::DayRegistration<Day11> registration{11};
+const core::Drg<Day11> drgDay{11};
 } // namespace
 
 // ------------------------------------------------------------
 // Parsing
 // ------------------------------------------------------------
 
-void Day11::set_input(const std::vector<std::string>& lines) {
-    adj.clear();
+void Day11::SetInput(const std::vector<std::string>& rgusLines) {
+    mpdevrgdevOutputs_.clear();
 
-    for (const auto& line : lines) {
-        if (line.empty())
+    for (const auto& usLine : rgusLines) {
+        if (usLine.empty())
             continue;
 
-        auto pos = line.find(':');
-        if (pos == std::string::npos)
+        auto offColon = usLine.find(':');
+        if (offColon == std::string::npos)
             throw std::invalid_argument("Expected a device and its outputs");
 
-        std::string from(core::trim(std::string_view(line).substr(0, pos)));
-        if (from.empty())
+        std::string devSource(core::UsTrim(std::string_view(usLine).substr(0, offColon)));
+        if (devSource.empty())
             throw std::invalid_argument("Missing device name");
-        std::string rest = line.substr(pos + 1);
+        std::string usOutputs = usLine.substr(offColon + 1);
 
-        std::istringstream iss(rest);
-        std::string tok;
-        std::vector<std::string> outs;
+        std::istringstream inOutputs(usOutputs);
+        std::string usDevice;
+        std::vector<std::string> rgdevOutputs;
 
-        while (iss >> tok) {
-            outs.push_back(tok);
+        while (inOutputs >> usDevice) {
+            rgdevOutputs.push_back(usDevice);
         }
 
-        adj[from] = std::move(outs);
+        mpdevrgdevOutputs_[devSource] = std::move(rgdevOutputs);
     }
 }
 
@@ -47,97 +47,100 @@ void Day11::set_input(const std::vector<std::string>& lines) {
 // Part 1 — count all paths from "you" to "out"
 // ------------------------------------------------------------
 
-std::int64_t Day11::count_paths_from(const std::string& node,
-                                     std::unordered_map<std::string, std::int64_t>& memo,
-                                     std::unordered_set<std::string>& visiting) {
-    if (node == "out") {
+std::int64_t Day11::CntPathsFrom(const std::string& dev,
+                                 std::unordered_map<std::string, std::int64_t>& mpdevcntPaths,
+                                 std::unordered_set<std::string>& setdevActive) {
+    if (dev == "out") {
         return 1;
     }
 
-    if (auto it = memo.find(node); it != memo.end()) {
-        return it->second;
+    if (auto itLookup = mpdevcntPaths.find(dev); itLookup != mpdevcntPaths.end()) {
+        return itLookup->second;
     }
 
     // cycle guard (should not happen for valid input)
-    if (!visiting.insert(node).second) {
+    if (!setdevActive.insert(dev).second) {
         throw std::invalid_argument("Device graph contains a cycle");
     }
 
-    std::int64_t total = 0;
-    if (const auto it = adj.find(node); it != adj.end()) {
-        for (const auto& next : it->second)
-            total += count_paths_from(next, memo, visiting);
+    std::int64_t cntPaths = 0;
+    if (const auto itLookup = mpdevrgdevOutputs_.find(dev); itLookup != mpdevrgdevOutputs_.end()) {
+        for (const auto& devNext : itLookup->second)
+            cntPaths += CntPathsFrom(devNext, mpdevcntPaths, setdevActive);
     }
 
-    visiting.erase(node);
-    memo[node] = total;
-    return total;
+    setdevActive.erase(dev);
+    mpdevcntPaths[dev] = cntPaths;
+    return cntPaths;
 }
 
-std::string Day11::part1() {
-    if (adj.empty()) {
+std::string Day11::TxtPart1() {
+    if (mpdevrgdevOutputs_.empty()) {
         return "0";
     }
 
-    std::unordered_map<std::string, std::int64_t> memo;
-    std::unordered_set<std::string> visiting;
+    std::unordered_map<std::string, std::int64_t> mpdevcntPaths;
+    std::unordered_set<std::string> setdevActive;
 
-    std::int64_t total = count_paths_from("you", memo, visiting);
-    return std::to_string(total);
+    std::int64_t cntPaths = CntPathsFrom("you", mpdevcntPaths, setdevActive);
+    return std::to_string(cntPaths);
 }
 
 // ------------------------------------------------------------
 // Part 2 — paths that visit both required nodes
 // ------------------------------------------------------------
 
-std::int64_t Day11::count_paths_with_required(const std::string& start, const std::string& end,
-                                              const std::string& need1, const std::string& need2) {
-    if (adj.empty()) {
+std::int64_t Day11::CntPathsWithRequired(const std::string& devStart, const std::string& devEnd,
+                                         const std::string& devRequiredFirst,
+                                         const std::string& devRequiredSecond) {
+    if (mpdevrgdevOutputs_.empty()) {
         return 0;
     }
 
-    std::unordered_map<State, std::int64_t, StateHash> memo;
-    std::unordered_set<State, StateHash> visiting;
+    std::unordered_map<Vst, std::int64_t, Hashvst> mpvstcntPaths;
+    std::unordered_set<Vst, Hashvst> setvstActive;
 
-    int initMask = 0;
-    if (start == need1)
-        initMask |= 1;
-    if (start == need2)
-        initMask |= 2;
+    int maskInitialVisits = 0;
+    if (devStart == devRequiredFirst)
+        maskInitialVisits |= 1;
+    if (devStart == devRequiredSecond)
+        maskInitialVisits |= 2;
 
-    const auto dfs = [&](auto&& self, const std::string& node, int mask) -> std::int64_t {
-        State st{node, mask};
+    const auto fnCountPaths = [&](auto&& fnRecurCountPaths, const std::string& dev,
+                                  int maskVisits) -> std::int64_t {
+        Vst vst{dev, maskVisits};
 
-        if (auto it = memo.find(st); it != memo.end()) {
-            return it->second;
+        if (auto itLookup = mpvstcntPaths.find(vst); itLookup != mpvstcntPaths.end()) {
+            return itLookup->second;
         }
 
-        if (node == end) {
-            return memo[st] = (mask == 3 ? 1 : 0);
+        if (dev == devEnd) {
+            return mpvstcntPaths[vst] = (maskVisits == 3 ? 1 : 0);
         }
 
-        if (!visiting.insert(st).second)
+        if (!setvstActive.insert(vst).second)
             throw std::invalid_argument("Device graph contains a cycle");
-        std::int64_t total = 0;
-        if (const auto it = adj.find(node); it != adj.end()) {
-            for (const auto& nxt : it->second) {
-                int nextMask = mask;
-                if (nxt == need1)
-                    nextMask |= 1;
-                if (nxt == need2)
-                    nextMask |= 2;
-                total += self(self, nxt, nextMask);
+        std::int64_t cntPaths = 0;
+        if (const auto itLookup = mpdevrgdevOutputs_.find(dev);
+            itLookup != mpdevrgdevOutputs_.end()) {
+            for (const auto& devNext : itLookup->second) {
+                int maskNextVisits = maskVisits;
+                if (devNext == devRequiredFirst)
+                    maskNextVisits |= 1;
+                if (devNext == devRequiredSecond)
+                    maskNextVisits |= 2;
+                cntPaths += fnRecurCountPaths(fnRecurCountPaths, devNext, maskNextVisits);
             }
         }
-        visiting.erase(st);
-        memo[st] = total;
-        return total;
+        setvstActive.erase(vst);
+        mpvstcntPaths[vst] = cntPaths;
+        return cntPaths;
     };
 
-    return dfs(dfs, start, initMask);
+    return fnCountPaths(fnCountPaths, devStart, maskInitialVisits);
 }
 
-std::string Day11::part2() {
-    std::int64_t total = count_paths_with_required("svr", "out", "dac", "fft");
-    return std::to_string(total);
+std::string Day11::TxtPart2() {
+    std::int64_t cntPaths = CntPathsWithRequired("svr", "out", "dac", "fft");
+    return std::to_string(cntPaths);
 }

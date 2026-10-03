@@ -9,24 +9,25 @@
 
 namespace core {
 
-inline std::string_view trim(std::string_view text) {
-    constexpr std::string_view whitespace = " \t\r\n";
-    const auto first = text.find_first_not_of(whitespace);
-    if (first == std::string_view::npos)
+inline std::string_view UsTrim(std::string_view usText) {
+    constexpr std::string_view rgchWhitespace = " \t\r\n";
+    const auto offFirst = usText.find_first_not_of(rgchWhitespace);
+    if (offFirst == std::string_view::npos)
         return {};
-    return text.substr(first, text.find_last_not_of(whitespace) - first + 1);
+    return usText.substr(offFirst, usText.find_last_not_of(rgchWhitespace) - offFirst + 1);
 }
 
-template <std::integral T> T parse_integer(std::string_view text) {
-    text = trim(text);
-    if (text.empty())
+template <std::integral Val> Val ValParseInteger(std::string_view usText) {
+    usText = UsTrim(usText);
+    if (usText.empty())
         throw std::invalid_argument("Expected an integer");
-    T value{};
-    const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), value);
-    if (error != std::errc{} || end != text.data() + text.size()) {
-        throw std::invalid_argument("Invalid integer: " + std::string(text));
+    Val valParsed{};
+    const auto [pchLim, errParse] =
+        std::from_chars(usText.data(), usText.data() + usText.size(), valParsed);
+    if (errParse != std::errc{} || pchLim != usText.data() + usText.size()) {
+        throw std::invalid_argument("Invalid integer: " + std::string(usText));
     }
-    return value;
+    return valParsed;
 }
 
 } // namespace core

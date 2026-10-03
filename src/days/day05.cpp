@@ -10,79 +10,79 @@
 // Registration
 // ------------------------------------------------------------
 namespace {
-const core::DayRegistration<Day05> registration{5};
+const core::Drg<Day05> drgDay{5};
 } // namespace
 
 // ------------------------------------------------------------
 
-void Day05::set_input(const std::vector<std::string>& lines) {
-    ranges_.clear();
-    ids_.clear();
+void Day05::SetInput(const std::vector<std::string>& rgusLines) {
+    rgrngFresh_.clear();
+    rgidIngredients_.clear();
 
-    int section = 0;
+    int iterSection = 0;
 
-    for (const auto& raw_line : lines) {
-        const auto line = core::trim(raw_line);
-        if (line.empty()) {
-            ++section;
+    for (const auto& usRawLine : rgusLines) {
+        const auto usLine = core::UsTrim(usRawLine);
+        if (usLine.empty()) {
+            ++iterSection;
             continue;
         }
 
-        if (section == 0) {
+        if (iterSection == 0) {
             // range
-            auto dash = line.find('-');
-            if (dash == std::string_view::npos)
+            auto offDash = usLine.find('-');
+            if (offDash == std::string_view::npos)
                 throw std::invalid_argument("Expected a fresh ID range");
-            const auto lo = core::parse_integer<std::int64_t>(line.substr(0, dash));
-            const auto hi = core::parse_integer<std::int64_t>(line.substr(dash + 1));
-            if (lo < 0 || hi < lo)
+            const auto idFirst = core::ValParseInteger<std::int64_t>(usLine.substr(0, offDash));
+            const auto idLast = core::ValParseInteger<std::int64_t>(usLine.substr(offDash + 1));
+            if (idFirst < 0 || idLast < idFirst)
                 throw std::invalid_argument("Invalid fresh ID range");
-            ranges_.emplace_back(lo, hi);
+            rgrngFresh_.emplace_back(idFirst, idLast);
         } else {
             // id
-            ids_.push_back(core::parse_integer<std::int64_t>(line));
+            rgidIngredients_.push_back(core::ValParseInteger<std::int64_t>(usLine));
         }
     }
 
     // merge overlapping ranges
-    std::ranges::sort(ranges_);
-    if (ranges_.empty())
+    std::ranges::sort(rgrngFresh_);
+    if (rgrngFresh_.empty())
         return;
 
-    std::vector<std::pair<std::int64_t, std::int64_t>> merged;
-    std::int64_t cur_lo = ranges_[0].first;
-    std::int64_t cur_hi = ranges_[0].second;
+    std::vector<std::pair<std::int64_t, std::int64_t>> rgrngMerged;
+    std::int64_t idMergedFirst = rgrngFresh_[0].first;
+    std::int64_t idMergedLast = rgrngFresh_[0].second;
 
-    for (std::size_t i = 1; i < ranges_.size(); ++i) {
-        auto [lo, hi] = ranges_[i];
-        if (lo <= cur_hi) {
-            cur_hi = std::max(cur_hi, hi);
+    for (std::size_t irng = 1; irng < rgrngFresh_.size(); ++irng) {
+        auto [idFirst, idLast] = rgrngFresh_[irng];
+        if (idFirst <= idMergedLast) {
+            idMergedLast = std::max(idMergedLast, idLast);
         } else {
-            merged.emplace_back(cur_lo, cur_hi);
-            cur_lo = lo;
-            cur_hi = hi;
+            rgrngMerged.emplace_back(idMergedFirst, idMergedLast);
+            idMergedFirst = idFirst;
+            idMergedLast = idLast;
         }
     }
-    merged.emplace_back(cur_lo, cur_hi);
-    ranges_.swap(merged);
+    rgrngMerged.emplace_back(idMergedFirst, idMergedLast);
+    rgrngFresh_.swap(rgrngMerged);
 }
 
 // ------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------
 
-bool Day05::is_fresh(std::int64_t id) const {
+bool Day05::FIsFresh(std::int64_t idIngredient) const {
     // binary search in merged ranges
-    int lo = 0;
-    int hi = static_cast<int>(ranges_.size()) - 1;
+    int irngFirst = 0;
+    int irngLast = static_cast<int>(rgrngFresh_.size()) - 1;
 
-    while (lo <= hi) {
-        int mid = (lo + hi) / 2;
-        auto [a, b] = ranges_[mid];
-        if (id < a) {
-            hi = mid - 1;
-        } else if (id > b) {
-            lo = mid + 1;
+    while (irngFirst <= irngLast) {
+        int irngMiddle = (irngFirst + irngLast) / 2;
+        auto [idFirst, idLast] = rgrngFresh_[irngMiddle];
+        if (idIngredient < idFirst) {
+            irngLast = irngMiddle - 1;
+        } else if (idIngredient > idLast) {
+            irngFirst = irngMiddle + 1;
         } else {
             return true;
         }
@@ -94,26 +94,26 @@ bool Day05::is_fresh(std::int64_t id) const {
 // Part 1
 // ------------------------------------------------------------
 
-std::string Day05::part1() {
-    int count = 0;
-    for (auto id : ids_) {
-        if (is_fresh(id))
-            ++count;
+std::string Day05::TxtPart1() {
+    int cntFresh = 0;
+    for (auto idIngredient : rgidIngredients_) {
+        if (FIsFresh(idIngredient))
+            ++cntFresh;
     }
-    return std::to_string(count);
+    return std::to_string(cntFresh);
 }
 
 // ------------------------------------------------------------
 // Part 2
 // ------------------------------------------------------------
 
-std::string Day05::part2() {
-    std::int64_t total = 0;
-    for (auto [lo, hi] : ranges_) {
-        const auto difference = hi - lo;
-        if (difference >= std::numeric_limits<std::int64_t>::max() - total)
+std::string Day05::TxtPart2() {
+    std::int64_t cidFresh = 0;
+    for (auto [idFirst, idLast] : rgrngFresh_) {
+        const auto didRange = idLast - idFirst;
+        if (didRange >= std::numeric_limits<std::int64_t>::max() - cidFresh)
             throw std::overflow_error("Fresh ID count exceeds int64_t");
-        total += difference + 1;
+        cidFresh += didRange + 1;
     }
-    return std::to_string(total);
+    return std::to_string(cidFresh);
 }

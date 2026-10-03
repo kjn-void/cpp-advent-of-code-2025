@@ -4,17 +4,17 @@
 #include <string>
 #include <vector>
 
-class Day04 final : public Solution {
+class Day04 final : public Slv {
   public:
-    void set_input(const std::vector<std::string>& lines) override;
-    std::string part1() override;
-    std::string part2() override;
+    void SetInput(const std::vector<std::string>& rgusLines) override;
+    std::string TxtPart1() override;
+    std::string TxtPart2() override;
 
   private:
-    std::vector<std::string> grid_;
-    int rows_ = 0;
-    int cols_ = 0;
+    std::vector<std::string> gridRolls_;
+    int crw_ = 0;
+    int ccol_ = 0;
 
     // helpers
-    int count_adjacent(int r, int c) const;
+    int CntAdjacent(int rw, int col) const;
 };

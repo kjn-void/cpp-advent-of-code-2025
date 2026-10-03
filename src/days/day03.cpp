@@ -10,28 +10,28 @@
 // ------------------------------------------------------------
 
 namespace {
-const core::DayRegistration<Day03> registration{3};
+const core::Drg<Day03> drgDay{3};
 } // namespace
 
 // ------------------------------------------------------------
 // Input
 // ------------------------------------------------------------
 
-void Day03::set_input(const std::vector<std::string>& lines) {
-    banks.clear();
-    banks.reserve(lines.size());
+void Day03::SetInput(const std::vector<std::string>& rgusLines) {
+    rgbnk_.clear();
+    rgbnk_.reserve(rgusLines.size());
 
-    for (const auto& line : lines) {
-        std::vector<int> digits;
-        digits.reserve(line.size());
+    for (const auto& usLine : rgusLines) {
+        std::vector<int> rgdig;
+        rgdig.reserve(usLine.size());
 
-        for (char ch : line) {
-            if (ch < '0' || ch > '9')
+        for (char chDigit : usLine) {
+            if (chDigit < '0' || chDigit > '9')
                 throw std::invalid_argument("Battery bank must contain digits");
-            digits.push_back(ch - '0');
+            rgdig.push_back(chDigit - '0');
         }
 
-        banks.push_back(std::move(digits));
+        rgbnk_.push_back(std::move(rgdig));
     }
 }
 
@@ -39,56 +39,56 @@ void Day03::set_input(const std::vector<std::string>& lines) {
 // Part 1 / Part 2
 // ------------------------------------------------------------
 
-std::string Day03::part1() {
-    return max_joltage(2);
+std::string Day03::TxtPart1() {
+    return TxtMaxJoltage(2);
 }
 
-std::string Day03::part2() {
-    return max_joltage(12);
+std::string Day03::TxtPart2() {
+    return TxtMaxJoltage(12);
 }
 
 // ------------------------------------------------------------
 // Core logic
 // ------------------------------------------------------------
 
-std::string Day03::max_joltage(int pick) const {
-    std::int64_t total = 0;
+std::string Day03::TxtMaxJoltage(int cdigToSelect) const {
+    std::int64_t jolSum = 0;
 
-    for (const auto& bank : banks) {
-        const int n = static_cast<int>(bank.size());
+    for (const auto& bnk : rgbnk_) {
+        const int cdig = static_cast<int>(bnk.size());
 
-        int need = pick;
-        std::vector<int> stack;
-        stack.reserve(pick);
+        int cdigNeeded = cdigToSelect;
+        std::vector<int> rgdigSelected;
+        rgdigSelected.reserve(cdigToSelect);
 
-        for (int i = 0; i < n; ++i) {
-            int dig = bank[i];
+        for (int idigBattery = 0; idigBattery < cdig; ++idigBattery) {
+            int dig = bnk[idigBattery];
 
-            int remaining = n - i;
-            bool can_pop = !stack.empty() && remaining > need;
+            int cdigRemaining = cdig - idigBattery;
+            bool fCanDiscard = !rgdigSelected.empty() && cdigRemaining > cdigNeeded;
 
-            while (can_pop && stack.back() < dig) {
-                stack.pop_back();
-                ++need;
-                can_pop = !stack.empty() && remaining > need;
+            while (fCanDiscard && rgdigSelected.back() < dig) {
+                rgdigSelected.pop_back();
+                ++cdigNeeded;
+                fCanDiscard = !rgdigSelected.empty() && cdigRemaining > cdigNeeded;
             }
 
-            if (need > 0) {
-                stack.push_back(dig);
-                --need;
+            if (cdigNeeded > 0) {
+                rgdigSelected.push_back(dig);
+                --cdigNeeded;
             }
         }
 
-        total += stack_to_number(stack);
+        jolSum += JolFromDigits(rgdigSelected);
     }
 
-    return std::to_string(total);
+    return std::to_string(jolSum);
 }
 
-std::int64_t Day03::stack_to_number(std::span<const int> stack) {
-    std::int64_t value = 0;
-    for (int d : stack) {
-        value = value * 10 + d;
+std::int64_t Day03::JolFromDigits(std::span<const int> rgdigSelected) {
+    std::int64_t jolSum = 0;
+    for (int dig : rgdigSelected) {
+        jolSum = jolSum * 10 + dig;
     }
-    return value;
+    return jolSum;
 }

@@ -11,61 +11,61 @@
 
 // Registration
 namespace {
-const core::DayRegistration<Day12> registration{12};
+const core::Drg<Day12> drgDay{12};
 } // namespace
 
 // ------------------------------------------------------------
 // Parsing
 // ------------------------------------------------------------
 
-void Day12::set_input(const std::vector<std::string>& lines) {
-    shapes.clear();
-    regions.clear();
+void Day12::SetInput(const std::vector<std::string>& rgusLines) {
+    rgshp_.clear();
+    rgreg_.clear();
 
-    for (std::size_t i = 0; i < lines.size();) {
-        const auto line = core::trim(lines[i++]);
-        if (line.empty())
+    for (std::size_t iusLine = 0; iusLine < rgusLines.size();) {
+        const auto usLine = core::UsTrim(rgusLines[iusLine++]);
+        if (usLine.empty())
             continue;
-        const auto colon = line.find(':');
-        if (colon == std::string_view::npos)
+        const auto offColon = usLine.find(':');
+        if (offColon == std::string_view::npos)
             throw std::invalid_argument("Expected shape or region header");
-        const auto header = line.substr(0, colon);
-        const auto x = header.find('x');
-        if (x == std::string_view::npos) {
-            if (!regions.empty() || core::parse_integer<std::size_t>(header) != shapes.size())
+        const auto usHeader = usLine.substr(0, offColon);
+        const auto offDimensionSeparator = usHeader.find('x');
+        if (offDimensionSeparator == std::string_view::npos) {
+            if (!rgreg_.empty() || core::ValParseInteger<std::size_t>(usHeader) != rgshp_.size())
                 throw std::invalid_argument("Shape IDs must be consecutive, starting at zero");
-            std::vector<std::string> rows;
-            while (i < lines.size()) {
-                const auto row = core::trim(lines[i]);
-                if (row.empty() || row.find(':') != std::string_view::npos)
+            std::vector<std::string> rgusShapeRows;
+            while (iusLine < rgusLines.size()) {
+                const auto usRow = core::UsTrim(rgusLines[iusLine]);
+                if (usRow.empty() || usRow.find(':') != std::string_view::npos)
                     break;
-                if (row.find_first_not_of(".#") != std::string_view::npos)
+                if (usRow.find_first_not_of(".#") != std::string_view::npos)
                     throw std::invalid_argument("Invalid shape cell");
-                rows.emplace_back(row);
-                ++i;
+                rgusShapeRows.emplace_back(usRow);
+                ++iusLine;
             }
-            if (rows.empty())
+            if (rgusShapeRows.empty())
                 throw std::invalid_argument("Missing shape cells");
-            auto shape = build_shape(rows);
-            if (shape.area == 0)
+            auto shpParsed = ShpBuild(rgusShapeRows);
+            if (shpParsed.areaOccupied == 0)
                 throw std::invalid_argument("Shape must occupy at least one cell");
-            shapes.push_back(std::move(shape));
+            rgshp_.push_back(std::move(shpParsed));
         } else {
-            const auto width = core::parse_integer<int>(header.substr(0, x));
-            const auto height = core::parse_integer<int>(header.substr(x + 1));
-            if (width <= 0 || height <= 0)
+            const auto ccol = core::ValParseInteger<int>(usHeader.substr(0, offDimensionSeparator));
+            const auto crw = core::ValParseInteger<int>(usHeader.substr(offDimensionSeparator + 1));
+            if (ccol <= 0 || crw <= 0)
                 throw std::invalid_argument("Region dimensions must be positive");
-            std::istringstream input(std::string{line.substr(colon + 1)});
-            std::vector<int> counts;
-            for (std::string token; input >> token;) {
-                const auto count = core::parse_integer<int>(token);
-                if (count < 0)
+            std::istringstream inCounts(std::string{usLine.substr(offColon + 1)});
+            std::vector<int> mpishpcnt;
+            for (std::string usCount; inCounts >> usCount;) {
+                const auto cntPieces = core::ValParseInteger<int>(usCount);
+                if (cntPieces < 0)
                     throw std::invalid_argument("Shape counts must be nonnegative");
-                counts.push_back(count);
+                mpishpcnt.push_back(cntPieces);
             }
-            if (counts.size() != shapes.size())
+            if (mpishpcnt.size() != rgshp_.size())
                 throw std::invalid_argument("Expected one count per shape");
-            regions.push_back({width, height, std::move(counts)});
+            rgreg_.push_back({ccol, crw, std::move(mpishpcnt)});
         }
     }
 }
@@ -74,229 +74,233 @@ void Day12::set_input(const std::vector<std::string>& lines) {
 // Shape helpers
 // ------------------------------------------------------------
 
-Day12::Shape Day12::build_shape(const std::vector<std::string>& rows) {
-    int h = rows.size();
-    int w = 0;
-    for (auto& r : rows)
-        w = std::max(w, static_cast<int>(r.size()));
+Day12::Shp Day12::ShpBuild(const std::vector<std::string>& rgusShapeRows) {
+    int crw = rgusShapeRows.size();
+    int ccol = 0;
+    for (auto& usRow : rgusShapeRows)
+        ccol = std::max(ccol, static_cast<int>(usRow.size()));
 
-    std::vector<std::vector<bool>> grid(h, std::vector<bool>(w, false));
-    for (int y = 0; y < h; ++y)
-        for (int x = 0; x < static_cast<int>(rows[y].size()); ++x)
-            if (rows[y][x] == '#')
-                grid[y][x] = true;
+    std::vector<std::vector<bool>> gridShape(crw, std::vector<bool>(ccol, false));
+    for (int rw = 0; rw < crw; ++rw)
+        for (int col = 0; col < static_cast<int>(rgusShapeRows[rw].size()); ++col)
+            if (rgusShapeRows[rw][col] == '#')
+                gridShape[rw][col] = true;
 
-    std::unordered_set<std::string> seen;
-    std::vector<Variant> vars;
+    std::unordered_set<std::string> settxtVariantKeys;
+    std::vector<Var> rgvar;
 
-    auto g = grid;
-    for (int r = 0; r < 4; ++r) {
-        if (r > 0)
-            g = rotate_grid(g);
-        for (int f = 0; f < 2; ++f) {
-            auto gf = (f == 0) ? g : flip_grid_h(g);
-            auto v = grid_to_variant(gf);
-            if (!v.cells.empty()) {
-                auto key = variant_key(v);
-                if (seen.insert(key).second)
-                    vars.push_back(std::move(v));
+    auto gridRotated = gridShape;
+    for (int iterRotation = 0; iterRotation < 4; ++iterRotation) {
+        if (iterRotation > 0)
+            gridRotated = GridRotate(gridRotated);
+        for (int iterReflection = 0; iterReflection < 2; ++iterReflection) {
+            auto gridReflected = (iterReflection == 0) ? gridRotated : GridReflect(gridRotated);
+            auto var = VarFromGrid(gridReflected);
+            if (!var.rgdelta.empty()) {
+                auto txtVariantKey = TxtVariantKey(var);
+                if (settxtVariantKeys.insert(txtVariantKey).second)
+                    rgvar.push_back(std::move(var));
             }
         }
     }
 
-    Shape s;
-    s.variants = std::move(vars);
-    if (!s.variants.empty())
-        s.area = s.variants[0].cells.size();
-    return s;
+    Shp shp;
+    shp.rgvar = std::move(rgvar);
+    if (!shp.rgvar.empty())
+        shp.areaOccupied = shp.rgvar[0].rgdelta.size();
+    return shp;
 }
 
-std::vector<std::vector<bool>> Day12::rotate_grid(const std::vector<std::vector<bool>>& g) {
-    int h = g.size();
-    int w = g[0].size();
-    std::vector<std::vector<bool>> r(w, std::vector<bool>(h));
-    for (int y = 0; y < h; ++y)
-        for (int x = 0; x < w; ++x)
-            r[x][h - 1 - y] = g[y][x];
-    return r;
+std::vector<std::vector<bool>> Day12::GridRotate(const std::vector<std::vector<bool>>& gridSource) {
+    int crw = gridSource.size();
+    int ccol = gridSource[0].size();
+    std::vector<std::vector<bool>> gridResult(ccol, std::vector<bool>(crw));
+    for (int rw = 0; rw < crw; ++rw)
+        for (int col = 0; col < ccol; ++col)
+            gridResult[col][crw - 1 - rw] = gridSource[rw][col];
+    return gridResult;
 }
 
-std::vector<std::vector<bool>> Day12::flip_grid_h(const std::vector<std::vector<bool>>& g) {
-    int h = g.size();
-    int w = g[0].size();
-    std::vector<std::vector<bool>> r(h, std::vector<bool>(w));
-    for (int y = 0; y < h; ++y)
-        for (int x = 0; x < w; ++x)
-            r[y][w - 1 - x] = g[y][x];
-    return r;
+std::vector<std::vector<bool>>
+Day12::GridReflect(const std::vector<std::vector<bool>>& gridSource) {
+    int crw = gridSource.size();
+    int ccol = gridSource[0].size();
+    std::vector<std::vector<bool>> gridResult(crw, std::vector<bool>(ccol));
+    for (int rw = 0; rw < crw; ++rw)
+        for (int col = 0; col < ccol; ++col)
+            gridResult[rw][ccol - 1 - col] = gridSource[rw][col];
+    return gridResult;
 }
 
-Day12::Variant Day12::grid_to_variant(const std::vector<std::vector<bool>>& g) {
-    int h = g.size(), w = g[0].size();
-    int minX = w, minY = h, maxX = -1, maxY = -1;
+Day12::Var Day12::VarFromGrid(const std::vector<std::vector<bool>>& gridSource) {
+    int crw = gridSource.size(), ccol = gridSource[0].size();
+    int colFirst = ccol, rwFirst = crw, colLast = -1, rwLast = -1;
 
-    for (int y = 0; y < h; ++y)
-        for (int x = 0; x < w; ++x)
-            if (g[y][x]) {
-                minX = std::min(minX, x);
-                minY = std::min(minY, y);
-                maxX = std::max(maxX, x);
-                maxY = std::max(maxY, y);
+    for (int rw = 0; rw < crw; ++rw)
+        for (int col = 0; col < ccol; ++col)
+            if (gridSource[rw][col]) {
+                colFirst = std::min(colFirst, col);
+                rwFirst = std::min(rwFirst, rw);
+                colLast = std::max(colLast, col);
+                rwLast = std::max(rwLast, rw);
             }
 
-    if (maxX < minX)
+    if (colLast < colFirst)
         return {};
 
-    Variant v;
-    v.width = maxX - minX + 1;
-    v.height = maxY - minY + 1;
+    Var var;
+    var.ccol = colLast - colFirst + 1;
+    var.crw = rwLast - rwFirst + 1;
 
-    for (int y = minY; y <= maxY; ++y)
-        for (int x = minX; x <= maxX; ++x)
-            if (g[y][x])
-                v.cells.push_back({x - minX, y - minY});
+    for (int rw = rwFirst; rw <= rwLast; ++rw)
+        for (int col = colFirst; col <= colLast; ++col)
+            if (gridSource[rw][col])
+                var.rgdelta.push_back({col - colFirst, rw - rwFirst});
 
-    return v;
+    return var;
 }
 
-std::string Day12::variant_key(const Variant& v) {
-    std::ostringstream oss;
-    oss << v.width << "x" << v.height << ":";
-    for (auto& c : v.cells)
-        oss << c.x << "," << c.y << ";";
-    return oss.str();
+std::string Day12::TxtVariantKey(const Var& var) {
+    std::ostringstream outKey;
+    outKey << var.ccol << "x" << var.crw << ":";
+    for (auto& delta : var.rgdelta)
+        outKey << delta.dxCell << "," << delta.dyCell << ";";
+    return outKey.str();
 }
 
 // ------------------------------------------------------------
 // Solver
 // ------------------------------------------------------------
 
-std::string Day12::part1() {
-    int ok = 0;
-    for (auto& r : regions)
-        if (region_can_fit(r))
-            ++ok;
-    return std::to_string(ok);
+std::string Day12::TxtPart1() {
+    int cntFittingRegions = 0;
+    for (auto& reg : rgreg_)
+        if (FRegionFits(reg))
+            ++cntFittingRegions;
+    return std::to_string(cntFittingRegions);
 }
 
-std::string Day12::part2() {
+std::string Day12::TxtPart2() {
     return "0"; // Day 12 has no second computational puzzle.
 }
 
-bool Day12::region_can_fit(const Region& r) const {
-    const auto board_area = std::int64_t{r.width} * r.height;
-    std::int64_t total_area = 0;
-    std::int64_t pieces = 0;
-    int slot_width = 0, slot_height = 0;
-    for (std::size_t i = 0; i < shapes.size(); ++i) {
-        if (r.counts[i] == 0)
+bool Day12::FRegionFits(const Reg& reg) const {
+    const auto areaBoard = std::int64_t{reg.ccol} * reg.crw;
+    std::int64_t areaRequired = 0;
+    std::int64_t cntPieces = 0;
+    int ccolSlots = 0, crwSlots = 0;
+    for (std::size_t ishp = 0; ishp < rgshp_.size(); ++ishp) {
+        if (reg.mpishpcnt[ishp] == 0)
             continue;
-        total_area += std::int64_t{r.counts[i]} * shapes[i].area;
-        if (total_area > board_area)
+        areaRequired += std::int64_t{reg.mpishpcnt[ishp]} * rgshp_[ishp].areaOccupied;
+        if (areaRequired > areaBoard)
             return false;
-        if (!std::ranges::any_of(shapes[i].variants, [&](const auto& variant) {
-                return variant.width <= r.width && variant.height <= r.height;
+        if (!std::ranges::any_of(rgshp_[ishp].rgvar, [&](const auto& var) {
+                return var.ccol <= reg.ccol && var.crw <= reg.crw;
             }))
             return false;
-        pieces += r.counts[i];
-        const auto& variant = shapes[i].variants.front();
-        slot_width = std::max(slot_width, variant.width);
-        slot_height = std::max(slot_height, variant.height);
+        cntPieces += reg.mpishpcnt[ishp];
+        const auto& var = rgshp_[ishp].rgvar.front();
+        ccolSlots = std::max(ccolSlots, var.ccol);
+        crwSlots = std::max(crwSlots, var.crw);
     }
-    if (pieces == 0)
+    if (cntPieces == 0)
         return true;
 
     // A disjoint bounding box for every piece is a constructive proof of fit.
-    const auto slots = std::int64_t{r.width / slot_width} * (r.height / slot_height);
-    if (pieces <= slots)
+    const auto cntSlots = std::int64_t{reg.ccol / ccolSlots} * (reg.crw / crwSlots);
+    if (cntPieces <= cntSlots)
         return true;
-    return can_pack_region(r);
+    return FCanPackRegion(reg);
 }
 
 // ------------------------------------------------------------
 // Exact packing when area and bounding boxes do not decide the result
 // ------------------------------------------------------------
 
-bool Day12::can_pack_region(const Region& r) const {
-    int w = r.width, h = r.height;
-    std::vector<std::vector<std::vector<std::size_t>>> placements(shapes.size());
+bool Day12::FCanPackRegion(const Reg& reg) const {
+    int ccol = reg.ccol, crw = reg.crw;
+    std::vector<std::vector<std::vector<std::size_t>>> mpishprgplc(rgshp_.size());
 
-    for (std::size_t si = 0; si < shapes.size(); ++si) {
-        if (r.counts[si] == 0)
+    for (std::size_t ishp = 0; ishp < rgshp_.size(); ++ishp) {
+        if (reg.mpishpcnt[ishp] == 0)
             continue;
-        for (const auto& v : shapes[si].variants) {
-            for (int y = 0; y <= h - v.height; ++y)
-                for (int x = 0; x <= w - v.width; ++x) {
-                    std::vector<std::size_t> cells;
-                    for (auto& c : v.cells)
-                        cells.push_back(static_cast<std::size_t>(y + c.y) * w + x + c.x);
-                    placements[si].push_back(std::move(cells));
+        for (const auto& var : rgshp_[ishp].rgvar) {
+            for (int rwAnchor = 0; rwAnchor <= crw - var.crw; ++rwAnchor)
+                for (int colAnchor = 0; colAnchor <= ccol - var.ccol; ++colAnchor) {
+                    std::vector<std::size_t> plc;
+                    for (auto& delta : var.rgdelta)
+                        plc.push_back(static_cast<std::size_t>(rwAnchor + delta.dyCell) * ccol +
+                                      colAnchor + delta.dxCell);
+                    mpishprgplc[ishp].push_back(std::move(plc));
                 }
         }
     }
 
-    std::vector<bool> board(static_cast<std::size_t>(w) * h, false);
-    auto counts = r.counts;
-    std::vector<std::size_t> first_placement(shapes.size(), 0);
-    return pack(board, counts, placements, first_placement);
+    std::vector<bool> mpicelfOccupied(static_cast<std::size_t>(ccol) * crw, false);
+    auto mpishpcnt = reg.mpishpcnt;
+    std::vector<std::size_t> mpishpiplcFirst(rgshp_.size(), 0);
+    return FPack(mpicelfOccupied, mpishpcnt, mpishprgplc, mpishpiplcFirst);
 }
 
-bool Day12::pack(std::vector<bool>& board, std::vector<int>& counts,
-                 const std::vector<std::vector<std::vector<std::size_t>>>& placements,
-                 std::vector<std::size_t>& first_placement) const {
-    const auto freeCells = std::ranges::count(board, false);
+bool Day12::FPack(std::vector<bool>& mpicelfOccupied, std::vector<int>& mpishpcnt,
+                  const std::vector<std::vector<std::vector<std::size_t>>>& mpishprgplc,
+                  std::vector<std::size_t>& mpishpiplcFirst) const {
+    const auto cntFreeCells = std::ranges::count(mpicelfOccupied, false);
 
-    std::int64_t needed = 0;
-    bool done = true;
-    for (std::size_t i = 0; i < counts.size() && i < shapes.size(); ++i) {
-        if (counts[i] > 0) {
-            done = false;
-            needed += std::int64_t{counts[i]} * shapes[i].area;
+    std::int64_t areaRequired = 0;
+    bool fComplete = true;
+    for (std::size_t ishp = 0; ishp < mpishpcnt.size() && ishp < rgshp_.size(); ++ishp) {
+        if (mpishpcnt[ishp] > 0) {
+            fComplete = false;
+            areaRequired += std::int64_t{mpishpcnt[ishp]} * rgshp_[ishp].areaOccupied;
         }
     }
 
-    if (done)
+    if (fComplete)
         return true;
-    if (needed > freeCells)
+    if (areaRequired > cntFreeCells)
         return false;
 
-    std::size_t best = 0, bestCnt = std::numeric_limits<std::size_t>::max();
+    std::size_t ishpBest = 0, cntBestPlacements = std::numeric_limits<std::size_t>::max();
 
-    for (std::size_t i = 0; i < counts.size(); ++i) {
-        if (counts[i] <= 0)
+    for (std::size_t ishp = 0; ishp < mpishpcnt.size(); ++ishp) {
+        if (mpishpcnt[ishp] <= 0)
             continue;
-        std::size_t feasible = 0;
-        for (std::size_t index = first_placement[i]; index < placements[i].size(); ++index) {
-            const auto& pl = placements[i][index];
-            if (std::all_of(pl.begin(), pl.end(), [&](std::size_t idx) { return !board[idx]; })) {
-                ++feasible;
-                if (feasible >= bestCnt)
+        std::size_t cntFeasiblePlacements = 0;
+        for (std::size_t iplc = mpishpiplcFirst[ishp]; iplc < mpishprgplc[ishp].size(); ++iplc) {
+            const auto& plc = mpishprgplc[ishp][iplc];
+            if (std::all_of(plc.begin(), plc.end(),
+                            [&](std::size_t icel) { return !mpicelfOccupied[icel]; })) {
+                ++cntFeasiblePlacements;
+                if (cntFeasiblePlacements >= cntBestPlacements)
                     break;
             }
         }
-        if (feasible == 0)
+        if (cntFeasiblePlacements == 0)
             return false;
-        if (feasible < bestCnt) {
-            bestCnt = feasible;
-            best = i;
+        if (cntFeasiblePlacements < cntBestPlacements) {
+            cntBestPlacements = cntFeasiblePlacements;
+            ishpBest = ishp;
         }
     }
 
-    counts[best]--;
-    const auto first = first_placement[best];
-    for (std::size_t index = first; index < placements[best].size(); ++index) {
-        const auto& pl = placements[best][index];
-        if (std::all_of(pl.begin(), pl.end(), [&](std::size_t idx) { return !board[idx]; })) {
-            for (auto idx : pl)
-                board[idx] = true;
-            first_placement[best] = index + 1;
-            if (pack(board, counts, placements, first_placement))
+    mpishpcnt[ishpBest]--;
+    const auto iplcFirst = mpishpiplcFirst[ishpBest];
+    for (std::size_t iplc = iplcFirst; iplc < mpishprgplc[ishpBest].size(); ++iplc) {
+        const auto& plc = mpishprgplc[ishpBest][iplc];
+        if (std::all_of(plc.begin(), plc.end(),
+                        [&](std::size_t icel) { return !mpicelfOccupied[icel]; })) {
+            for (auto icel : plc)
+                mpicelfOccupied[icel] = true;
+            mpishpiplcFirst[ishpBest] = iplc + 1;
+            if (FPack(mpicelfOccupied, mpishpcnt, mpishprgplc, mpishpiplcFirst))
                 return true;
-            for (auto idx : pl)
-                board[idx] = false;
+            for (auto icel : plc)
+                mpicelfOccupied[icel] = false;
         }
     }
-    first_placement[best] = first;
-    counts[best]++;
+    mpishpiplcFirst[ishpBest] = iplcFirst;
+    mpishpcnt[ishpBest]++;
     return false;
 }

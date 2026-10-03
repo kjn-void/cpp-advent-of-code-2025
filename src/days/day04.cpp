@@ -10,127 +10,129 @@
 // Registration (static init)
 // ------------------------------------------------------------
 namespace {
-const core::DayRegistration<Day04> registration{4};
+const core::Drg<Day04> drgDay{4};
 } // namespace
 
 // ------------------------------------------------------------
 // Direction table (8 neighbors)
 // ------------------------------------------------------------
-static constexpr std::array<std::pair<int, int>, 8> DIRS{
+static constexpr std::array<std::pair<int, int>, 8> rgdeltaNeighbors{
     {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}}};
 
 // ------------------------------------------------------------
 
-void Day04::set_input(const std::vector<std::string>& lines) {
-    if (!lines.empty() && !std::ranges::all_of(lines, [&](const auto& row) {
-            return row.size() == lines.front().size();
+void Day04::SetInput(const std::vector<std::string>& rgusLines) {
+    if (!rgusLines.empty() && !std::ranges::all_of(rgusLines, [&](const auto& usRow) {
+            return usRow.size() == rgusLines.front().size();
         }))
         throw std::invalid_argument("Paper roll grid must be rectangular");
-    grid_ = lines;
-    rows_ = static_cast<int>(grid_.size());
-    cols_ = rows_ ? static_cast<int>(grid_[0].size()) : 0;
+    gridRolls_ = rgusLines;
+    crw_ = static_cast<int>(gridRolls_.size());
+    ccol_ = crw_ ? static_cast<int>(gridRolls_[0].size()) : 0;
 }
 
 // ------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------
 
-int Day04::count_adjacent(int r, int c) const {
-    int count = 0;
-    for (auto [dr, dc] : DIRS) {
-        int nr = r + dr;
-        int nc = c + dc;
-        if (nr >= 0 && nr < rows_ && nc >= 0 && nc < cols_ && grid_[nr][nc] == '@') {
-            ++count;
+int Day04::CntAdjacent(int rw, int col) const {
+    int cntAdjacent = 0;
+    for (auto [drwNeighbor, dcolNeighbor] : rgdeltaNeighbors) {
+        int rwNeighbor = rw + drwNeighbor;
+        int colNeighbor = col + dcolNeighbor;
+        if (rwNeighbor >= 0 && rwNeighbor < crw_ && colNeighbor >= 0 && colNeighbor < ccol_ &&
+            gridRolls_[rwNeighbor][colNeighbor] == '@') {
+            ++cntAdjacent;
         }
     }
-    return count;
+    return cntAdjacent;
 }
 
 // ------------------------------------------------------------
 // Part 1
 // ------------------------------------------------------------
 
-std::string Day04::part1() {
-    if (rows_ == 0 || cols_ == 0)
+std::string Day04::TxtPart1() {
+    if (crw_ == 0 || ccol_ == 0)
         return "0";
 
-    int total = 0;
-    for (int r = 0; r < rows_; ++r) {
-        for (int c = 0; c < cols_; ++c) {
-            if (grid_[r][c] != '@')
+    int cntAccessible = 0;
+    for (int rw = 0; rw < crw_; ++rw) {
+        for (int col = 0; col < ccol_; ++col) {
+            if (gridRolls_[rw][col] != '@')
                 continue;
-            if (count_adjacent(r, c) < 4)
-                ++total;
+            if (CntAdjacent(rw, col) < 4)
+                ++cntAccessible;
         }
     }
-    return std::to_string(total);
+    return std::to_string(cntAccessible);
 }
 
 // ------------------------------------------------------------
 // Part 2
 // ------------------------------------------------------------
 
-std::string Day04::part2() {
-    if (rows_ == 0 || cols_ == 0)
+std::string Day04::TxtPart2() {
+    if (crw_ == 0 || ccol_ == 0)
         return "0";
 
     // on-grid
-    std::vector<std::vector<bool>> on(rows_, std::vector<bool>(cols_, false));
-    for (int r = 0; r < rows_; ++r)
-        for (int c = 0; c < cols_; ++c)
-            on[r][c] = (grid_[r][c] == '@');
+    std::vector<std::vector<bool>> gridOccupied(crw_, std::vector<bool>(ccol_, false));
+    for (int rw = 0; rw < crw_; ++rw)
+        for (int col = 0; col < ccol_; ++col)
+            gridOccupied[rw][col] = (gridRolls_[rw][col] == '@');
 
     // degree grid
-    std::vector<std::vector<int>> deg(rows_, std::vector<int>(cols_, 0));
-    for (int r = 0; r < rows_; ++r) {
-        for (int c = 0; c < cols_; ++c) {
-            if (!on[r][c])
+    std::vector<std::vector<int>> gridDegree(crw_, std::vector<int>(ccol_, 0));
+    for (int rw = 0; rw < crw_; ++rw) {
+        for (int col = 0; col < ccol_; ++col) {
+            if (!gridOccupied[rw][col])
                 continue;
-            for (auto [dr, dc] : DIRS) {
-                int nr = r + dr;
-                int nc = c + dc;
-                if (nr >= 0 && nr < rows_ && nc >= 0 && nc < cols_ && on[nr][nc]) {
-                    ++deg[r][c];
+            for (auto [drwNeighbor, dcolNeighbor] : rgdeltaNeighbors) {
+                int rwNeighbor = rw + drwNeighbor;
+                int colNeighbor = col + dcolNeighbor;
+                if (rwNeighbor >= 0 && rwNeighbor < crw_ && colNeighbor >= 0 &&
+                    colNeighbor < ccol_ && gridOccupied[rwNeighbor][colNeighbor]) {
+                    ++gridDegree[rw][col];
                 }
             }
         }
     }
 
-    struct Cell {
-        int r, c;
+    struct Cel {
+        int rw, col;
     };
-    std::queue<Cell> q;
+    std::queue<Cel> qcelRemovals;
 
-    for (int r = 0; r < rows_; ++r)
-        for (int c = 0; c < cols_; ++c)
-            if (on[r][c] && deg[r][c] < 4)
-                q.push({r, c});
+    for (int rw = 0; rw < crw_; ++rw)
+        for (int col = 0; col < ccol_; ++col)
+            if (gridOccupied[rw][col] && gridDegree[rw][col] < 4)
+                qcelRemovals.push({rw, col});
 
-    int removed = 0;
+    int cntRemoved = 0;
 
-    while (!q.empty()) {
-        auto [r, c] = q.front();
-        q.pop();
+    while (!qcelRemovals.empty()) {
+        auto [rw, col] = qcelRemovals.front();
+        qcelRemovals.pop();
 
-        if (!on[r][c])
+        if (!gridOccupied[rw][col])
             continue;
 
-        on[r][c] = false;
-        ++removed;
+        gridOccupied[rw][col] = false;
+        ++cntRemoved;
 
-        for (auto [dr, dc] : DIRS) {
-            int nr = r + dr;
-            int nc = c + dc;
-            if (nr < 0 || nr >= rows_ || nc < 0 || nc >= cols_)
+        for (auto [drwNeighbor, dcolNeighbor] : rgdeltaNeighbors) {
+            int rwNeighbor = rw + drwNeighbor;
+            int colNeighbor = col + dcolNeighbor;
+            if (rwNeighbor < 0 || rwNeighbor >= crw_ || colNeighbor < 0 || colNeighbor >= ccol_)
                 continue;
-            if (!on[nr][nc])
+            if (!gridOccupied[rwNeighbor][colNeighbor])
                 continue;
 
-            if (--deg[nr][nc] == 3)
-                q.push({nr, nc});
+            if (--gridDegree[rwNeighbor][colNeighbor] == 3)
+                qcelRemovals.push({rwNeighbor, colNeighbor});
         }
     }
 
-    return std::to_string(removed);
+    return std::to_string(cntRemoved);
 }

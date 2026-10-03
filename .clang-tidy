@@ -1,0 +1,25 @@
+# Simonyi's Apps Hungarian: semantic tags, standard constructions, optional qualifiers.
+# See AGENTS.md for the vocabulary and C++20 adaptations. Review still checks meaning.
+Checks: '-*,readability-identifier-naming'
+WarningsAsErrors: '*'
+HeaderFilterRegex: '(^|.*/)(src|tests|benchmarks)/.*'
+CheckOptions:
+  readability-identifier-naming.IgnoreMainLikeFunctions: false
+  readability-identifier-naming.FunctionCase: CamelCase
+  readability-identifier-naming.MethodCase: CamelCase
+  readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.TypeAliasCase: CamelCase
+  readability-identifier-naming.TypeTemplateParameterCase: CamelCase
+  readability-identifier-naming.VariableCase: CamelCase
+  readability-identifier-naming.VariablePrefix: val
+  readability-identifier-naming.VariableIgnoredRegexp: '^(area|bit|blk|bms|bnk|btn|cbtn|ccoef|ccol|cdig|cedg|cel|cf|ch|chc|cictr|cid|citem|cnt|coef|col|cost|cpt|crw|cus|cwkr|dcol|delta|dev|did|dig|dist|dpos|drg|drw|dsu|dx|dy|edg|err|f|fac|fn|gen|grid|hash|ibtn|icel|icoef|icol|ictr|id|idig|idy|iedg|iitem|imch|in|iplc|ipt|irng|ishp|it|item|iter|ius|iwkr|jol|jv|len|link|mask|mat|mch|mov|mpcolcnt|mpcolf|mpcolrw|mpdevcnt|mpdevrgdev|mpibtnbit|mpicelf|mpidfac|mpiitemcnt|mpiptcnt|mpiptipt|mpishpcnt|mpishpiplc|mpishprgmask|mpishprgplc|mpiwkrerr|mpiwkrval|mpjvoptcost|mpparrgchc|mpvstcnt|off|optcost|out|par|path|pch|plc|pmpcolcnt|pmpcolf|pos|pslv|pt|qcel|rc|reg|regy|rgblk|rgbnk|rgbtn|rgcel|rgch|rgcnt|rgcoef|rgcol|rgdelta|rgdev|rgdig|rgdy|rgedg|rgf|rgid|rgmask|rgmch|rgmov|rgpt|rgreg|rgrng|rgseg|rgshp|rgus|rgval|rgvar|rgwkr|rgx|rgxy|rgy|rng|rw|seg|setdev|settxt|setvst|shp|slv|txt|us|val|var|vst|wkr|x|xy|y|z)([A-Z][A-Za-z0-9]*)?_?$'
+  readability-identifier-naming.ParameterCase: CamelCase
+  readability-identifier-naming.ParameterPrefix: val
+  readability-identifier-naming.ParameterIgnoredRegexp: '^(area|bit|blk|bms|bnk|btn|cbtn|ccoef|ccol|cdig|cedg|cel|cf|ch|chc|cictr|cid|citem|cnt|coef|col|cost|cpt|crw|cus|cwkr|dcol|delta|dev|did|dig|dist|dpos|drg|drw|dsu|dx|dy|edg|err|f|fac|fn|gen|grid|hash|ibtn|icel|icoef|icol|ictr|id|idig|idy|iedg|iitem|imch|in|iplc|ipt|irng|ishp|it|item|iter|ius|iwkr|jol|jv|len|link|mask|mat|mch|mov|mpcolcnt|mpcolf|mpcolrw|mpdevcnt|mpdevrgdev|mpibtnbit|mpicelf|mpidfac|mpiitemcnt|mpiptcnt|mpiptipt|mpishpcnt|mpishpiplc|mpishprgmask|mpishprgplc|mpiwkrerr|mpiwkrval|mpjvoptcost|mpparrgchc|mpvstcnt|off|optcost|out|par|path|pch|plc|pmpcolcnt|pmpcolf|pos|pslv|pt|qcel|rc|reg|regy|rgblk|rgbnk|rgbtn|rgcel|rgch|rgcnt|rgcoef|rgcol|rgdelta|rgdev|rgdig|rgdy|rgedg|rgf|rgid|rgmask|rgmch|rgmov|rgpt|rgreg|rgrng|rgseg|rgshp|rgus|rgval|rgvar|rgwkr|rgx|rgxy|rgy|rng|rw|seg|setdev|settxt|setvst|shp|slv|txt|us|val|var|vst|wkr|x|xy|y|z)([A-Z][A-Za-z0-9]*)?_?$'
+  readability-identifier-naming.MemberCase: CamelCase
+  readability-identifier-naming.MemberPrefix: val
+  readability-identifier-naming.MemberIgnoredRegexp: '^(area|bit|blk|bms|bnk|btn|cbtn|ccoef|ccol|cdig|cedg|cel|cf|ch|chc|cictr|cid|citem|cnt|coef|col|cost|cpt|crw|cus|cwkr|dcol|delta|dev|did|dig|dist|dpos|drg|drw|dsu|dx|dy|edg|err|f|fac|fn|gen|grid|hash|ibtn|icel|icoef|icol|ictr|id|idig|idy|iedg|iitem|imch|in|iplc|ipt|irng|ishp|it|item|iter|ius|iwkr|jol|jv|len|link|mask|mat|mch|mov|mpcolcnt|mpcolf|mpcolrw|mpdevcnt|mpdevrgdev|mpibtnbit|mpicelf|mpidfac|mpiitemcnt|mpiptcnt|mpiptipt|mpishpcnt|mpishpiplc|mpishprgmask|mpishprgplc|mpiwkrerr|mpiwkrval|mpjvoptcost|mpparrgchc|mpvstcnt|off|optcost|out|par|path|pch|plc|pmpcolcnt|pmpcolf|pos|pslv|pt|qcel|rc|reg|regy|rgblk|rgbnk|rgbtn|rgcel|rgch|rgcnt|rgcoef|rgcol|rgdelta|rgdev|rgdig|rgdy|rgedg|rgf|rgid|rgmask|rgmch|rgmov|rgpt|rgreg|rgrng|rgseg|rgshp|rgus|rgval|rgvar|rgwkr|rgx|rgxy|rgy|rng|rw|seg|setdev|settxt|setvst|shp|slv|txt|us|val|var|vst|wkr|x|xy|y|z)([A-Z][A-Za-z0-9]*)?_?$'
+  readability-identifier-naming.ConstantCase: CamelCase
+  readability-identifier-naming.ConstantPrefix: val
+  readability-identifier-naming.ConstantIgnoredRegexp: '^(area|bit|blk|bms|bnk|btn|cbtn|ccoef|ccol|cdig|cedg|cel|cf|ch|chc|cictr|cid|citem|cnt|coef|col|cost|cpt|crw|cus|cwkr|dcol|delta|dev|did|dig|dist|dpos|drg|drw|dsu|dx|dy|edg|err|f|fac|fn|gen|grid|hash|ibtn|icel|icoef|icol|ictr|id|idig|idy|iedg|iitem|imch|in|iplc|ipt|irng|ishp|it|item|iter|ius|iwkr|jol|jv|len|link|mask|mat|mch|mov|mpcolcnt|mpcolf|mpcolrw|mpdevcnt|mpdevrgdev|mpibtnbit|mpicelf|mpidfac|mpiitemcnt|mpiptcnt|mpiptipt|mpishpcnt|mpishpiplc|mpishprgmask|mpishprgplc|mpiwkrerr|mpiwkrval|mpjvoptcost|mpparrgchc|mpvstcnt|off|optcost|out|par|path|pch|plc|pmpcolcnt|pmpcolf|pos|pslv|pt|qcel|rc|reg|regy|rgblk|rgbnk|rgbtn|rgcel|rgch|rgcnt|rgcoef|rgcol|rgdelta|rgdev|rgdig|rgdy|rgedg|rgf|rgid|rgmask|rgmch|rgmov|rgpt|rgreg|rgrng|rgseg|rgshp|rgus|rgval|rgvar|rgwkr|rgx|rgxy|rgy|rng|rw|seg|setdev|settxt|setvst|shp|slv|txt|us|val|var|vst|wkr|x|xy|y|z)([A-Z][A-Za-z0-9]*)?_?$'

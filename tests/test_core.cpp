@@ -11,47 +11,47 @@
 #include <vector>
 
 TEST(Input, PreservesBlankLinesAndSpacingAndRemovesCarriageReturns) {
-    std::istringstream input("3-5\r\n\r\n  12 \r\nlast");
-    EXPECT_EQ(core::read_lines(input), (std::vector<std::string>{"3-5", "", "  12 ", "last"}));
+    std::istringstream inLines("3-5\r\n\r\n  12 \r\nlast");
+    EXPECT_EQ(core::RgusReadLines(inLines), (std::vector<std::string>{"3-5", "", "  12 ", "last"}));
 }
 
 TEST(Parse, RejectsPartialAndOutOfRangeIntegers) {
-    EXPECT_EQ(core::parse_integer<int>(" 42\r"), 42);
-    EXPECT_THROW(core::parse_integer<int>("2junk"), std::invalid_argument);
-    EXPECT_THROW(core::parse_integer<int>(""), std::invalid_argument);
-    EXPECT_THROW(core::parse_integer<int>("999999999999999999999"), std::invalid_argument);
+    EXPECT_EQ(core::ValParseInteger<int>(" 42\r"), 42);
+    EXPECT_THROW(core::ValParseInteger<int>("2junk"), std::invalid_argument);
+    EXPECT_THROW(core::ValParseInteger<int>(""), std::invalid_argument);
+    EXPECT_THROW(core::ValParseInteger<int>("999999999999999999999"), std::invalid_argument);
 }
 
 TEST(ParallelSum, ProcessesEveryIndexExactlyOnce) {
-    std::vector<std::atomic_int> visits(1000);
-    EXPECT_EQ(core::parallel_sum_indexed(visits.size(),
-                                         [&](std::size_t i) {
-                                             ++visits[i];
-                                             return static_cast<std::int64_t>(i);
-                                         }),
+    std::vector<std::atomic_int> mpiitemcntVisits(1000);
+    EXPECT_EQ(core::ValSumIndexed(mpiitemcntVisits.size(),
+                                  [&](std::size_t iitem) {
+                                      ++mpiitemcntVisits[iitem];
+                                      return static_cast<std::int64_t>(iitem);
+                                  }),
               499500);
-    for (const auto& visits_at_index : visits)
-        EXPECT_EQ(visits_at_index.load(), 1);
-    EXPECT_EQ(core::parallel_sum_indexed(0, [](std::size_t) { return 99; }), 0);
-    EXPECT_EQ(core::parallel_sum_indexed(1, [](std::size_t) { return 99; }), 99);
+    for (const auto& cntVisits : mpiitemcntVisits)
+        EXPECT_EQ(cntVisits.load(), 1);
+    EXPECT_EQ(core::ValSumIndexed(0, [](std::size_t) { return 99; }), 0);
+    EXPECT_EQ(core::ValSumIndexed(1, [](std::size_t) { return 99; }), 99);
 }
 
 TEST(ParallelSum, PropagatesWorkerExceptions) {
     EXPECT_THROW(
-        core::parallel_sum_indexed(
+        core::ValSumIndexed(
             100, [](std::size_t) -> std::int64_t { throw std::runtime_error("worker failed"); }),
         std::runtime_error);
 }
 
-TEST(Registry, AllDaysAreRegisteredAndHandleEmptyInput) {
-    EXPECT_EQ(Registry::instance().implemented_days(),
+TEST(Regy, AllDaysAreRegisteredAndHandleEmptyInput) {
+    EXPECT_EQ(Regy::RegyInstance().RgidImplementedDays(),
               (std::vector<int>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}));
-    for (int day : Registry::instance().implemented_days()) {
-        SCOPED_TRACE(day);
-        auto solver = Registry::instance().make(day);
-        ASSERT_TRUE(solver);
-        solver->set_input({});
-        EXPECT_EQ(solver->part1(), "0");
-        EXPECT_EQ(solver->part2(), "0");
+    for (int idDay : Regy::RegyInstance().RgidImplementedDays()) {
+        SCOPED_TRACE(idDay);
+        auto pslvDay = Regy::RegyInstance().PslvMake(idDay);
+        ASSERT_TRUE(pslvDay);
+        pslvDay->SetInput({});
+        EXPECT_EQ(pslvDay->TxtPart1(), "0");
+        EXPECT_EQ(pslvDay->TxtPart2(), "0");
     }
 }

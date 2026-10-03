@@ -62,6 +62,63 @@ cmake --build build-sanitize --parallel
 ctest --test-dir build-sanitize --output-on-failure
 ```
 
+## Development tools and naming checks
+
+The project follows [Charles Simonyi's Apps Hungarian rules](https://learn.microsoft.com/en-us/previous-versions/visualstudio/visual-studio-6.0/aa260976%28v%3Dvs.60%29),
+with the domain vocabulary and explicit C++20 adaptations in [AGENTS.md](AGENTS.md).
+Names describe meaning and relationships: `rgbtn` is a sequence of buttons, `ibtn`
+is a button index, `cbtn` is a button count, and `mpcolrwPivot` maps a column to its
+pivot row. `Last` is inclusive and `Lim` exclusive. Procedures carry their result
+tag, such as `CostSolveJoltage`; `SetInput` returns no value.
+
+On macOS, install the Xcode Command Line Tools (or select a full Xcode toolchain)
+and the following Homebrew packages:
+
+```sh
+xcode-select --install  # only when no Apple development toolchain is installed
+brew install cmake llvm clang-format python googletest google-benchmark
+```
+
+CMake drives builds; LLVM supplies `clang-tidy`; `clang-format` checks formatting;
+Python 3 runs the validation scripts without pip dependencies. GoogleTest and
+Google Benchmark supply the optional test and benchmark targets. The CLI itself
+requires only a C++20 compiler and CMake. The style script finds Homebrew's keg-only
+LLVM automatically and obtains Apple's SDK from `xcrun`. On other platforms,
+provide `clang-tidy`, `clang-format`, and Python 3 on PATH (or use the script's
+`--clang-tidy` and `--clang-format` options).
+
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_TESTING=ON -DAOC_BUILD_BENCHMARKS=ON
+python3 tools/test_style_guardrails.py
+python3 tools/check_style.py --build-dir build
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+```
+
+For workflow maintenance, the optional Homebrew tools used here are `actionlint`
+(to validate GitHub Actions YAML) and `gh` (to inspect remote CI runs after
+`gh auth login`). Homebrew also installs `shellcheck` for actionlint's shell checks:
+
+```sh
+brew install actionlint gh
+actionlint .github/workflows/ci.yml
+```
+
+Keep both optional targets enabled in the **lint build's** compilation database:
+the checker visits every first-party translation unit, including benchmark source
+and project headers. It fails on missing sources/tools, formatting violations,
+invalid names, or compiler diagnostics. `.clang-tidy` checks registered tags,
+compositions, and capitalization; code review must still check their meaning.
+The guardrail tests exercise valid/invalid declarations and missing compilation
+units. LLVM/clang-format 23.1.2 were used for local validation of this migration.
+
+[CI](.github/workflows/ci.yml) runs on every push and pull request. It validates
+formatting and naming, runs all unit/CLI tests in Release and with ASan/UBSan, and
+checks the dependency-free CLI build. **CI neither builds nor runs the benchmark
+executable**; it configures and lints its source only. Actual benchmarks require
+the proper puzzle inputs and the reference M4 described below.
+
 ## Reference M4 benchmarks
 
 Measured on **2026-10-03** on the reference **Apple M4 (10 CPU cores, 16 GiB RAM)**,
@@ -101,6 +158,8 @@ cmake --build build --parallel --target benchmarks
 ```
 
 These are measurements for the saved puzzle inputs, not worst-case bounds.
+The naming migration preserves the algorithms; this table retains the measured
+cleanup results rather than presenting new timings for renamed code.
 
 ## Structure and conventions
 
@@ -110,10 +169,10 @@ These are measurements for the saved puzzle inputs, not worst-case bounds.
 - `tests/`: examples, regressions, and independent reference checks.
 - `benchmarks/`: full-solver benchmarks.
 
-Solvers implement `Solution::set_input`, `part1`, and `part2`. Calling either part
-repeatedly is supported; `set_input` replaces the previous input. An object library
+Solvers implement `Slv::SetInput`, `TxtPart1`, and `TxtPart2`. Calling either part
+repeatedly is supported; `SetInput` replaces the previous input. An object library
 ensures the linker includes every day's static registration. Registration uses the
-constrained `core::DayRegistration<Day>` template.
+constrained `core::Drg<SlvDay>` template.
 
 The implementation uses standard C++20 facilities, including ranges algorithms,
 `std::span` for non-owning helper parameters, `std::from_chars` for integer parsing,
