@@ -25,6 +25,6 @@ std::vector<int> Registry::implemented_days() const {
     for (const auto& [day, _] : factories_) {
         days.push_back(day);
     }
-    std::sort(days.begin(), days.end());
+    std::ranges::sort(days);
     return days;
 }

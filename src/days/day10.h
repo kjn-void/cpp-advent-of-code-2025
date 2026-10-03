@@ -1,16 +1,19 @@
 #pragma once
 
+#include <cstdint>
+
 #include "core/Solution.h"
-#include <vector>
 #include <string>
+#include <string_view>
+#include <vector>
 
 class Day10 final : public Solution {
-public:
+  public:
     void set_input(const std::vector<std::string>& lines) override;
     std::string part1() override;
     std::string part2() override;
 
-private:
+  private:
     struct MachineData {
         std::vector<int> targetLights;
         std::vector<int> targetJoltage;
@@ -21,8 +24,8 @@ private:
 
     // solvers
     static int solve_lights(const MachineData& m);
-    static int solve_joltage(const MachineData& m);
+    static std::int64_t solve_joltage(const MachineData& m);
 
     // parsing helpers
-    static std::vector<int> parse_list(const std::string& s);
+    static std::vector<int> parse_list(std::string_view s);
 };

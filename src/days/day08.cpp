@@ -1,16 +1,16 @@
 #include "days/day08.h"
-#include "core/Registry.h"
+#include "core/Register.h"
 
 #include <algorithm>
+#include <limits>
 #include <sstream>
+#include <stdexcept>
+#include <tuple>
 
-// 🔌 Static registration
-static bool registered = [] {
-    Registry::instance().register_day(
-        8, [] { return std::make_unique<Day08>(); }
-    );
-    return true;
-}();
+// Registration
+namespace {
+const core::DayRegistration<Day08> registration{8};
+} // namespace
 
 // -----------------------------------------------------------
 // Parsing
@@ -19,8 +19,10 @@ static bool registered = [] {
 static Day08::Vec3 parse_vec3(const std::string& line) {
     std::stringstream ss(line);
     Day08::Vec3 v{};
-    char comma;
-    ss >> v.x >> comma >> v.y >> comma >> v.z;
+    char first_comma{}, second_comma{};
+    if (!(ss >> v.x >> first_comma >> v.y >> second_comma >> v.z) || first_comma != ',' ||
+        second_comma != ',' || !(ss >> std::ws).eof())
+        throw std::invalid_argument("Expected three comma-separated coordinates");
     return v;
 }
 
@@ -40,32 +42,40 @@ void Day08::set_input(const std::vector<std::string>& lines) {
 // Distance & Edge Preparation
 // -----------------------------------------------------------
 
-int64_t Day08::squared_dist(const Vec3& a, const Vec3& b) {
-    int64_t dx = a.x - b.x;
-    int64_t dy = a.y - b.y;
-    int64_t dz = a.z - b.z;
-    return dx*dx + dy*dy + dz*dz;
+std::int64_t Day08::squared_dist(const Vec3& a, const Vec3& b) {
+    std::int64_t total = 0;
+    const auto add_square = [&](std::int64_t left, std::int64_t right) {
+        // Unsigned subtraction also handles differences spanning the signed range.
+        const auto distance = left >= right ? std::uint64_t(left) - std::uint64_t(right)
+                                            : std::uint64_t(right) - std::uint64_t(left);
+        if (distance > 3037000499ULL)
+            throw std::overflow_error("Squared distance exceeds int64_t");
+        const auto squared = static_cast<std::int64_t>(distance * distance);
+        if (squared > std::numeric_limits<std::int64_t>::max() - total)
+            throw std::overflow_error("Squared distance exceeds int64_t");
+        total += squared;
+    };
+    add_square(a.x, b.x);
+    add_square(a.y, b.y);
+    add_square(a.z, b.z);
+    return total;
 }
 
-std::vector<Day08::Edge>
-Day08::build_sorted_edges(const std::vector<Vec3>& pts) {
+std::vector<Day08::Edge> Day08::build_sorted_edges(std::span<const Vec3> pts) {
     const int n = static_cast<int>(pts.size());
     std::vector<Edge> out;
-    out.reserve(n * (n - 1) / 2);
+    if (n > 1)
+        out.reserve(pts.size() * (pts.size() - 1) / 2);
 
     for (int i = 0; i < n; ++i) {
         for (int j = i + 1; j < n; ++j) {
-            out.push_back({
-                squared_dist(pts[i], pts[j]),
-                i, j
-            });
+            out.push_back({squared_dist(pts[i], pts[j]), i, j});
         }
     }
 
-    std::sort(out.begin(), out.end(),
-        [](const Edge& a, const Edge& b) {
-            return a.dist2 < b.dist2;
-        });
+    std::ranges::sort(out, [](const Edge& a, const Edge& b) {
+        return std::tie(a.dist2, a.i, a.j) < std::tie(b.dist2, b.i, b.j);
+    });
 
     return out;
 }
@@ -75,7 +85,8 @@ Day08::build_sorted_edges(const std::vector<Vec3>& pts) {
 // -----------------------------------------------------------
 
 Day08::DSU::DSU(int n) : parent(n), size(n, 1) {
-    for (int i = 0; i < n; ++i) parent[i] = i;
+    for (int i = 0; i < n; ++i)
+        parent[i] = i;
 }
 
 int Day08::DSU::find(int x) {
@@ -89,9 +100,11 @@ int Day08::DSU::find(int x) {
 bool Day08::DSU::unite(int a, int b) {
     a = find(a);
     b = find(b);
-    if (a == b) return false;
+    if (a == b)
+        return false;
 
-    if (size[a] < size[b]) std::swap(a, b);
+    if (size[a] < size[b])
+        std::swap(a, b);
     parent[b] = a;
     size[a] += size[b];
     return true;
@@ -101,12 +114,10 @@ bool Day08::DSU::unite(int a, int b) {
 // Core helpers
 // -----------------------------------------------------------
 
-std::vector<int> Day08::run_connections(
-    const std::vector<Vec3>& pts,
-    const std::vector<Edge>& eds,
-    int k
-) {
-    if (pts.empty()) return {};
+std::vector<int> Day08::run_connections(std::span<const Vec3> pts, std::span<const Edge> eds,
+                                        int k) {
+    if (pts.empty())
+        return {};
 
     DSU uf(static_cast<int>(pts.size()));
     k = std::min(k, static_cast<int>(eds.size()));
@@ -115,26 +126,20 @@ std::vector<int> Day08::run_connections(
         uf.unite(eds[i].i, eds[i].j);
     }
 
-    std::unordered_map<int,int> comps;
-    for (int i = 0; i < (int)pts.size(); ++i) {
-        int r = uf.find(i);
-        comps[r] = uf.size[r];
-    }
-
     std::vector<int> sizes;
-    for (auto& [_, sz] : comps) {
-        sizes.push_back(sz);
+    for (int i = 0; i < static_cast<int>(pts.size()); ++i) {
+        if (uf.find(i) == i)
+            sizes.push_back(uf.size[i]);
     }
 
-    std::sort(sizes.begin(), sizes.end(), std::greater<>());
+    std::ranges::sort(sizes, std::greater<>{});
     return sizes;
 }
 
-std::pair<int,int> Day08::run_until_single_circuit(
-    const std::vector<Vec3>& pts,
-    const std::vector<Edge>& eds
-) {
-    if (pts.size() < 2) return {0, 0};
+std::pair<int, int> Day08::run_until_single_circuit(std::span<const Vec3> pts,
+                                                    std::span<const Edge> eds) {
+    if (pts.size() < 2)
+        return {0, 0};
 
     DSU uf(static_cast<int>(pts.size()));
     int components = static_cast<int>(pts.size());
@@ -145,7 +150,8 @@ std::pair<int,int> Day08::run_until_single_circuit(
             --components;
             last_i = e.i;
             last_j = e.j;
-            if (components == 1) break;
+            if (components == 1)
+                break;
         }
     }
 
@@ -158,19 +164,34 @@ std::pair<int,int> Day08::run_until_single_circuit(
 
 std::string Day08::part1() {
     auto sizes = run_connections(points, edges, 1000);
-    if (sizes.size() < 3) return "0";
+    if (sizes.size() < 3)
+        return "0";
 
-    int64_t result =
-        int64_t(sizes[0]) *
-        int64_t(sizes[1]) *
-        int64_t(sizes[2]);
+    std::int64_t result = std::int64_t(sizes[0]) * std::int64_t(sizes[1]) * std::int64_t(sizes[2]);
 
     return std::to_string(result);
 }
 
 std::string Day08::part2() {
-    if (points.size() < 2) return "0";
+    if (points.size() < 2)
+        return "0";
 
     auto [i, j] = run_until_single_circuit(points, edges);
-    return std::to_string(points[i].x * points[j].x);
+    const auto a = points[i].x;
+    const auto b = points[j].x;
+    const auto magnitude = [](std::int64_t value) {
+        const auto bits = static_cast<std::uint64_t>(value);
+        return value < 0 ? std::uint64_t{0} - bits : bits;
+    };
+    const bool negative = (a < 0) != (b < 0);
+    const auto limit =
+        static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) + negative;
+    const auto left = magnitude(a), right = magnitude(b);
+    if (right != 0 && left > limit / right)
+        throw std::overflow_error("Junction coordinate product exceeds int64_t");
+    const auto product = left * right;
+    if (negative && product == limit)
+        return std::to_string(std::numeric_limits<std::int64_t>::min());
+    const auto signed_product = static_cast<std::int64_t>(product);
+    return std::to_string(negative ? -signed_product : signed_product);
 }

@@ -1,75 +1,61 @@
+#include "core/Parse.h"
+#include "core/Register.h"
 #include "core/Solution.h"
-#include "core/Registry.h"
 
+#include <cstdint>
+#include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
-#include <cstdlib>
 
 class Day01 final : public Solution {
-public:
+  public:
     void set_input(const std::vector<std::string>& lines) override {
-        moves.clear();
-
+        moves_.clear();
+        moves_.reserve(lines.size());
         for (const auto& line : lines) {
-            if (line.empty()) continue;
-
-            char dir = line[0];
-            int val = std::stoi(line.substr(1));
-
-            moves.push_back(dir == 'L' ? -val : val);
-        }
-    }
-
-    std::string part1() override {
-        int pos = 50;
-        int count_zero = 0;
-
-        for (int delta : moves) {
-            pos = mod100(pos + delta);
-            if (pos == 0) {
-                ++count_zero;
+            const auto text = core::trim(line);
+            if (text.empty())
+                continue;
+            if (text.front() != 'L' && text.front() != 'R') {
+                throw std::invalid_argument("Rotation must start with L or R");
             }
+            const auto distance = core::parse_integer<std::int64_t>(text.substr(1));
+            if (distance < 0)
+                throw std::invalid_argument("Rotation distance must be nonnegative");
+            moves_.push_back({text.front() == 'L', distance});
         }
-
-        return std::to_string(count_zero);
     }
 
-    std::string part2() override {
-        int pos = 50;
-        int count_zero = 0;
+    std::string part1() override { return solve(false); }
+    std::string part2() override { return solve(true); }
 
-        for (int delta : moves) {
-            int step = delta < 0 ? -1 : 1;
+  private:
+    struct Move {
+        bool left;
+        std::int64_t distance;
+    };
+    std::vector<Move> moves_;
 
-            for (int moved = 0; moved != delta; moved += step) {
-                pos += step;
-                if (pos < 0) pos += 100;
-                if (pos >= 100) pos -= 100;
-
-                if (pos == 0) {
-                    ++count_zero;
-                }
+    std::string solve(bool count_crossings) const {
+        int position = 50;
+        std::int64_t zeros = 0;
+        for (const auto& [left, distance] : moves_) {
+            const auto remainder = static_cast<int>(distance % 100);
+            if (count_crossings) {
+                zeros += distance / 100;
+                // Starting on zero does not itself count as a crossing.
+                const int to_zero = left ? (position == 0 ? 100 : position) : 100 - position;
+                zeros += remainder >= to_zero;
             }
+            position = (position + (left ? -remainder : remainder) + 100) % 100;
+            if (!count_crossings && position == 0)
+                ++zeros;
         }
-
-        return std::to_string(count_zero);
+        return std::to_string(zeros);
     }
-
-private:
-    static int mod100(int n) {
-        n %= 100;
-        if (n < 0) n += 100;
-        return n;
-    }
-
-    std::vector<int> moves;
 };
 
-// 🔌 Registration (static init, like Go)
-static bool registered = [] {
-    Registry::instance().register_day(
-        1,
-        [] { return std::make_unique<Day01>(); }
-    );
-    return true;
-}();
+namespace {
+const core::DayRegistration<Day01> registration{1};
+} // namespace

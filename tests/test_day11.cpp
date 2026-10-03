@@ -1,17 +1,6 @@
-#include <gtest/gtest.h>
 #include "days/day11.h"
-
-static std::vector<std::string> split_lines(const std::string& s) {
-    std::vector<std::string> out;
-    std::istringstream iss(s);
-    std::string line;
-    while (std::getline(iss, line)) {
-        if (!line.empty()) {
-            out.push_back(line);
-        }
-    }
-    return out;
-}
+#include "test_utils.h"
+#include <gtest/gtest.h>
 
 static const char* example_part1 = R"(
 aaa: you hhh
@@ -44,12 +33,12 @@ hhh: out
 
 TEST(Day11, ExamplePart1) {
     Day11 d;
-    d.set_input(split_lines(example_part1));
+    d.set_input(splitLines(example_part1));
     EXPECT_EQ(d.part1(), "5");
 }
 
 TEST(Day11, ExamplePart2) {
     Day11 d;
-    d.set_input(split_lines(example_part2));
+    d.set_input(splitLines(example_part2));
     EXPECT_EQ(d.part2(), "2");
 }

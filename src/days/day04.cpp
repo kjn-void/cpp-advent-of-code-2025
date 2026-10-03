@@ -1,31 +1,31 @@
 #include "days/day04.h"
-#include "core/Registry.h"
+#include "core/Register.h"
 
+#include <algorithm>
 #include <array>
 #include <queue>
+#include <stdexcept>
 
 // ------------------------------------------------------------
 // Registration (static init)
 // ------------------------------------------------------------
-static bool registered_day04 = [] {
-    Registry::instance().register_day(
-        4, [] { return std::make_unique<Day04>(); }
-    );
-    return true;
-}();
+namespace {
+const core::DayRegistration<Day04> registration{4};
+} // namespace
 
 // ------------------------------------------------------------
 // Direction table (8 neighbors)
 // ------------------------------------------------------------
-static constexpr std::array<std::pair<int,int>, 8> DIRS {{
-    {-1,-1}, {-1,0}, {-1,1},
-    { 0,-1},        { 0,1},
-    { 1,-1}, { 1,0}, { 1,1}
-}};
+static constexpr std::array<std::pair<int, int>, 8> DIRS{
+    {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}}};
 
 // ------------------------------------------------------------
 
 void Day04::set_input(const std::vector<std::string>& lines) {
+    if (!lines.empty() && !std::ranges::all_of(lines, [&](const auto& row) {
+            return row.size() == lines.front().size();
+        }))
+        throw std::invalid_argument("Paper roll grid must be rectangular");
     grid_ = lines;
     rows_ = static_cast<int>(grid_.size());
     cols_ = rows_ ? static_cast<int>(grid_[0].size()) : 0;
@@ -40,9 +40,7 @@ int Day04::count_adjacent(int r, int c) const {
     for (auto [dr, dc] : DIRS) {
         int nr = r + dr;
         int nc = c + dc;
-        if (nr >= 0 && nr < rows_ &&
-            nc >= 0 && nc < cols_ &&
-            grid_[nr][nc] == '@') {
+        if (nr >= 0 && nr < rows_ && nc >= 0 && nc < cols_ && grid_[nr][nc] == '@') {
             ++count;
         }
     }
@@ -87,20 +85,21 @@ std::string Day04::part2() {
     std::vector<std::vector<int>> deg(rows_, std::vector<int>(cols_, 0));
     for (int r = 0; r < rows_; ++r) {
         for (int c = 0; c < cols_; ++c) {
-            if (!on[r][c]) continue;
+            if (!on[r][c])
+                continue;
             for (auto [dr, dc] : DIRS) {
                 int nr = r + dr;
                 int nc = c + dc;
-                if (nr >= 0 && nr < rows_ &&
-                    nc >= 0 && nc < cols_ &&
-                    on[nr][nc]) {
+                if (nr >= 0 && nr < rows_ && nc >= 0 && nc < cols_ && on[nr][nc]) {
                     ++deg[r][c];
                 }
             }
         }
     }
 
-    struct Cell { int r, c; };
+    struct Cell {
+        int r, c;
+    };
     std::queue<Cell> q;
 
     for (int r = 0; r < rows_; ++r)

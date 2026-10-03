@@ -1,19 +1,21 @@
 #pragma once
 
+#include <cstdint>
+
 #include "core/Solution.h"
-#include <vector>
 #include <string>
 #include <utility>
+#include <vector>
 
 class Day05 final : public Solution {
-public:
+  public:
     void set_input(const std::vector<std::string>& lines) override;
     std::string part1() override;
     std::string part2() override;
 
-private:
-    std::vector<std::pair<int64_t, int64_t>> ranges_;
-    std::vector<int64_t> ids_;
+  private:
+    std::vector<std::pair<std::int64_t, std::int64_t>> ranges_;
+    std::vector<std::int64_t> ids_;
 
-    bool is_fresh(int64_t id) const;
+    bool is_fresh(std::int64_t id) const;
 };

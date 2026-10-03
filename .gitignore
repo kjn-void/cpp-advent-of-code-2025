@@ -1,2 +1,4 @@
-input
-build
+/input/
+/build*/
+/.cache/
+/compile_commands.json

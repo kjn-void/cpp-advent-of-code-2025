@@ -1,18 +1,17 @@
 #include "days/day05.h"
-#include "core/Registry.h"
+#include "core/Register.h"
 
+#include "core/Parse.h"
 #include <algorithm>
-#include <sstream>
+#include <limits>
+#include <stdexcept>
 
 // ------------------------------------------------------------
 // Registration
 // ------------------------------------------------------------
-static bool registered_day05 = [] {
-    Registry::instance().register_day(
-        5, [] { return std::make_unique<Day05>(); }
-    );
-    return true;
-}();
+namespace {
+const core::DayRegistration<Day05> registration{5};
+} // namespace
 
 // ------------------------------------------------------------
 
@@ -22,7 +21,8 @@ void Day05::set_input(const std::vector<std::string>& lines) {
 
     int section = 0;
 
-    for (const auto& line : lines) {
+    for (const auto& raw_line : lines) {
+        const auto line = core::trim(raw_line);
         if (line.empty()) {
             ++section;
             continue;
@@ -31,23 +31,29 @@ void Day05::set_input(const std::vector<std::string>& lines) {
         if (section == 0) {
             // range
             auto dash = line.find('-');
-            int64_t lo = std::stoll(line.substr(0, dash));
-            int64_t hi = std::stoll(line.substr(dash + 1));
+            if (dash == std::string_view::npos)
+                throw std::invalid_argument("Expected a fresh ID range");
+            const auto lo = core::parse_integer<std::int64_t>(line.substr(0, dash));
+            const auto hi = core::parse_integer<std::int64_t>(line.substr(dash + 1));
+            if (lo < 0 || hi < lo)
+                throw std::invalid_argument("Invalid fresh ID range");
             ranges_.emplace_back(lo, hi);
         } else {
             // id
-            ids_.push_back(std::stoll(line));
+            ids_.push_back(core::parse_integer<std::int64_t>(line));
         }
     }
 
     // merge overlapping ranges
-    std::sort(ranges_.begin(), ranges_.end());
+    std::ranges::sort(ranges_);
+    if (ranges_.empty())
+        return;
 
-    std::vector<std::pair<int64_t, int64_t>> merged;
-    int64_t cur_lo = ranges_[0].first;
-    int64_t cur_hi = ranges_[0].second;
+    std::vector<std::pair<std::int64_t, std::int64_t>> merged;
+    std::int64_t cur_lo = ranges_[0].first;
+    std::int64_t cur_hi = ranges_[0].second;
 
-    for (size_t i = 1; i < ranges_.size(); ++i) {
+    for (std::size_t i = 1; i < ranges_.size(); ++i) {
         auto [lo, hi] = ranges_[i];
         if (lo <= cur_hi) {
             cur_hi = std::max(cur_hi, hi);
@@ -65,7 +71,7 @@ void Day05::set_input(const std::vector<std::string>& lines) {
 // Helpers
 // ------------------------------------------------------------
 
-bool Day05::is_fresh(int64_t id) const {
+bool Day05::is_fresh(std::int64_t id) const {
     // binary search in merged ranges
     int lo = 0;
     int hi = static_cast<int>(ranges_.size()) - 1;
@@ -102,9 +108,12 @@ std::string Day05::part1() {
 // ------------------------------------------------------------
 
 std::string Day05::part2() {
-    int64_t total = 0;
+    std::int64_t total = 0;
     for (auto [lo, hi] : ranges_) {
-        total += (hi - lo + 1);
+        const auto difference = hi - lo;
+        if (difference >= std::numeric_limits<std::int64_t>::max() - total)
+            throw std::overflow_error("Fresh ID count exceeds int64_t");
+        total += difference + 1;
     }
     return std::to_string(total);
 }

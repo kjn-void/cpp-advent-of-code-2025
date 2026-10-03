@@ -1,27 +1,28 @@
 #pragma once
 
+#include <cstdint>
+
 #include "core/Solution.h"
 
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 class Day11 final : public Solution {
-public:
+  public:
     void set_input(const std::vector<std::string>& lines) override;
     std::string part1() override;
     std::string part2() override;
 
-private:
+  private:
     // adjacency list
     std::unordered_map<std::string, std::vector<std::string>> adj;
 
     // ---------- Part 1 ----------
-    int64_t count_paths_from(
-        const std::string& node,
-        std::unordered_map<std::string, int64_t>& memo,
-        std::unordered_map<std::string, bool>& visiting
-    );
+    std::int64_t count_paths_from(const std::string& node,
+                                  std::unordered_map<std::string, std::int64_t>& memo,
+                                  std::unordered_set<std::string>& visiting);
 
     // ---------- Part 2 ----------
     struct State {
@@ -39,10 +40,6 @@ private:
         }
     };
 
-    int64_t count_paths_with_required(
-        const std::string& start,
-        const std::string& end,
-        const std::string& need1,
-        const std::string& need2
-    );
+    std::int64_t count_paths_with_required(const std::string& start, const std::string& end,
+                                           const std::string& need1, const std::string& need2);
 };

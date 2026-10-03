@@ -1,66 +1,39 @@
 #include <benchmark/benchmark.h>
-#include <fstream>
-#include <vector>
-#include <string>
 
+#include "core/Input.h"
 #include "core/Registry.h"
-#include "core/Solution.h"   // ← REQUIRED
+#include "core/Solution.h"
 
-using namespace std;
+#include <exception>
+#include <stdexcept>
 
-// ------------------------------------------------------------
-// Input loader (bench-only)
-// ------------------------------------------------------------
-
-static vector<string> read_input(int day) {
-    char buf[64];
-    snprintf(buf, sizeof(buf), "input/day%02d.txt", day);
-
-    ifstream in(buf);
-    if (!in) {
-        throw runtime_error("Missing input file: " + string(buf));
-    }
-
-    vector<string> lines;
-    string line;
-    while (getline(in, line)) {
-        lines.push_back(line);
-    }
-    return lines;
-}
-
-// ------------------------------------------------------------
-// Benchmarks
-// ------------------------------------------------------------
-
+// Input I/O is excluded; construction, parsing, and both parts are timed.
 static void bench_day_full(benchmark::State& state, int day) {
-    auto lines = read_input(day);
-
-    for (auto _ : state) {
-        auto solver = Registry::instance().make(day);
-        solver->set_input(lines);
-        benchmark::DoNotOptimize(solver->part1());
-        benchmark::DoNotOptimize(solver->part2());
+    try {
+        const auto lines = core::read_input(day);
+        for (auto _ : state) {
+            auto solver = Registry::instance().make(day);
+            if (!solver)
+                throw std::runtime_error("Day is not registered");
+            solver->set_input(lines);
+            benchmark::DoNotOptimize(solver->part1());
+            benchmark::DoNotOptimize(solver->part2());
+        }
+    } catch (const std::exception& error) {
+        state.SkipWithError(error.what());
     }
 }
 
-#define BENCH_DAY(DAY) \
-    static void bench_day_##DAY##_full(benchmark::State& state) { \
-        bench_day_full(state, DAY); \
-    } \
-    BENCHMARK(bench_day_##DAY##_full);
-
-BENCH_DAY(1)
-BENCH_DAY(2)
-BENCH_DAY(3)
-BENCH_DAY(4)
-BENCH_DAY(5)
-BENCH_DAY(6)
-BENCH_DAY(7)
-BENCH_DAY(8)
-BENCH_DAY(9)
-BENCH_DAY(10)
-BENCH_DAY(11)
-BENCH_DAY(12)
-
-BENCHMARK_MAIN();
+// Wall time includes work performed by Day 10's worker threads.
+BENCHMARK_CAPTURE(bench_day_full, day01, 1)->UseRealTime();
+BENCHMARK_CAPTURE(bench_day_full, day02, 2)->UseRealTime();
+BENCHMARK_CAPTURE(bench_day_full, day03, 3)->UseRealTime();
+BENCHMARK_CAPTURE(bench_day_full, day04, 4)->UseRealTime();
+BENCHMARK_CAPTURE(bench_day_full, day05, 5)->UseRealTime();
+BENCHMARK_CAPTURE(bench_day_full, day06, 6)->UseRealTime();
+BENCHMARK_CAPTURE(bench_day_full, day07, 7)->UseRealTime();
+BENCHMARK_CAPTURE(bench_day_full, day08, 8)->UseRealTime();
+BENCHMARK_CAPTURE(bench_day_full, day09, 9)->UseRealTime();
+BENCHMARK_CAPTURE(bench_day_full, day10, 10)->UseRealTime();
+BENCHMARK_CAPTURE(bench_day_full, day11, 11)->UseRealTime();
+BENCHMARK_CAPTURE(bench_day_full, day12, 12)->UseRealTime();

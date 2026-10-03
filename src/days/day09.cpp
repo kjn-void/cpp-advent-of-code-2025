@@ -1,32 +1,38 @@
 #include "days/day09.h"
-#include "core/Registry.h"
+#include "core/Register.h"
 
-#include <sstream>
+#include "core/Parse.h"
+#include <algorithm>
 #include <cstdlib>
+#include <limits>
+#include <stdexcept>
 
-using namespace std;
+// Registration
+namespace {
+const core::DayRegistration<Day09> registration{9};
 
-// 🔌 Registration
-static bool registered = [] {
-    Registry::instance().register_day(
-        9, [] { return make_unique<Day09>(); }
-    );
-    return true;
-}();
+std::int64_t rectangle_area(std::int64_t width, std::int64_t height) {
+    if (width > std::numeric_limits<std::int64_t>::max() / height)
+        throw std::overflow_error("Rectangle area exceeds int64_t");
+    return width * height;
+}
+} // namespace
 
 // ----------------------------------------------------------
 // Input
 // ----------------------------------------------------------
 
-void Day09::set_input(const vector<string>& lines) {
+void Day09::set_input(const std::vector<std::string>& lines) {
     reds.clear();
-    edges.clear();
 
     for (const auto& line : lines) {
-        if (line.empty()) continue;
+        if (line.empty())
+            continue;
         auto comma = line.find(',');
-        int x = stoi(line.substr(0, comma));
-        int y = stoi(line.substr(comma + 1));
+        if (comma == std::string::npos)
+            throw std::invalid_argument("Expected a coordinate pair");
+        const auto x = core::parse_integer<int>(std::string_view(line).substr(0, comma));
+        const auto y = core::parse_integer<int>(std::string_view(line).substr(comma + 1));
         reds.push_back({x, y});
     }
 }
@@ -35,19 +41,19 @@ void Day09::set_input(const vector<string>& lines) {
 // Part 1
 // ----------------------------------------------------------
 
-string Day09::part1() {
-    return to_string(max_area_inclusive(reds));
+std::string Day09::part1() {
+    return std::to_string(max_area_inclusive(reds));
 }
 
-int64_t Day09::max_area_inclusive(const vector<Pt>& pts) {
-    int n = (int)pts.size();
-    int64_t best = 0;
+std::int64_t Day09::max_area_inclusive(const std::vector<Pt>& pts) {
+    int n = static_cast<int>(pts.size());
+    std::int64_t best = 0;
 
     for (int i = 0; i < n; ++i) {
         for (int j = i + 1; j < n; ++j) {
-            int64_t dx = abs_int(pts[i].x - pts[j].x) + 1;
-            int dy = abs_int(pts[i].y - pts[j].y) + 1;
-            best = max(best, dx * dy);
+            std::int64_t dx = std::abs(std::int64_t{pts[i].x} - pts[j].x) + 1;
+            std::int64_t dy = std::abs(std::int64_t{pts[i].y} - pts[j].y) + 1;
+            best = std::max(best, rectangle_area(dx, dy));
         }
     }
     return best;
@@ -57,117 +63,102 @@ int64_t Day09::max_area_inclusive(const vector<Pt>& pts) {
 // Part 2
 // ----------------------------------------------------------
 
-string Day09::part2() {
-    if (reds.size() < 2) return "0";
-    if (edges.empty()) build_edges();
+std::string Day09::part2() {
+    if (reds.size() < 2)
+        return "0";
 
-    int best = 0;
-    int n = (int)reds.size();
+    // Each boundary coordinate and its successor start a distinct interval of
+    // integer tiles. Interior gaps can be represented by a single compressed cell.
+    std::vector<std::int64_t> xs, ys;
+    for (const auto& point : reds) {
+        xs.push_back(point.x);
+        xs.push_back(std::int64_t{point.x} + 1);
+        ys.push_back(point.y);
+        ys.push_back(std::int64_t{point.y} + 1);
+    }
+    const auto compress = [](auto& coordinates) {
+        std::ranges::sort(coordinates);
+        const auto duplicates = std::ranges::unique(coordinates);
+        coordinates.erase(duplicates.begin(), duplicates.end());
+    };
+    compress(xs);
+    compress(ys);
 
-    for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) {
-            auto a = reds[i];
-            auto b = reds[j];
+    struct Cell {
+        std::size_t x, y;
+    };
+    std::vector<Cell> vertices;
+    for (const auto& point : reds) {
+        vertices.push_back(
+            {static_cast<std::size_t>(std::ranges::lower_bound(xs, point.x) - xs.begin()),
+             static_cast<std::size_t>(std::ranges::lower_bound(ys, point.y) - ys.begin())});
+    }
+    struct Segment {
+        std::size_t left, right, bottom, top;
+        bool horizontal;
+    };
+    std::vector<Segment> segments;
+    for (std::size_t i = 0; i < vertices.size(); ++i) {
+        const auto a = vertices[i];
+        const auto b = vertices[(i + 1) % vertices.size()];
+        if (a.x != b.x && a.y != b.y)
+            throw std::invalid_argument("Polygon edges must be axis-aligned");
+        segments.push_back({std::min(a.x, b.x), std::max(a.x, b.x), std::min(a.y, b.y),
+                            std::max(a.y, b.y), a.y == b.y});
+    }
 
-            int x1 = min_int(a.x, b.x);
-            int x2 = max_int(a.x, b.x);
-            int y1 = min_int(a.y, b.y);
-            int y2 = max_int(a.y, b.y);
-
-            int area = (x2 - x1 + 1) * (y2 - y1 + 1);
-            if (area <= best) continue;
-
-            Pt c3{x1, y2};
-            Pt c4{x2, y1};
-
-            if (!point_inside_or_on(c3) || !point_inside_or_on(c4)) continue;
-            if (rectangle_cut_by_polygon(x1, y1, x2, y2)) continue;
-
-            best = area;
+    // Scan each compressed row, then build a prefix sum of forbidden cells.
+    // A rectangle is valid precisely when its forbidden-cell count is zero.
+    const auto stride = xs.size();
+    std::vector<std::int64_t> outside(stride * ys.size(), 0);
+    std::vector<int> difference(stride);
+    std::vector<std::size_t> crossings;
+    for (std::size_t y = 0; y + 1 < ys.size(); ++y) {
+        std::ranges::fill(difference, 0);
+        crossings.clear();
+        const auto cover = [&](std::size_t left, std::size_t right) {
+            ++difference[left];
+            --difference[right + 1];
+        };
+        for (const auto& edge : segments) {
+            if (edge.horizontal) {
+                if (y == edge.bottom)
+                    cover(edge.left, edge.right);
+            } else {
+                if (y >= edge.bottom && y <= edge.top)
+                    cover(edge.left, edge.left);
+                // Half-open vertical edges count each polygon vertex once.
+                if (y >= edge.bottom && y < edge.top)
+                    crossings.push_back(edge.left);
+            }
+        }
+        std::ranges::sort(crossings);
+        if (crossings.size() % 2 != 0)
+            throw std::invalid_argument("Invalid polygon boundary");
+        for (std::size_t i = 0; i < crossings.size(); i += 2)
+            cover(crossings[i], crossings[i + 1]);
+        int coverage = 0;
+        for (std::size_t x = 0; x + 1 < xs.size(); ++x) {
+            coverage += difference[x];
+            outside[(y + 1) * stride + x + 1] = (coverage == 0) + outside[y * stride + x + 1] +
+                                                outside[(y + 1) * stride + x] -
+                                                outside[y * stride + x];
         }
     }
 
-    return to_string(best);
-}
-
-// ----------------------------------------------------------
-// Polygon edges
-// ----------------------------------------------------------
-
-void Day09::build_edges() {
-    int n = (int)reds.size();
-    edges.clear();
-    edges.reserve(n);
-
-    for (int i = 0; i < n; ++i) {
-        auto a = reds[i];
-        auto b = reds[(i + 1) % n];
-
-        Edge e{a.x, a.y, b.x, b.y, false};
-        if (a.y == b.y) {
-            e.hor = true;
-            if (e.x1 > e.x2) swap(e.x1, e.x2);
-        } else {
-            if (e.y1 > e.y2) swap(e.y1, e.y2);
-        }
-        edges.push_back(e);
-    }
-}
-
-// ----------------------------------------------------------
-// Point in polygon
-// ----------------------------------------------------------
-
-bool Day09::point_inside_or_on(const Pt& p) const {
-    for (const auto& e : edges) {
-        if (e.hor) {
-            if (p.y == e.y1 && p.x >= e.x1 && p.x <= e.x2)
-                return true;
-        } else {
-            if (p.x == e.x1 && p.y >= e.y1 && p.y <= e.y2)
-                return true;
+    std::int64_t best = 0;
+    for (std::size_t i = 0; i < vertices.size(); ++i) {
+        for (std::size_t j = i + 1; j < vertices.size(); ++j) {
+            const auto left = std::min(vertices[i].x, vertices[j].x);
+            const auto right = std::max(vertices[i].x, vertices[j].x) + 1;
+            const auto bottom = std::min(vertices[i].y, vertices[j].y);
+            const auto top = std::max(vertices[i].y, vertices[j].y) + 1;
+            const auto forbidden = outside[top * stride + right] -
+                                   outside[bottom * stride + right] - outside[top * stride + left] +
+                                   outside[bottom * stride + left];
+            if (forbidden == 0)
+                best = std::max(best, rectangle_area(xs[right] - xs[left], ys[top] - ys[bottom]));
         }
     }
-    return point_in_polygon_ray_cast(p, reds);
-}
-
-bool Day09::point_in_polygon_ray_cast(const Pt& p, const vector<Pt>& poly) {
-    bool inside = false;
-    int n = (int)poly.size();
-    int j = n - 1;
-
-    for (int i = 0; i < n; ++i) {
-        const auto& pi = poly[i];
-        const auto& pj = poly[j];
-
-        if ((pi.y > p.y) != (pj.y > p.y)) {
-            double xint = pj.x + double(p.y - pj.y) *
-                          double(pi.x - pj.x) /
-                          double(pi.y - pj.y);
-            if (p.x < xint) inside = !inside;
-        }
-        j = i;
-    }
-    return inside;
-}
-
-// ----------------------------------------------------------
-// Rectangle cut test
-// ----------------------------------------------------------
-
-bool Day09::rectangle_cut_by_polygon(int x1, int y1, int x2, int y2) const {
-    if (x1 == x2 || y1 == y2) return false;
-
-    for (const auto& e : edges) {
-        if (e.hor) {
-            int y = e.y1;
-            if (y <= y1 || y >= y2) continue;
-            if (max_int(e.x1, x1) < min_int(e.x2, x2)) return true;
-        } else {
-            int x = e.x1;
-            if (x <= x1 || x >= x2) continue;
-            if (max_int(e.y1, y1) < min_int(e.y2, y2)) return true;
-        }
-    }
-    return false;
+    return std::to_string(best);
 }

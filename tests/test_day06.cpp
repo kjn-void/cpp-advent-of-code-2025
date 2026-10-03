@@ -1,5 +1,5 @@
-#include <gtest/gtest.h>
 #include "days/day06.h"
+#include <gtest/gtest.h>
 
 static std::vector<std::string> example = {
     "123 328  51 64 ",

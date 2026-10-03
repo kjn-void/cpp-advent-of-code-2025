@@ -1,8 +1,6 @@
-#include <gtest/gtest.h>
 #include "days/day12.h"
 #include "test_utils.h"
-
-extern std::vector<std::string> splitLines(const std::string&);
+#include <gtest/gtest.h>
 
 static const char* example = R"(
 0:

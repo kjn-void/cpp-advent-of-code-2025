@@ -1,20 +1,17 @@
 #include "days/day03.h"
-#include "core/Registry.h"
+#include "core/Register.h"
 
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 
 // ------------------------------------------------------------
-// Registration (static init, like Go/Rust)
+// Registration
 // ------------------------------------------------------------
 
-static bool registered_day03 = [] {
-    Registry::instance().register_day(
-        3,
-        [] { return std::make_unique<Day03>(); }
-    );
-    return true;
-}();
+namespace {
+const core::DayRegistration<Day03> registration{3};
+} // namespace
 
 // ------------------------------------------------------------
 // Input
@@ -29,7 +26,9 @@ void Day03::set_input(const std::vector<std::string>& lines) {
         digits.reserve(line.size());
 
         for (char ch : line) {
-            digits.push_back(ch - '0'); // 1–9
+            if (ch < '0' || ch > '9')
+                throw std::invalid_argument("Battery bank must contain digits");
+            digits.push_back(ch - '0');
         }
 
         banks.push_back(std::move(digits));
@@ -53,7 +52,7 @@ std::string Day03::part2() {
 // ------------------------------------------------------------
 
 std::string Day03::max_joltage(int pick) const {
-    int64_t total = 0;
+    std::int64_t total = 0;
 
     for (const auto& bank : banks) {
         const int n = static_cast<int>(bank.size());
@@ -86,8 +85,8 @@ std::string Day03::max_joltage(int pick) const {
     return std::to_string(total);
 }
 
-int64_t Day03::stack_to_number(const std::vector<int>& stack) {
-    int64_t value = 0;
+std::int64_t Day03::stack_to_number(std::span<const int> stack) {
+    std::int64_t value = 0;
     for (int d : stack) {
         value = value * 10 + d;
     }

@@ -5,12 +5,12 @@
 #include <vector>
 
 class Day04 final : public Solution {
-public:
+  public:
     void set_input(const std::vector<std::string>& lines) override;
     std::string part1() override;
     std::string part2() override;
 
-private:
+  private:
     std::vector<std::string> grid_;
     int rows_ = 0;
     int cols_ = 0;

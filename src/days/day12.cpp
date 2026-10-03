@@ -1,16 +1,18 @@
 #include "days/day12.h"
-#include "core/Registry.h"
+#include "core/Register.h"
 
-#include <sstream>
+#include "core/Parse.h"
 #include <algorithm>
+#include <cstdint>
+#include <limits>
+#include <sstream>
+#include <stdexcept>
+#include <unordered_set>
 
-// 🔌 Registration
-static bool registered = [] {
-    Registry::instance().register_day(
-        12, [] { return std::make_unique<Day12>(); }
-    );
-    return true;
-}();
+// Registration
+namespace {
+const core::DayRegistration<Day12> registration{12};
+} // namespace
 
 // ------------------------------------------------------------
 // Parsing
@@ -20,71 +22,51 @@ void Day12::set_input(const std::vector<std::string>& lines) {
     shapes.clear();
     regions.clear();
 
-    size_t i = 0;
-    while (i < lines.size() && lines[i].find_first_not_of(" \t\r\n") == std::string::npos) {
-        ++i;
-    }
-
-    // ---------------- Shapes ----------------
-    while (i < lines.size()) {
-        std::string line = lines[i];
-        line.erase(0, line.find_first_not_of(" \t\r\n"));
-
-        if (line.empty()) {
-            ++i;
+    for (std::size_t i = 0; i < lines.size();) {
+        const auto line = core::trim(lines[i++]);
+        if (line.empty())
             continue;
-        }
-
-        if (is_region_line(line)) {
-            break;
-        }
-
-        if (!line.empty() && line.back() == ':') {
-            ++i;
+        const auto colon = line.find(':');
+        if (colon == std::string_view::npos)
+            throw std::invalid_argument("Expected shape or region header");
+        const auto header = line.substr(0, colon);
+        const auto x = header.find('x');
+        if (x == std::string_view::npos) {
+            if (!regions.empty() || core::parse_integer<std::size_t>(header) != shapes.size())
+                throw std::invalid_argument("Shape IDs must be consecutive, starting at zero");
             std::vector<std::string> rows;
             while (i < lines.size()) {
-                std::string s = lines[i];
-                s.erase(s.find_last_not_of("\r\n") + 1);
-                if (s.find_first_not_of(" \t") == std::string::npos) {
-                    ++i;
+                const auto row = core::trim(lines[i]);
+                if (row.empty() || row.find(':') != std::string_view::npos)
                     break;
-                }
-                std::string trimmed = s;
-                trimmed.erase(0, trimmed.find_first_not_of(" \t"));
-                if (!trimmed.empty() && trimmed.back() == ':') break;
-                if (is_region_line(trimmed)) break;
-                rows.push_back(trimmed);
+                if (row.find_first_not_of(".#") != std::string_view::npos)
+                    throw std::invalid_argument("Invalid shape cell");
+                rows.emplace_back(row);
                 ++i;
             }
-            if (!rows.empty()) {
-                shapes.push_back(build_shape(rows));
-            }
+            if (rows.empty())
+                throw std::invalid_argument("Missing shape cells");
+            auto shape = build_shape(rows);
+            if (shape.area == 0)
+                throw std::invalid_argument("Shape must occupy at least one cell");
+            shapes.push_back(std::move(shape));
         } else {
-            ++i;
+            const auto width = core::parse_integer<int>(header.substr(0, x));
+            const auto height = core::parse_integer<int>(header.substr(x + 1));
+            if (width <= 0 || height <= 0)
+                throw std::invalid_argument("Region dimensions must be positive");
+            std::istringstream input(std::string{line.substr(colon + 1)});
+            std::vector<int> counts;
+            for (std::string token; input >> token;) {
+                const auto count = core::parse_integer<int>(token);
+                if (count < 0)
+                    throw std::invalid_argument("Shape counts must be nonnegative");
+                counts.push_back(count);
+            }
+            if (counts.size() != shapes.size())
+                throw std::invalid_argument("Expected one count per shape");
+            regions.push_back({width, height, std::move(counts)});
         }
-    }
-
-    // ---------------- Regions ----------------
-    while (i < lines.size()) {
-        std::string line = lines[i++];
-        line.erase(0, line.find_first_not_of(" \t\r\n"));
-        if (line.empty()) continue;
-        if (!is_region_line(line)) continue;
-
-        auto pos = line.find(':');
-        auto dim = line.substr(0, pos);
-        auto cnt = line.substr(pos + 1);
-
-        auto xPos = dim.find('x');
-        int w = std::stoi(dim.substr(0, xPos));
-        int h = std::stoi(dim.substr(xPos + 1));
-
-        std::istringstream iss(cnt);
-        std::vector<int> counts;
-        int v;
-        while (iss >> v) counts.push_back(v);
-
-        regions.push_back({w, h, counts});
     }
 }
 
@@ -92,46 +74,32 @@ void Day12::set_input(const std::vector<std::string>& lines) {
 // Shape helpers
 // ------------------------------------------------------------
 
-bool Day12::is_region_line(const std::string& s) {
-    auto pos = s.find(':');
-    if (pos == std::string::npos) return false;
-    auto head = s.substr(0, pos);
-    auto x = head.find('x');
-    if (x == std::string::npos) return false;
-    try {
-        std::stoi(head.substr(0, x));
-        std::stoi(head.substr(x + 1));
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
 Day12::Shape Day12::build_shape(const std::vector<std::string>& rows) {
     int h = rows.size();
     int w = 0;
-    for (auto& r : rows) w = std::max(w, (int)r.size());
+    for (auto& r : rows)
+        w = std::max(w, static_cast<int>(r.size()));
 
     std::vector<std::vector<bool>> grid(h, std::vector<bool>(w, false));
     for (int y = 0; y < h; ++y)
-        for (int x = 0; x < (int)rows[y].size(); ++x)
-            if (rows[y][x] == '#') grid[y][x] = true;
+        for (int x = 0; x < static_cast<int>(rows[y].size()); ++x)
+            if (rows[y][x] == '#')
+                grid[y][x] = true;
 
-    std::unordered_map<std::string, bool> seen;
+    std::unordered_set<std::string> seen;
     std::vector<Variant> vars;
 
     auto g = grid;
     for (int r = 0; r < 4; ++r) {
-        if (r > 0) g = rotate_grid(g);
+        if (r > 0)
+            g = rotate_grid(g);
         for (int f = 0; f < 2; ++f) {
             auto gf = (f == 0) ? g : flip_grid_h(g);
             auto v = grid_to_variant(gf);
             if (!v.cells.empty()) {
                 auto key = variant_key(v);
-                if (!seen[key]) {
-                    seen[key] = true;
-                    vars.push_back(v);
-                }
+                if (seen.insert(key).second)
+                    vars.push_back(std::move(v));
             }
         }
     }
@@ -176,7 +144,8 @@ Day12::Variant Day12::grid_to_variant(const std::vector<std::vector<bool>>& g) {
                 maxY = std::max(maxY, y);
             }
 
-    if (maxX < minX) return {};
+    if (maxX < minX)
+        return {};
 
     Variant v;
     v.width = maxX - minX + 1;
@@ -211,80 +180,102 @@ std::string Day12::part1() {
 }
 
 std::string Day12::part2() {
-    return "0"; // intentionally stubbed
+    return "0"; // Day 12 has no second computational puzzle.
 }
 
 bool Day12::region_can_fit(const Region& r) const {
-    int totalArea = 0;
-    for (size_t i = 0; i < r.counts.size() && i < shapes.size(); ++i)
-        totalArea += r.counts[i] * shapes[i].area;
+    const auto board_area = std::int64_t{r.width} * r.height;
+    std::int64_t total_area = 0;
+    std::int64_t pieces = 0;
+    int slot_width = 0, slot_height = 0;
+    for (std::size_t i = 0; i < shapes.size(); ++i) {
+        if (r.counts[i] == 0)
+            continue;
+        total_area += std::int64_t{r.counts[i]} * shapes[i].area;
+        if (total_area > board_area)
+            return false;
+        if (!std::ranges::any_of(shapes[i].variants, [&](const auto& variant) {
+                return variant.width <= r.width && variant.height <= r.height;
+            }))
+            return false;
+        pieces += r.counts[i];
+        const auto& variant = shapes[i].variants.front();
+        slot_width = std::max(slot_width, variant.width);
+        slot_height = std::max(slot_height, variant.height);
+    }
+    if (pieces == 0)
+        return true;
 
-    if (totalArea > r.width * r.height) return false;
-
-    if (r.width * r.height <= SMALL_BOARD_MAX_AREA)
-        return can_tile_region_small(r);
-
-    return true;
+    // A disjoint bounding box for every piece is a constructive proof of fit.
+    const auto slots = std::int64_t{r.width / slot_width} * (r.height / slot_height);
+    if (pieces <= slots)
+        return true;
+    return can_pack_region(r);
 }
 
 // ------------------------------------------------------------
-// Exact tiling (small boards)
+// Exact packing when area and bounding boxes do not decide the result
 // ------------------------------------------------------------
 
-bool Day12::can_tile_region_small(const Region& r) const {
+bool Day12::can_pack_region(const Region& r) const {
     int w = r.width, h = r.height;
-    std::vector<std::vector<std::vector<int>>> placements(shapes.size());
+    std::vector<std::vector<std::vector<std::size_t>>> placements(shapes.size());
 
-    for (size_t si = 0; si < shapes.size(); ++si) {
-        for (auto& v : shapes[si].variants) {
+    for (std::size_t si = 0; si < shapes.size(); ++si) {
+        if (r.counts[si] == 0)
+            continue;
+        for (const auto& v : shapes[si].variants) {
             for (int y = 0; y <= h - v.height; ++y)
                 for (int x = 0; x <= w - v.width; ++x) {
-                    std::vector<int> cells;
+                    std::vector<std::size_t> cells;
                     for (auto& c : v.cells)
-                        cells.push_back((y + c.y) * w + (x + c.x));
-                    placements[si].push_back(cells);
+                        cells.push_back(static_cast<std::size_t>(y + c.y) * w + x + c.x);
+                    placements[si].push_back(std::move(cells));
                 }
         }
     }
 
-    std::vector<bool> board(w * h, false);
+    std::vector<bool> board(static_cast<std::size_t>(w) * h, false);
     auto counts = r.counts;
-    return bt_tile(board, w, h, counts, placements);
+    std::vector<std::size_t> first_placement(shapes.size(), 0);
+    return pack(board, counts, placements, first_placement);
 }
 
-bool Day12::bt_tile(
-    std::vector<bool>& board,
-    int w,
-    int h,
-    std::vector<int>& counts,
-    const std::vector<std::vector<std::vector<int>>>& placements
-) const {
-    int freeCells = std::count(board.begin(), board.end(), false);
+bool Day12::pack(std::vector<bool>& board, std::vector<int>& counts,
+                 const std::vector<std::vector<std::vector<std::size_t>>>& placements,
+                 std::vector<std::size_t>& first_placement) const {
+    const auto freeCells = std::ranges::count(board, false);
 
-    int needed = 0;
+    std::int64_t needed = 0;
     bool done = true;
-    for (size_t i = 0; i < counts.size() && i < shapes.size(); ++i) {
+    for (std::size_t i = 0; i < counts.size() && i < shapes.size(); ++i) {
         if (counts[i] > 0) {
             done = false;
-            needed += counts[i] * shapes[i].area;
+            needed += std::int64_t{counts[i]} * shapes[i].area;
         }
     }
 
-    if (done) return true;
-    if (needed > freeCells) return false;
+    if (done)
+        return true;
+    if (needed > freeCells)
+        return false;
 
-    int best = -1, bestCnt = INT_MAX;
+    std::size_t best = 0, bestCnt = std::numeric_limits<std::size_t>::max();
 
-    for (size_t i = 0; i < counts.size(); ++i) {
-        if (counts[i] <= 0) continue;
-        int feasible = 0;
-        for (auto& pl : placements[i]) {
-            if (std::all_of(pl.begin(), pl.end(), [&](int idx){ return !board[idx]; })) {
+    for (std::size_t i = 0; i < counts.size(); ++i) {
+        if (counts[i] <= 0)
+            continue;
+        std::size_t feasible = 0;
+        for (std::size_t index = first_placement[i]; index < placements[i].size(); ++index) {
+            const auto& pl = placements[i][index];
+            if (std::all_of(pl.begin(), pl.end(), [&](std::size_t idx) { return !board[idx]; })) {
                 ++feasible;
-                if (feasible >= bestCnt) break;
+                if (feasible >= bestCnt)
+                    break;
             }
         }
-        if (feasible == 0) return false;
+        if (feasible == 0)
+            return false;
         if (feasible < bestCnt) {
             bestCnt = feasible;
             best = i;
@@ -292,13 +283,20 @@ bool Day12::bt_tile(
     }
 
     counts[best]--;
-    for (auto& pl : placements[best]) {
-        if (std::all_of(pl.begin(), pl.end(), [&](int idx){ return !board[idx]; })) {
-            for (int idx : pl) board[idx] = true;
-            if (bt_tile(board, w, h, counts, placements)) return true;
-            for (int idx : pl) board[idx] = false;
+    const auto first = first_placement[best];
+    for (std::size_t index = first; index < placements[best].size(); ++index) {
+        const auto& pl = placements[best][index];
+        if (std::all_of(pl.begin(), pl.end(), [&](std::size_t idx) { return !board[idx]; })) {
+            for (auto idx : pl)
+                board[idx] = true;
+            first_placement[best] = index + 1;
+            if (pack(board, counts, placements, first_placement))
+                return true;
+            for (auto idx : pl)
+                board[idx] = false;
         }
     }
+    first_placement[best] = first;
     counts[best]++;
     return false;
 }

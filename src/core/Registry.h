@@ -8,7 +8,7 @@
 struct Solution; // forward declaration
 
 class Registry {
-public:
+  public:
     using Factory = std::function<std::unique_ptr<Solution>()>;
 
     static Registry& instance();
@@ -18,7 +18,7 @@ public:
 
     std::vector<int> implemented_days() const;
 
-private:
+  private:
     Registry() = default;
 
     std::unordered_map<int, Factory> factories_;

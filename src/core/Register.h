@@ -1,11 +1,17 @@
-// src/core/Register.h
 #pragma once
-#include "Registry.h"
 
-#define REGISTER_DAY(DAY, TYPE) \
-    static bool _reg_##TYPE = [] { \
-        Registry::instance().register_day(DAY, [] { \
-            return std::make_unique<TYPE>(); \
-        }); \
-        return true; \
-    }()
+#include "core/Registry.h"
+#include "core/Solution.h"
+
+#include <concepts>
+#include <memory>
+
+namespace core {
+
+template <std::derived_from<Solution> Day> struct DayRegistration {
+    explicit DayRegistration(int day) {
+        Registry::instance().register_day(day, [] { return std::make_unique<Day>(); });
+    }
+};
+
+} // namespace core
