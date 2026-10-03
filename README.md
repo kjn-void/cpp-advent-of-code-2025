@@ -1,7 +1,8 @@
 # Advent of Code 2025 — C++20
 
 Solutions for days 1–12, with a command-line runner, GoogleTest tests, and Google
-Benchmark benchmarks. Requires CMake 3.20 or newer and a C++20 compiler.
+Benchmark benchmarks. Requires CMake 3.20 or newer and a C++20 compiler/standard library, including
+`std::jthread`. With Apple's toolchain, use Xcode/Command Line Tools 26 or newer.
 
 ## Build and run
 
@@ -113,7 +114,8 @@ compositions, and capitalization; code review must still check their meaning.
 The guardrail tests exercise valid/invalid declarations and missing compilation
 units. LLVM/clang-format 23.1.2 were used for local validation of this migration.
 
-[CI](.github/workflows/ci.yml) runs on every push and pull request. It validates
+[CI](.github/workflows/ci.yml) runs on macOS 26 on every push and pull request.
+This supplies the required C++20 thread library. It validates
 formatting and naming, runs all unit/CLI tests in Release and with ASan/UBSan, and
 checks the dependency-free CLI build. **CI neither builds nor runs the benchmark
 executable**; it configures and lints its source only. Actual benchmarks require
