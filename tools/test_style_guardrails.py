@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """Exercise the naming policy with real clang-tidy diagnostics."""
 
+import contextlib
+import io
+import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
+from unittest import mock
 
-from check_style import CheckMainNames, PathFindTool, pathRoot, RgargPlatform, RgpathTranslationUnits
+from check_style import CheckMainNames, PathFindTool, pathRoot, RgargPlatform, RgpathTranslationUnits, RunChecked
 
 
 class NamingGuardrailTests(unittest.TestCase):
@@ -88,6 +93,15 @@ class NamingGuardrailTests(unittest.TestCase):
         recCheck = self.RecCheckFixture("int ValSolve() { return missing; }")
         self.assertNotEqual(recCheck.returncode, 0)
         self.assertIn("clang-diagnostic-error", recCheck.stdout + recCheck.stderr)
+
+    def test_ci_diagnostics_preserve_failure_and_escape_annotations(self):
+        outCapture = io.StringIO()
+        with mock.patch.dict(os.environ, {"GITHUB_ACTIONS": "true"}):
+            with contextlib.redirect_stdout(outCapture):
+                with self.assertRaises(subprocess.CalledProcessError) as errProcess:
+                    RunChecked([sys.executable, "-c", "import sys; print('bad%\\nname'); sys.exit(7)"])
+        self.assertEqual(errProcess.exception.returncode, 7)
+        self.assertIn("::error title=Style validation::bad%25%0Aname%0A", outCapture.getvalue())
 
     def test_missing_translation_units_do_not_pass(self):
         with tempfile.TemporaryDirectory(prefix="aoc-database-") as pathTemporary:

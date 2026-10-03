@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 import re
 from pathlib import Path
 import shutil
@@ -81,6 +82,22 @@ def CheckMainNames(usSource):
         raise RuntimeError("Use int main(int cusArgs, char** rgusArgs) for the entry point")
 
 
+def RunChecked(rgargCommand):
+    recProcess = subprocess.run(
+        rgargCommand, text=True, capture_output=True, check=False, cwd=pathRoot
+    )
+    print(recProcess.stdout, end="", flush=True)
+    print(recProcess.stderr, end="", file=sys.stderr, flush=True)
+    if recProcess.returncode:
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            # Expose the actual diagnostic beside the failed check, rather than
+            # leaving only GitHub's generic exit-code annotation.
+            txtDiagnostic = (recProcess.stdout + recProcess.stderr)[-8000:]
+            txtDiagnostic = txtDiagnostic.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+            print(f"::error title=Style validation::{txtDiagnostic}", flush=True)
+        raise subprocess.CalledProcessError(recProcess.returncode, rgargCommand)
+
+
 def RcMain():
     prsOptions = argparse.ArgumentParser(description=__doc__)
     prsOptions.add_argument("--build-dir", type=Path, default=pathRoot / "build")
@@ -93,16 +110,13 @@ def RcMain():
         CheckMainNames((pathRoot / "src/main.cpp").read_text())
         rgpathSources = RgpathSource()
         rgpathUnits = RgpathTranslationUnits(optOptions.build_dir.resolve(), rgpathSources)
-        subprocess.run(
-            [pathFormat, "--dry-run", "--Werror", *map(str, rgpathSources)], check=True, cwd=pathRoot
-        )
+        RunChecked([pathFormat, "--dry-run", "--Werror", *map(str, rgpathSources)])
         rgargExtra = [f"--extra-arg={argCompiler}" for argCompiler in RgargPlatform()]
         for pathSource in rgpathUnits:
             print(f"Naming: {pathSource.relative_to(pathRoot)}", flush=True)
-            subprocess.run(
+            RunChecked(
                 [pathTidy, str(pathSource), "-p", str(optOptions.build_dir.resolve()),
-                 f"--config-file={pathRoot / '.clang-tidy'}", "--quiet", *rgargExtra],
-                check=True, cwd=pathRoot,
+                 f"--config-file={pathRoot / '.clang-tidy'}", "--quiet", *rgargExtra]
             )
         print(f"Style passed: {len(rgpathSources)} files, {len(rgpathUnits)} translation units.")
         return 0
