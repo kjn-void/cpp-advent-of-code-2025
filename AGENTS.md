@@ -1,130 +1,81 @@
 # Project conventions
 
-Use idiomatic C++20 and Apps Hungarian throughout first-party code. The reference
-is [Charles Simonyi's Hungarian Notation](https://learn.microsoft.com/en-us/previous-versions/visualstudio/visual-studio-6.0/aa260976%28v%3Dvs.60%29).
-Use the semantic domain and meaningful operations to choose tags. Do not invent a
-storage-type dialect such as `iCount`, `strName`, or `vecButtons`.
+Use idiomatic C++20 and the Systems Hungarian style of the `gd` library on the
+`hungarian` branch: a short type prefix followed by the full domain words. Refer to
+the original [Advent of Code 2025 problems](https://adventofcode.com/2025) and the
+puzzle vocabulary in [README.md](README.md). The `main` branch uses ordinary
+snake_case names; keep the two branches' algorithms identical.
 
-## Names and constructions
+## Variable names
 
-A variable name is a lowercase semantic tag followed, when needed, by a Capitalized
-qualifier. Use a bare tag when it is unambiguous: `rw`, `col`, `mch`. The complete
-constructed tag stays lowercase: `mpcolrwPivot`, not `mpColRwPivot`.
+Every variable, parameter, constant, member, and structured binding starts with the
+prefix for its C++ type, then the domain words in CamelCase. Never abbreviate the
+domain words: the name must stay greppable (`iButtonCount`, not `iBtnCnt`).
 
-| Construction | Meaning | Project example |
+| Prefix | Type | Example |
 | --- | --- | --- |
-| `pX` | Explicit pointer to X | `pslvDay`, `pchLim` |
-| `dX` | Difference in X's coordinate/domain | `drwNeighbor`, `dxSegment` |
-| `cX` | Count of X | `crw`, `cbtn`, `cpr`, `cusArgs` |
-| `rgX` / `iX` | Indexed sequence of X / its index | `rgbtn` / `ibtn`, `rgjb` / `ijbFirst` |
-| `mpXY` | Mapping from X to Y | `mpcolrwPivot`, `mpdevrgdevOutputs_` |
-| `setX` | Membership set (project extension) | `setdevOnPath` |
-| `qX` | Pending work queue (project extension) | `qcelRemovals` |
-| `optX` | Optional result (C++ extension) | `optcprBest`, `mpjvoptcprMemo` |
+| `b` | `bool` | `bCanDiscard` |
+| `i` | signed integers, including `std::int64_t` and `char` used as a value | `iPressCount`, `iDigit` |
+| `u` | unsigned integers, including `std::size_t` | `uButtonIndex` |
+| `d` | `float`, `double` | `dRate` |
+| `e` | enum values | `eParseError` |
+| `p` | raw or smart pointer, followed by the pointee's prefix | `psolution`, `pvectorActiveBeams` |
+| `pbsz` | pointer to a zero-terminated character string | `pbszExampleText` |
+| `it` | iterator | `itFound` |
+| `string` | `std::string`, `std::string_view` | `stringLine` |
+| `vector`, `array`, `pair`, `map`, `set`, `queue`, `optional`, `span`, `function`, `atomic` | the standard template of that name (`map` and `set` include the unordered forms) | `vectorPivotRowByColumn`, `m_mapOutputsByDevice` |
+| lowercase class name | any other class, without namespace or underscores | `junctionbox`, `treeregionFirst`, `istringstreamCounts` |
+| lowercase template parameter | a value whose type is a template parameter | `functionValueAt`, `integerValue` |
 
-The original `f` flag tag is valid: `fHorizontal`, `fRepeated`. Its qualifier must
-describe the condition when true. Likewise, `p` is a valid construction, not a
-forbidden storage prefix. Other original constructions (`bX`, `cbX`, `cwX`, `grpX`,
-`dnX`, `eX`, `hX`) and string contracts (`sz`, `st`) can be registered if needed;
-do not apply byte/word counts or C-string contracts to unrelated modern objects.
+- Members start with `m_` before the prefix: `m_iRowCount`, `m_vectorRedTiles`. This
+  applies to plain record fields too (`JunctionBox::m_iX`).
+- Drop words that only repeat the class prefix: a `JunctionBox` parameter is
+  `junctionbox` or `junctionboxFirst`, and a `MachineDefinition` is
+  `machinedefinition`.
+- Short loop counters may be the bare prefix: `i`, `u`, `it`.
+- Escape hatch: a lowercase name ending in `_` turns off the prefix rule for a value
+  whose declaration is verbose and whose use is local, such as a lambda
+  (`count_paths_`, `recurse_`) or an unused loop variable (`iteration_`). Lambdas
+  always use this form. Members never do.
+- `main` is `int main(int iArgumentCount, char** ppbszArgument)`.
 
-Use these standard qualifiers with their precise meanings:
+Name what a value means. Distinguish `iButtonCount` from `uButtonIndex`,
+`iSquaredDistance` from a distance, and `vectorJoltageRequirements` from
+`vectorRemainingJoltage`. Use `First`/`Last` for inclusive endpoints and `End` for an
+exclusive endpoint. Keep spatial `X`, `Y`, `Z` separate from grid `Row`/`Column` and
+from collection indices. Keep clear algorithm terms such as pivot, parity, prefix
+sum, and union-find. Predicates read as a true condition: `bIsHorizontal`.
 
-- `First`: first member of an interval; `Last`: inclusive upper endpoint.
-- `Lim`: exclusive upper endpoint; `Max`: absolute/allocated exclusive bound;
-  `Mac`: current exclusive bound/count. Do not name an inclusive maximum `Max`.
-- `Nil`: distinguished absence; `T`: temporary. Prefer a useful domain qualifier
-  when more than one value of the same tag is in scope.
+## Functions and types
 
-Name procedures with an initial capital, a return tag for value-producing
-operations, and a short action: `RgusReadInput`, `CprSolveJoltage`, `FPresentsFit`,
-`SetInput`. Use the capitalized domain tag for structures (`Mch`, `Shp`, `Reg`).
-Callable variables remain variables (`fnSearch`, `fnRecurSearch`). Apply the same
-rules to constants, members, parameters, lambdas, structured bindings, and tests.
+- Functions and methods use PascalCase with no prefix and as few words as needed:
+  `SetInput`, `Part1`, `FewestPressesForJoltage`, `core::ParseInteger`.
+- Classes, structs, and type aliases use PascalCase; prefer the puzzle's nouns
+  (`JunctionBox`, `BoxPair`, `MachineDefinition`, `PresentShape`, `TreeRegion`).
+- Template type parameters are UPPER_CASE: `FUNCTION`, `INTEGER`, `DAY_SOLVER`.
+- Keep `DayNN` solver names, file, target and CLI names, GoogleTest/Benchmark macro
+  names, and CMake options.
+- Python tools follow PEP 8 and CMake keeps its usual lowercase variables; the gd
+  style applies to C++.
 
-## Domain vocabulary
+## Guardrails
 
-Tags describe logical values, not their `int`, `string`, vector, or span storage.
-Prefer an existing precise tag or a composition to adding another tag.
-
-| Tags | Domain |
-| --- | --- |
-| `rw`, `col` | Grid or matrix row and column indices; keep distinct from spatial coordinates |
-| `x`, `y`, `z`, `xy` | Original spatial coordinates; `xy` is an axis-agnostic helper coordinate |
-| `pt`, `cel`, `delta`, `seg` | Generic spatial point, indexed grid cell, displacement pair, polygon segment |
-| `jb`, `cn`, `cir`, `tl` | Junction box, candidate connection (a pair of junction boxes), circuit, original red tile |
-| `pos`, `rot`, `clk` | Dial position, rotation instruction, click unit; `cclk` can span several full rotations |
-| `id`, `blk`, `dev` | Numeric puzzle identity, repeated digit block of an ID, and device name; none is a positional index |
-| `dig`, `bat`, `bnk`, `jol` | Decimal digit, battery joltage rating, ordered battery bank, output joltage |
-| `rol` | Paper roll; `crol` counts rolls, including adjacent, accessible, or removed rolls |
-| `prb`, `rng` | Worksheet math problem (its inclusive column bounds) and interval/subrange |
-| `mch`, `btn`, `pr`, `ictr`, `jv`, `par`, `chc` | Machine, button wiring (affected light or counter indices), button press unit, counter index, full joltage vector, parity vector, parity-choice record |
-| `pre`, `shp`, `ori`, `reg`, `plc` | Present unit, present shape, rotated/reflected orientation, region under a tree, placement |
-| `vst`, `dsu` | Device visit state and disjoint-set circuit state |
-| `area`, `len`, `dist`, `coef`, `cost` | Area, length, distance, algebraic coefficient, optimization cost |
-| `cnt`, `iter`, `off` | Event count, iteration ordinal, text/bit offset; use `cX`/`iX` when X exists |
-| `bit`, `mask`, `f`, `ch` | Single bit, domain bitset, proposition, character |
-| `us`, `txt` | Unvalidated/input text and constructed/validated output text; trimming alone does not validate input |
-| `grid`, `mat` | Spatial grid and algebraic coefficient matrix; qualifiers identify the content |
-| `slv`, `regy`, `fac`, `drg` | Solver, solver registry, solver factory, day registration |
-| `wkr`, `item`, `fn`, `gen`, `hash` | Worker, generic indexed work item, callable, sample generator, hash result |
-| `path`, `in`, `out`, `rc`, `err`, `it`, `bms` | Path, input/output stream, exit status, error, lookup iterator, benchmark iteration state |
-| `val` | Arithmetic operand or generic utility value; use a domain-specific tag whenever one fits |
-| `arg`, `opt`, `prs`, `rec` | Tooling argument, parsed options, argument parser, process/database record |
-
-For example, `mpishprgplc` maps a shape index to its possible placements;
-`mpijbijbParent` maps a junction-box index to its parent junction-box index. A C++ container
-change does not change either relationship. `jv` and `btn` are deliberately short
-logical tags for collections with domain operations of their own.
-
-Choose the tag from the puzzle's vocabulary (linked in README), then qualify the
-role. `cbtn` counts distinct buttons, while `cpr` counts presses, possibly of the
-same button. `cjb` counts junction boxes and `ccir` counts circuits. An original
-red tile is `tl`; a compressed grid cell is `cel`. Use `len` for a length and
-`dx`/`dy` for coordinate differences.
-
-Distinguish original requirements from changing search state: `jvRequired` versus
-`jvRemaining`, and `mpishpcpreRequired` versus `mpishpcpreRemaining`. Both present
-maps associate each shape index with a count of presents. Avoid an unqualified
-`cnt`, `cost`, `pt`, or `val` when an established puzzle domain is more precise.
-
-## C++20 and tooling adaptations
-
-- References are named as the referenced domain, not as explicit pointers. Smart
-  pointers use `pX` when accessed as pointers. A borrowed sequence such as argv or
-  a span uses `rgX`; its element type, not its ownership, determines X.
-- Keep a trailing `_` on encapsulated state where the class uses it. Keep `DayNN`
-  names for numbered solver subclasses; their common interface has tag `slv`.
-  Templates use capitalized role names such as `Val`, `Fn`, and `SlvDay`.
-- Preserve language/library contracts: `main`, operators, external API identifiers,
-  GoogleTest/Benchmark macros and generated names, standard CMake names/options,
-  Python `self`, `cls`, dunder names and unittest hooks. File and target names remain
-  stable. Python helpers and project-owned CMake variables follow semantic naming
-  by review; clang-tidy covers C++ declarations.
-- Do not force 1990s string representations, raw ownership, or word-sized storage
-  into this C++20 project to accommodate a name.
-
-## Guardrails and verification
-
-`.clang-tidy` lists the registered tags and compositions. All four declaration
-regexes must agree. Extend them only for a documented domain/construction, with
-positive and negative checker coverage. Do not weaken the checker or add broad
-exclusions or `NOLINT` to hide violations. A checker validates spelling, not meaning:
-review that `rw` really is a row, a `pX` is a pointer, and a `Lim` is exclusive.
-
+- `.clang-tidy` checks capitalization, `m_`, and UPPER_CASE template parameters.
+  [tools/hungarian_prefixes.py](tools/hungarian_prefixes.py) runs `clang-query` and
+  checks that each prefix matches the declared or deduced type. Neither checks the
+  domain words; review must. Do not add `NOLINT`, broad exclusions, or weaken either
+  check to hide violations; extend the prefix table only with guardrail coverage.
+- Keep `.clang-format`, `.clang-tidy`, this file, README, and CI consistent.
 - Configure with tests and benchmarks enabled so the compilation database covers
-  every first-party translation unit. Then run
+  every first-party translation unit. Run
   `python3 tools/check_style.py --build-dir build` and
-  `python3 tools/test_style_guardrails.py`. Missing tools, omitted sources, naming
-  violations, formatting errors, and compilation errors must fail validation.
+  `python3 tools/test_style_guardrails.py` when changing names or the checks.
+  Missing tools, omitted sources, compiler errors, and violations must fail.
 - Run `cmake --build build --parallel` and
-  `ctest --test-dir build --output-on-failure`. Preserve every puzzle answer. Use
-  the README sanitizer build when changing algorithms or memory handling.
-- Keep this file, `.clang-tidy`, `.clang-format`, README, and CI consistent. Document
-  Homebrew development tools. Preserve the dependency-free CLI build.
-- CI runs tests, sanitizer tests, and naming/format checks on pushes and pull
-  requests. **Do not run benchmarks in CI.** Benchmark source is linted only.
-  Performance measurements require the proper private inputs and reference M4;
-  do not invent measurements for naming-only changes.
-- Preserve exact integer algorithms, input validation, and exception propagation.
-  A naming migration must not change algorithms or command-line behavior.
+  `ctest --test-dir build --output-on-failure`. Preserve all puzzle answers and
+  verify naming-only changes do not alter algorithms. Use the README sanitizer
+  build for algorithm or memory changes. Keep the dependency-free CLI working.
+- CI runs tests, sanitizer tests, naming, and formatting on pushes and pull
+  requests. Benchmark source is linted, but **benchmarks must not run in CI**.
+  Actual timings require private inputs and the reference M4; retain measured
+  results for naming-only changes. Document any installed Homebrew tools.

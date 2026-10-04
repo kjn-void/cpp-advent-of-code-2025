@@ -7,15 +7,15 @@
 #include "core/Solution.h"
 #include <vector>
 
-class Day03 final : public Slv {
+class Day03 final : public Solution {
   public:
-    void SetInput(const std::vector<std::string>& rgusLines) override;
-    std::string TxtPart1() override;
-    std::string TxtPart2() override;
+    void SetInput(const std::vector<std::string>& vectorInputLines) override;
+    std::string Part1() override;
+    std::string Part2() override;
 
   private:
-    std::vector<std::vector<int>> rgbnk_;
+    std::vector<std::vector<int>> m_vectorBatteryBanks;
 
-    std::string TxtTotalJoltage(int cbatToSelect) const;
-    static std::int64_t JolFromRatings(std::span<const int> rgbatSelected);
+    std::string TotalOutputJoltage(int iBatteriesToSelect) const;
+    static std::int64_t JoltageFromRatings(std::span<const int> spanSelectedRatings);
 };

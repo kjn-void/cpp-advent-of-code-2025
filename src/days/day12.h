@@ -6,55 +6,56 @@
 #include <string>
 #include <vector>
 
-class Day12 final : public Slv {
+class Day12 final : public Solution {
   public:
-    void SetInput(const std::vector<std::string>& rgusLines) override;
-    std::string TxtPart1() override;
-    std::string TxtPart2() override;
+    void SetInput(const std::vector<std::string>& vectorInputLines) override;
+    std::string Part1() override;
+    std::string Part2() override;
 
   private:
     // ------------------------------------------------------------
     // Data types
     // ------------------------------------------------------------
 
-    struct Delta {
-        int dcol, drw;
+    struct CellOffset {
+        int m_iColumnOffset, m_iRowOffset;
     };
 
-    struct Ori {
-        int ccol, crw;
-        std::vector<Delta> rgdelta;
+    struct PresentOrientation {
+        int m_iWidth, m_iHeight;
+        std::vector<CellOffset> m_vectorCellOffsets;
     };
 
-    struct Shp {
-        int areaOccupied = 0;
-        std::vector<Ori> rgori;
+    struct PresentShape {
+        int m_iOccupiedArea = 0;
+        std::vector<PresentOrientation> m_vectorOrientations;
     };
 
-    struct Reg {
-        int ccol, crw;
-        std::vector<int> mpishpcpreRequired;
+    struct TreeRegion {
+        int m_iWidth, m_iHeight;
+        std::vector<int> m_vectorPresentCounts;
     };
 
-    std::vector<Shp> rgshp_;
-    std::vector<Reg> rgreg_;
+    std::vector<PresentShape> m_vectorPresentShapes;
+    std::vector<TreeRegion> m_vectorTreeRegions;
 
     // ------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------
 
-    static Shp ShpBuild(const std::vector<std::string>& rgusShapeRows);
+    static PresentShape MakePresentShape(const std::vector<std::string>& vectorShapeRows);
     static std::vector<std::vector<bool>>
-    GridRotate(const std::vector<std::vector<bool>>& gridSource);
+    RotateClockwise(const std::vector<std::vector<bool>>& vectorGrid);
     static std::vector<std::vector<bool>>
-    GridReflect(const std::vector<std::vector<bool>>& gridSource);
-    static Ori OriFromGrid(const std::vector<std::vector<bool>>& gridSource);
-    static std::string TxtOrientationKey(const Ori& ori);
+    ReflectHorizontally(const std::vector<std::vector<bool>>& vectorGrid);
+    static PresentOrientation GridToOrientation(const std::vector<std::vector<bool>>& vectorGrid);
+    static std::string OrientationKey(const PresentOrientation& presentorientation);
 
-    bool FPresentsFit(const Reg& reg) const;
+    bool PresentsFit(const TreeRegion& treeregion) const;
 
-    bool FPackRegion(const Reg& reg) const;
-    bool FPlaceRemaining(std::vector<bool>& mpicelfOccupied, std::vector<int>& mpishpcpreRemaining,
-                         const std::vector<std::vector<std::vector<std::size_t>>>& mpishprgplc,
-                         std::vector<std::size_t>& mpishpiplcFirst) const;
+    bool CanPackRegion(const TreeRegion& treeregion) const;
+    bool PlaceRemainingPresents(
+        std::vector<bool>& vectorOccupiedCells, std::vector<int>& vectorRemainingCounts,
+        const std::vector<std::vector<std::vector<std::size_t>>>& vectorPlacementsByShape,
+        std::vector<std::size_t>& vectorFirstPlacementByShape) const;
 };

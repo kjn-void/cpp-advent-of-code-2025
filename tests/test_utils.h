@@ -3,4 +3,4 @@
 #include <string>
 #include <vector>
 
-std::vector<std::string> RgusSplitLines(const std::string& usText);
+std::vector<std::string> SplitLines(const std::string& stringText);

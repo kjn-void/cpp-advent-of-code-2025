@@ -5,21 +5,21 @@
 #include <unordered_map>
 #include <vector>
 
-struct Slv; // forward declaration
+struct Solution; // forward declaration
 
-class Regy {
+class Registry {
   public:
-    using Fac = std::function<std::unique_ptr<Slv>()>;
+    using Factory = std::function<std::unique_ptr<Solution>()>;
 
-    static Regy& RegyInstance();
+    static Registry& Instance();
 
-    void RegisterDay(int idDay, Fac facDay);
-    std::unique_ptr<Slv> PslvMake(int idDay) const;
+    void RegisterDay(int iDay, Factory functionFactory);
+    std::unique_ptr<Solution> Make(int iDay) const;
 
-    std::vector<int> RgidImplementedDays() const;
+    std::vector<int> ImplementedDays() const;
 
   private:
-    Regy() = default;
+    Registry() = default;
 
-    std::unordered_map<int, Fac> mpidfacDay_;
+    std::unordered_map<int, Factory> m_mapFactories;
 };

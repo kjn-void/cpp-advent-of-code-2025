@@ -3,28 +3,28 @@
 
 #include <algorithm>
 
-Regy& Regy::RegyInstance() {
-    static Regy regy;
-    return regy;
+Registry& Registry::Instance() {
+    static Registry registry;
+    return registry;
 }
 
-void Regy::RegisterDay(int idDay, Fac facDay) {
-    mpidfacDay_[idDay] = std::move(facDay);
+void Registry::RegisterDay(int iDay, Factory functionFactory) {
+    m_mapFactories[iDay] = std::move(functionFactory);
 }
 
-std::unique_ptr<Slv> Regy::PslvMake(int idDay) const {
-    if (auto itFactory = mpidfacDay_.find(idDay); itFactory != mpidfacDay_.end()) {
-        return itFactory->second();
+std::unique_ptr<Solution> Registry::Make(int iDay) const {
+    if (auto itFactoryEntry = m_mapFactories.find(iDay); itFactoryEntry != m_mapFactories.end()) {
+        return itFactoryEntry->second();
     }
     return nullptr;
 }
 
-std::vector<int> Regy::RgidImplementedDays() const {
-    std::vector<int> rgidDay;
-    rgidDay.reserve(mpidfacDay_.size());
-    for (const auto& [idDay, facIgnored] : mpidfacDay_) {
-        rgidDay.push_back(idDay);
+std::vector<int> Registry::ImplementedDays() const {
+    std::vector<int> vectorDays;
+    vectorDays.reserve(m_mapFactories.size());
+    for (const auto& [iDay, functionUnusedFactory] : m_mapFactories) {
+        vectorDays.push_back(iDay);
     }
-    std::ranges::sort(rgidDay);
-    return rgidDay;
+    std::ranges::sort(vectorDays);
+    return vectorDays;
 }

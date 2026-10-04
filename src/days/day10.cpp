@@ -12,100 +12,109 @@
 
 // Registration
 namespace {
-const core::Drg<Day10> drgDay{10};
+const core::DayRegistration<Day10> dayregistration{10};
 } // namespace
 
 // ------------------------------------------------------------
 // Parsing helpers
 // ------------------------------------------------------------
 
-std::vector<int> Day10::RgvalParseList(std::string_view usList) {
-    std::vector<int> rgvalParsed;
-    if (usList.size() < 2)
-        return rgvalParsed;
+std::vector<int> Day10::ParseIntegerList(std::string_view stringList) {
+    std::vector<int> vectorIntegers;
+    if (stringList.size() < 2)
+        return vectorIntegers;
 
-    const auto usContents = usList.substr(1, usList.size() - 2);
-    std::string usToken;
-    std::istringstream inList(std::string{usContents});
+    const auto stringListContents = stringList.substr(1, stringList.size() - 2);
+    std::string stringInteger;
+    std::istringstream istringstreamListInput(std::string{stringListContents});
 
-    while (std::getline(inList, usToken, ',')) {
-        rgvalParsed.push_back(core::ValParseInteger<int>(usToken));
+    while (std::getline(istringstreamListInput, stringInteger, ',')) {
+        vectorIntegers.push_back(core::ParseInteger<int>(stringInteger));
     }
-    if (!usContents.empty() && usContents.back() == ',')
+    if (!stringListContents.empty() && stringListContents.back() == ',')
         throw std::invalid_argument("Trailing comma in machine list");
-    return rgvalParsed;
+    return vectorIntegers;
 }
 
-void Day10::SetInput(const std::vector<std::string>& rgusLines) {
-    rgmch_.clear();
+void Day10::SetInput(const std::vector<std::string>& vectorInputLines) {
+    m_vectorMachines.clear();
 
-    for (const auto& usLine : rgusLines) {
-        if (usLine.empty())
+    for (const auto& stringLine : vectorInputLines) {
+        if (stringLine.empty())
             continue;
 
         // lights
-        auto offLightsFirst = usLine.find('[');
-        auto offLightsLast = usLine.find(']');
-        if (offLightsFirst == std::string::npos || offLightsLast == std::string::npos ||
-            offLightsLast <= offLightsFirst)
+        auto uLightsOpen = stringLine.find('[');
+        auto uLightsClose = stringLine.find(']');
+        if (uLightsOpen == std::string::npos || uLightsClose == std::string::npos ||
+            uLightsClose <= uLightsOpen)
             throw std::invalid_argument("Missing machine lights");
 
-        std::vector<int> rgfDiagram;
-        for (char chLight : usLine.substr(offLightsFirst + 1, offLightsLast - offLightsFirst - 1)) {
-            if (chLight != '#' && chLight != '.')
+        std::vector<int> vectorLightDiagram;
+        for (char iLightSymbol :
+             stringLine.substr(uLightsOpen + 1, uLightsClose - uLightsOpen - 1)) {
+            if (iLightSymbol != '#' && iLightSymbol != '.')
                 throw std::invalid_argument("Invalid light state");
-            rgfDiagram.push_back(chLight == '#' ? 1 : 0);
+            vectorLightDiagram.push_back(iLightSymbol == '#' ? 1 : 0);
         }
 
         // joltage
-        std::vector<int> jvRequired;
-        auto offJoltageFirst = usLine.find('{');
-        auto offJoltageLast = usLine.find('}');
-        if (offJoltageFirst == std::string::npos || offJoltageLast == std::string::npos ||
-            offJoltageFirst <= offLightsLast || offJoltageLast <= offJoltageFirst)
+        std::vector<int> vectorJoltageRequirements;
+        auto uJoltageOpen = stringLine.find('{');
+        auto uJoltageClose = stringLine.find('}');
+        if (uJoltageOpen == std::string::npos || uJoltageClose == std::string::npos ||
+            uJoltageOpen <= uLightsClose || uJoltageClose <= uJoltageOpen)
             throw std::invalid_argument("Missing machine joltage");
-        jvRequired =
-            RgvalParseList(usLine.substr(offJoltageFirst, offJoltageLast - offJoltageFirst + 1));
+        vectorJoltageRequirements =
+            ParseIntegerList(stringLine.substr(uJoltageOpen, uJoltageClose - uJoltageOpen + 1));
 
         // buttons
-        std::vector<std::vector<int>> rgbtn;
-        auto usButtons = core::UsTrim(std::string_view(usLine).substr(
-            offLightsLast + 1, offJoltageFirst - offLightsLast - 1));
+        std::vector<std::vector<int>> vectorButtonWirings;
+        auto stringWiring = core::Trim(
+            std::string_view(stringLine).substr(uLightsClose + 1, uJoltageOpen - uLightsClose - 1));
 
-        std::size_t offButtonFirst = 0;
-        while (!usButtons.empty()) {
-            if (usButtons.front() != '(')
+        std::size_t uButtonOpen = 0;
+        while (!stringWiring.empty()) {
+            if (stringWiring.front() != '(')
                 throw std::invalid_argument("Expected a machine button");
-            auto offButtonLast = usButtons.find(')', offButtonFirst);
-            if (offButtonLast == std::string::npos)
+            auto uButtonClose = stringWiring.find(')', uButtonOpen);
+            if (uButtonClose == std::string::npos)
                 throw std::invalid_argument("Unclosed machine button");
-            rgbtn.push_back(RgvalParseList(
-                usButtons.substr(offButtonFirst, offButtonLast - offButtonFirst + 1)));
-            usButtons = core::UsTrim(usButtons.substr(offButtonLast + 1));
+            vectorButtonWirings.push_back(
+                ParseIntegerList(stringWiring.substr(uButtonOpen, uButtonClose - uButtonOpen + 1)));
+            stringWiring = core::Trim(stringWiring.substr(uButtonClose + 1));
         }
 
-        if (!core::UsTrim(std::string_view(usLine).substr(0, offLightsFirst)).empty() ||
-            !core::UsTrim(std::string_view(usLine).substr(offJoltageLast + 1)).empty())
+        if (!core::Trim(std::string_view(stringLine).substr(0, uLightsOpen)).empty() ||
+            !core::Trim(std::string_view(stringLine).substr(uJoltageClose + 1)).empty())
             throw std::invalid_argument("Unexpected text around machine");
-        if (rgfDiagram.empty() || rgfDiagram.size() != jvRequired.size() ||
-            std::ranges::any_of(jvRequired, [](int jolRequired) { return jolRequired < 0; }))
+        if (vectorLightDiagram.empty() ||
+            vectorLightDiagram.size() != vectorJoltageRequirements.size() ||
+            std::ranges::any_of(vectorJoltageRequirements,
+                                [](int iRequiredJoltage) { return iRequiredJoltage < 0; }))
             throw std::invalid_argument("Invalid machine targets");
         // A wiring index names an indicator light in part 1 and a joltage counter in part 2.
-        for (auto& btn : rgbtn) {
-            std::ranges::sort(btn);
-            if (std::ranges::any_of(btn,
-                                    [&](int ictr) {
-                                        return ictr < 0 ||
-                                               ictr >= static_cast<int>(rgfDiagram.size());
+        for (auto& vectorWiring : vectorButtonWirings) {
+            std::ranges::sort(vectorWiring);
+            if (std::ranges::any_of(vectorWiring,
+                                    [&](int iWiredIndex) {
+                                        return iWiredIndex < 0 ||
+                                               iWiredIndex >=
+                                                   static_cast<int>(vectorLightDiagram.size());
                                     }) ||
-                std::adjacent_find(btn.begin(), btn.end()) != btn.end())
+                std::adjacent_find(vectorWiring.begin(), vectorWiring.end()) != vectorWiring.end())
                 throw std::invalid_argument("Invalid machine button index");
         }
         // Repeated or empty buttons cannot improve a minimum-press solution.
-        std::erase_if(rgbtn, [](const auto& btn) { return btn.empty(); });
-        std::ranges::sort(rgbtn);
-        rgbtn.erase(std::unique(rgbtn.begin(), rgbtn.end()), rgbtn.end());
-        rgmch_.push_back({std::move(rgfDiagram), std::move(jvRequired), std::move(rgbtn)});
+        std::erase_if(vectorButtonWirings,
+                      [](const auto& vectorWiring) { return vectorWiring.empty(); });
+        std::ranges::sort(vectorButtonWirings);
+        vectorButtonWirings.erase(
+            std::unique(vectorButtonWirings.begin(), vectorButtonWirings.end()),
+            vectorButtonWirings.end());
+        m_vectorMachines.push_back({std::move(vectorLightDiagram),
+                                    std::move(vectorJoltageRequirements),
+                                    std::move(vectorButtonWirings)});
     }
 }
 
@@ -113,200 +122,226 @@ void Day10::SetInput(const std::vector<std::string>& rgusLines) {
 // Part 1 — GF(2) Gaussian elimination
 // ------------------------------------------------------------
 
-int Day10::CprSolveLights(const Mch& mch) {
-    int cfLights = static_cast<int>(mch.rgfDiagram.size());
-    int cbtn = static_cast<int>(mch.rgbtn.size());
+int Day10::FewestPressesForLights(const MachineDefinition& machinedefinition) {
+    int iLightCount = static_cast<int>(machinedefinition.m_vectorLightDiagram.size());
+    int iButtonCount = static_cast<int>(machinedefinition.m_vectorButtonWirings.size());
 
-    std::vector<std::vector<int>> matLights(cfLights, std::vector<int>(cbtn + 1, 0));
-    for (int rwLight = 0; rwLight < cfLights; ++rwLight)
-        matLights[rwLight][cbtn] = mch.rgfDiagram[rwLight];
+    std::vector<std::vector<int>> vectorLightEquations(iLightCount,
+                                                       std::vector<int>(iButtonCount + 1, 0));
+    for (int iLightIndex = 0; iLightIndex < iLightCount; ++iLightIndex)
+        vectorLightEquations[iLightIndex][iButtonCount] =
+            machinedefinition.m_vectorLightDiagram[iLightIndex];
 
-    for (int colButton = 0; colButton < cbtn; ++colButton)
-        for (int rwLight : mch.rgbtn[colButton])
-            if (rwLight < cfLights)
-                matLights[rwLight][colButton] = 1;
+    for (int iButtonColumn = 0; iButtonColumn < iButtonCount; ++iButtonColumn)
+        for (int iLightIndex : machinedefinition.m_vectorButtonWirings[iButtonColumn])
+            if (iLightIndex < iLightCount)
+                vectorLightEquations[iLightIndex][iButtonColumn] = 1;
 
-    int rwPivot = 0;
-    std::vector<int> mpcolrwPivot(cbtn, -1);
+    int iPivotRow = 0;
+    std::vector<int> vectorPivotRowByColumn(iButtonCount, -1);
 
-    for (int colPivot = 0; colPivot < cbtn && rwPivot < cfLights; ++colPivot) {
-        int rwSelected = -1;
-        for (int rw = rwPivot; rw < cfLights; ++rw) {
-            if (matLights[rw][colPivot]) {
-                rwSelected = rw;
+    for (int iPivotColumn = 0; iPivotColumn < iButtonCount && iPivotRow < iLightCount;
+         ++iPivotColumn) {
+        int iSelectedRow = -1;
+        for (int iRow = iPivotRow; iRow < iLightCount; ++iRow) {
+            if (vectorLightEquations[iRow][iPivotColumn]) {
+                iSelectedRow = iRow;
                 break;
             }
         }
-        if (rwSelected == -1)
+        if (iSelectedRow == -1)
             continue;
 
-        std::swap(matLights[rwPivot], matLights[rwSelected]);
-        mpcolrwPivot[colPivot] = rwPivot;
+        std::swap(vectorLightEquations[iPivotRow], vectorLightEquations[iSelectedRow]);
+        vectorPivotRowByColumn[iPivotColumn] = iPivotRow;
 
-        for (int rw = 0; rw < cfLights; ++rw) {
-            if (rw != rwPivot && matLights[rw][colPivot]) {
-                for (int colCoefficient = colPivot; colCoefficient <= cbtn; ++colCoefficient)
-                    matLights[rw][colCoefficient] ^= matLights[rwPivot][colCoefficient];
+        for (int iRow = 0; iRow < iLightCount; ++iRow) {
+            if (iRow != iPivotRow && vectorLightEquations[iRow][iPivotColumn]) {
+                for (int iCoefficientColumn = iPivotColumn; iCoefficientColumn <= iButtonCount;
+                     ++iCoefficientColumn)
+                    vectorLightEquations[iRow][iCoefficientColumn] ^=
+                        vectorLightEquations[iPivotRow][iCoefficientColumn];
             }
         }
-        rwPivot++;
+        iPivotRow++;
     }
 
-    for (int rw = rwPivot; rw < cfLights; ++rw) {
-        if (matLights[rw][cbtn] != 0)
+    for (int iRow = iPivotRow; iRow < iLightCount; ++iRow) {
+        if (vectorLightEquations[iRow][iButtonCount] != 0)
             throw std::runtime_error("Unreachable light target");
     }
 
-    std::vector<int> rgcolFree;
-    for (int colButton = 0; colButton < cbtn; ++colButton)
-        if (mpcolrwPivot[colButton] == -1)
-            rgcolFree.push_back(colButton);
+    std::vector<int> vectorFreeButtonColumns;
+    for (int iButtonColumn = 0; iButtonColumn < iButtonCount; ++iButtonColumn)
+        if (vectorPivotRowByColumn[iButtonColumn] == -1)
+            vectorFreeButtonColumns.push_back(iButtonColumn);
 
-    int cprBest = cbtn + 1;
-    std::vector<int> mpcolbitParity(cbtn, 0);
-    const auto fnSearch = [&](auto&& fnRecurSearch, std::size_t icolFree, int cpr) -> void {
-        if (cpr >= cprBest)
+    int iMinimumPressCount = iButtonCount + 1;
+    std::vector<int> vectorPressParityByButton(iButtonCount, 0);
+    const auto search_parities_ = [&](auto&& recurse_, std::size_t uFreeColumnIndex,
+                                      int iPressCount) -> void {
+        if (iPressCount >= iMinimumPressCount)
             return;
-        if (icolFree < rgcolFree.size()) {
-            const int colFree = rgcolFree[icolFree];
-            mpcolbitParity[colFree] = 0;
-            fnRecurSearch(fnRecurSearch, icolFree + 1, cpr);
-            mpcolbitParity[colFree] = 1;
-            fnRecurSearch(fnRecurSearch, icolFree + 1, cpr + 1);
+        if (uFreeColumnIndex < vectorFreeButtonColumns.size()) {
+            const int iFreeColumn = vectorFreeButtonColumns[uFreeColumnIndex];
+            vectorPressParityByButton[iFreeColumn] = 0;
+            recurse_(recurse_, uFreeColumnIndex + 1, iPressCount);
+            vectorPressParityByButton[iFreeColumn] = 1;
+            recurse_(recurse_, uFreeColumnIndex + 1, iPressCount + 1);
             return;
         }
-        for (int colButton = cbtn - 1; colButton >= 0; --colButton) {
-            if (mpcolrwPivot[colButton] == -1)
+        for (int iButtonColumn = iButtonCount - 1; iButtonColumn >= 0; --iButtonColumn) {
+            if (vectorPivotRowByColumn[iButtonColumn] == -1)
                 continue;
-            const int rw = mpcolrwPivot[colButton];
-            int bitPress = matLights[rw][cbtn];
-            for (int colCoefficient = colButton + 1; colCoefficient < cbtn; ++colCoefficient)
-                bitPress ^= matLights[rw][colCoefficient] & mpcolbitParity[colCoefficient];
-            mpcolbitParity[colButton] = bitPress;
-            cpr += bitPress;
+            const int iRow = vectorPivotRowByColumn[iButtonColumn];
+            int iPressParity = vectorLightEquations[iRow][iButtonCount];
+            for (int iCoefficientColumn = iButtonColumn + 1; iCoefficientColumn < iButtonCount;
+                 ++iCoefficientColumn)
+                iPressParity ^= vectorLightEquations[iRow][iCoefficientColumn] &
+                                vectorPressParityByButton[iCoefficientColumn];
+            vectorPressParityByButton[iButtonColumn] = iPressParity;
+            iPressCount += iPressParity;
         }
-        cprBest = std::min(cprBest, cpr);
+        iMinimumPressCount = std::min(iMinimumPressCount, iPressCount);
     };
-    fnSearch(fnSearch, 0, 0);
+    search_parities_(search_parities_, 0, 0);
 
-    return cprBest;
+    return iMinimumPressCount;
 }
 
 // ------------------------------------------------------------
 // Part 2 — exact integer recursion on the binary digits of press counts
 // ------------------------------------------------------------
 
-std::int64_t Day10::CprSolveJoltage(const Mch& mch) {
-    struct Hashrgval {
-        std::size_t operator()(const std::vector<int>& rgval) const noexcept {
-            std::size_t hash = 0;
-            for (int valComponent : rgval)
-                hash ^= std::hash<int>{}(valComponent) + 0x9e3779b9U + (hash << 6) + (hash >> 2);
-            return hash;
+std::int64_t Day10::FewestPressesForJoltage(const MachineDefinition& machinedefinition) {
+    struct CounterVectorHash {
+        std::size_t operator()(const std::vector<int>& vectorCounterValues) const noexcept {
+            std::size_t uHashValue = 0;
+            for (int iCounterValue : vectorCounterValues)
+                uHashValue ^= std::hash<int>{}(iCounterValue) + 0x9e3779b9U + (uHashValue << 6) +
+                              (uHashValue >> 2);
+            return uHashValue;
         }
     };
-    struct Chc {
-        std::vector<int> jvIncrement;
-        int cpr;
+    struct ParityChoice {
+        std::vector<int> m_vectorCounterIncrements;
+        int m_iPressCount;
     };
 
-    const auto cictr = mch.jvRequired.size();
-    std::unordered_map<std::vector<int>, std::vector<Chc>, Hashrgval> mpparrgchc;
-    std::vector<int> jvIncrement(cictr, 0);
+    const auto uCounterCount = machinedefinition.m_vectorJoltageRequirements.size();
+    std::unordered_map<std::vector<int>, std::vector<ParityChoice>, CounterVectorHash>
+        mapChoicesByParity;
+    std::vector<int> vectorCounterIncrements(uCounterCount, 0);
     // Enumerate every set of buttons pressed an odd number of times.
-    const auto fnEnumerateOddPresses = [&](auto&& fnRecurEnumerate, std::size_t ibtn,
-                                           int cpr) -> void {
-        if (ibtn == mch.rgbtn.size()) {
-            auto parIncrement = jvIncrement;
-            for (auto& bitCounter : parIncrement)
-                bitCounter %= 2;
-            mpparrgchc[parIncrement].push_back({jvIncrement, cpr});
+    const auto enumerate_odd_presses_ = [&](auto&& recurse_, std::size_t uButtonIndex,
+                                            int iPressCount) -> void {
+        if (uButtonIndex == machinedefinition.m_vectorButtonWirings.size()) {
+            auto vectorIncrementParity = vectorCounterIncrements;
+            for (auto& iCounterValue : vectorIncrementParity)
+                iCounterValue %= 2;
+            mapChoicesByParity[vectorIncrementParity].push_back(
+                {vectorCounterIncrements, iPressCount});
             return;
         }
-        fnRecurEnumerate(fnRecurEnumerate, ibtn + 1, cpr);
-        for (int ictr : mch.rgbtn[ibtn])
-            ++jvIncrement[ictr];
-        fnRecurEnumerate(fnRecurEnumerate, ibtn + 1, cpr + 1);
-        for (int ictr : mch.rgbtn[ibtn])
-            --jvIncrement[ictr];
+        recurse_(recurse_, uButtonIndex + 1, iPressCount);
+        for (int iCounterIndex : machinedefinition.m_vectorButtonWirings[uButtonIndex])
+            ++vectorCounterIncrements[iCounterIndex];
+        recurse_(recurse_, uButtonIndex + 1, iPressCount + 1);
+        for (int iCounterIndex : machinedefinition.m_vectorButtonWirings[uButtonIndex])
+            --vectorCounterIncrements[iCounterIndex];
     };
-    fnEnumerateOddPresses(fnEnumerateOddPresses, 0, 0);
+    enumerate_odd_presses_(enumerate_odd_presses_, 0, 0);
 
-    using Optcpr = std::optional<std::int64_t>;
-    std::unordered_map<std::vector<int>, Optcpr, Hashrgval> mpjvoptcprMemo;
-    const auto fnFewestPresses = [&](auto&& fnRecurSolve,
-                                     const std::vector<int>& jvRemaining) -> Optcpr {
-        if (std::ranges::all_of(jvRemaining, [](int jolRemaining) { return jolRemaining == 0; }))
+    using PressCountResult = std::optional<std::int64_t>;
+    std::unordered_map<std::vector<int>, PressCountResult, CounterVectorHash>
+        mapMinimumPressesByRemainingJoltage;
+    const auto minimum_presses_ =
+        [&](auto&& recurse_, const std::vector<int>& vectorRemainingJoltage) -> PressCountResult {
+        if (std::ranges::all_of(vectorRemainingJoltage,
+                                [](int iCounterValue) { return iCounterValue == 0; }))
             return 0;
-        if (const auto itCachedPressCount = mpjvoptcprMemo.find(jvRemaining);
-            itCachedPressCount != mpjvoptcprMemo.end())
+        if (const auto itCachedPressCount =
+                mapMinimumPressesByRemainingJoltage.find(vectorRemainingJoltage);
+            itCachedPressCount != mapMinimumPressesByRemainingJoltage.end())
             return itCachedPressCount->second;
 
-        auto parRemaining = jvRemaining;
-        for (auto& bitCounter : parRemaining)
-            bitCounter %= 2;
-        const auto itChoices = mpparrgchc.find(parRemaining);
-        Optcpr optcprBest;
-        if (itChoices != mpparrgchc.end()) {
-            for (const auto& chc : itChoices->second) {
-                std::vector<int> jvHalf(cictr);
-                bool fFeasible = true;
-                for (std::size_t ictr = 0; ictr < cictr; ++ictr) {
-                    if (chc.jvIncrement[ictr] > jvRemaining[ictr]) {
-                        fFeasible = false;
+        auto vectorRemainingParity = vectorRemainingJoltage;
+        for (auto& iCounterValue : vectorRemainingParity)
+            iCounterValue %= 2;
+        const auto itMatchingChoices = mapChoicesByParity.find(vectorRemainingParity);
+        PressCountResult optionalMinimumPressCount;
+        if (itMatchingChoices != mapChoicesByParity.end()) {
+            for (const auto& paritychoice : itMatchingChoices->second) {
+                std::vector<int> vectorHalvedJoltage(uCounterCount);
+                bool bFitsRemainingJoltage = true;
+                for (std::size_t uCounterIndex = 0; uCounterIndex < uCounterCount;
+                     ++uCounterIndex) {
+                    if (paritychoice.m_vectorCounterIncrements[uCounterIndex] >
+                        vectorRemainingJoltage[uCounterIndex]) {
+                        bFitsRemainingJoltage = false;
                         break;
                     }
-                    jvHalf[ictr] = (jvRemaining[ictr] - chc.jvIncrement[ictr]) / 2;
+                    vectorHalvedJoltage[uCounterIndex] =
+                        (vectorRemainingJoltage[uCounterIndex] -
+                         paritychoice.m_vectorCounterIncrements[uCounterIndex]) /
+                        2;
                 }
-                if (!fFeasible)
+                if (!bFitsRemainingJoltage)
                     continue;
                 // Each press adds at most one to any counter.
-                const auto cprLowerBound = chc.cpr + 2 * std::int64_t{std::ranges::max(jvHalf)};
-                if (optcprBest && cprLowerBound >= *optcprBest)
+                const auto iPressCountLowerBound =
+                    paritychoice.m_iPressCount +
+                    2 * std::int64_t{std::ranges::max(vectorHalvedJoltage)};
+                if (optionalMinimumPressCount &&
+                    iPressCountLowerBound >= *optionalMinimumPressCount)
                     continue;
-                if (const auto optcprRemaining = fnRecurSolve(fnRecurSolve, jvHalf)) {
-                    const auto cprTotal = chc.cpr + 2 * *optcprRemaining;
-                    if (!optcprBest || cprTotal < *optcprBest)
-                        optcprBest = cprTotal;
+                if (const auto optionalRemainingPressCount =
+                        recurse_(recurse_, vectorHalvedJoltage)) {
+                    const auto iTotalPresses =
+                        paritychoice.m_iPressCount + 2 * *optionalRemainingPressCount;
+                    if (!optionalMinimumPressCount || iTotalPresses < *optionalMinimumPressCount)
+                        optionalMinimumPressCount = iTotalPresses;
                 }
             }
         }
-        mpjvoptcprMemo.emplace(jvRemaining, optcprBest);
-        return optcprBest;
+        mapMinimumPressesByRemainingJoltage.emplace(vectorRemainingJoltage,
+                                                    optionalMinimumPressCount);
+        return optionalMinimumPressCount;
     };
 
     // Any press vector is uniquely x = odd + 2 * rest. Matching target parity
     // makes (target - A * odd) / 2 an exact, smaller integer subproblem.
-    const auto optcprMinimum = fnFewestPresses(fnFewestPresses, mch.jvRequired);
-    if (!optcprMinimum)
+    const auto optionalMinimumPressCount =
+        minimum_presses_(minimum_presses_, machinedefinition.m_vectorJoltageRequirements);
+    if (!optionalMinimumPressCount)
         throw std::runtime_error("Unreachable joltage target");
-    return *optcprMinimum;
+    return *optionalMinimumPressCount;
 }
 
 // ------------------------------------------------------------
 // Day interface
 // ------------------------------------------------------------
 
-std::string Day10::TxtPart1() {
-    const std::int64_t cprTotal =
-        core::ValSumIndexed(rgmch_.size(), [&](std::size_t imch) -> std::int64_t {
-            const auto& mch = rgmch_[imch];
-            if (mch.rgfDiagram.empty())
+std::string Day10::Part1() {
+    const std::int64_t iTotalPresses = core::ParallelSumIndexed(
+        m_vectorMachines.size(), [&](std::size_t uMachineIndex) -> std::int64_t {
+            const auto& machinedefinition = m_vectorMachines[uMachineIndex];
+            if (machinedefinition.m_vectorLightDiagram.empty())
                 return 0;
-            return static_cast<std::int64_t>(CprSolveLights(mch));
+            return static_cast<std::int64_t>(FewestPressesForLights(machinedefinition));
         });
 
-    return std::to_string(cprTotal);
+    return std::to_string(iTotalPresses);
 }
 
-std::string Day10::TxtPart2() {
-    const std::int64_t cprTotal =
-        core::ValSumIndexed(rgmch_.size(), [&](std::size_t imch) -> std::int64_t {
-            const auto& mch = rgmch_[imch];
-            if (mch.jvRequired.empty())
+std::string Day10::Part2() {
+    const std::int64_t iTotalPresses = core::ParallelSumIndexed(
+        m_vectorMachines.size(), [&](std::size_t uMachineIndex) -> std::int64_t {
+            const auto& machinedefinition = m_vectorMachines[uMachineIndex];
+            if (machinedefinition.m_vectorJoltageRequirements.empty())
                 return 0;
-            return static_cast<std::int64_t>(CprSolveJoltage(mch));
+            return static_cast<std::int64_t>(FewestPressesForJoltage(machinedefinition));
         });
 
-    return std::to_string(cprTotal);
+    return std::to_string(iTotalPresses);
 }

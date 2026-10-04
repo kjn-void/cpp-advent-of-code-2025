@@ -7,25 +7,25 @@
 #include <string_view>
 #include <vector>
 
-class Day10 final : public Slv {
+class Day10 final : public Solution {
   public:
-    void SetInput(const std::vector<std::string>& rgusLines) override;
-    std::string TxtPart1() override;
-    std::string TxtPart2() override;
+    void SetInput(const std::vector<std::string>& vectorInputLines) override;
+    std::string Part1() override;
+    std::string Part2() override;
 
   private:
-    struct Mch {
-        std::vector<int> rgfDiagram;
-        std::vector<int> jvRequired;
-        std::vector<std::vector<int>> rgbtn;
+    struct MachineDefinition {
+        std::vector<int> m_vectorLightDiagram;
+        std::vector<int> m_vectorJoltageRequirements;
+        std::vector<std::vector<int>> m_vectorButtonWirings;
     };
 
-    std::vector<Mch> rgmch_;
+    std::vector<MachineDefinition> m_vectorMachines;
 
     // solvers
-    static int CprSolveLights(const Mch& mch);
-    static std::int64_t CprSolveJoltage(const Mch& mch);
+    static int FewestPressesForLights(const MachineDefinition& machinedefinition);
+    static std::int64_t FewestPressesForJoltage(const MachineDefinition& machinedefinition);
 
     // parsing helpers
-    static std::vector<int> RgvalParseList(std::string_view usList);
+    static std::vector<int> ParseIntegerList(std::string_view stringList);
 };

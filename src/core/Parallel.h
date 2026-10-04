@@ -12,56 +12,58 @@
 
 namespace core {
 
-// Parallel sum over indices [0..n), using a worker-count-sized partial reduction.
+// Parallel sum over indices [0, uItemCount), using a worker-count-sized partial reduction.
 // Portable: works with AppleClang + Command Line Tools.
-template <typename Fn> std::int64_t ValSumIndexed(std::size_t citem, Fn&& fnValueAt) {
-    if (citem == 0)
+template <typename FUNCTION>
+std::int64_t ParallelSumIndexed(std::size_t uItemCount, FUNCTION&& functionValueAt) {
+    if (uItemCount == 0)
         return 0;
 
-    const unsigned cwkrHardware = std::max(1u, std::thread::hardware_concurrency());
-    const auto cwkr = std::min<std::size_t>(cwkrHardware, citem);
-    if (cwkr == 1) {
-        std::int64_t valSum = 0;
-        for (std::size_t iitem = 0; iitem < citem; ++iitem)
-            valSum += fnValueAt(iitem);
-        return valSum;
+    const unsigned uHardwareWorkers = std::max(1u, std::thread::hardware_concurrency());
+    const auto uWorkerCount = std::min<std::size_t>(uHardwareWorkers, uItemCount);
+    if (uWorkerCount == 1) {
+        std::int64_t iTotal = 0;
+        for (std::size_t uItemIndex = 0; uItemIndex < uItemCount; ++uItemIndex)
+            iTotal += functionValueAt(uItemIndex);
+        return iTotal;
     }
 
-    std::atomic_size_t iitemNext{0};
-    std::vector<std::int64_t> mpiwkrvalSum(cwkr, 0);
+    std::atomic_size_t atomicNextItemIndex{0};
+    std::vector<std::int64_t> vectorWorkerSums(uWorkerCount, 0);
 
-    std::vector<std::exception_ptr> mpiwkrerr(cwkr);
-    std::atomic_bool fFailed{false};
-    std::vector<std::jthread> rgwkr;
-    rgwkr.reserve(cwkr);
+    std::vector<std::exception_ptr> vectorWorkerErrors(uWorkerCount);
+    std::atomic_bool atomicFailed{false};
+    std::vector<std::jthread> vectorWorkers;
+    vectorWorkers.reserve(uWorkerCount);
 
-    for (std::size_t iwkr = 0; iwkr < cwkr; ++iwkr) {
-        rgwkr.emplace_back([&, iwkr] {
+    for (std::size_t uWorkerIndex = 0; uWorkerIndex < uWorkerCount; ++uWorkerIndex) {
+        vectorWorkers.emplace_back([&, uWorkerIndex] {
             try {
-                std::int64_t valWorkerSum = 0;
-                while (!fFailed.load(std::memory_order_relaxed)) {
-                    const auto iitem = iitemNext.fetch_add(1, std::memory_order_relaxed);
-                    if (iitem >= citem)
+                std::int64_t iWorkerSum = 0;
+                while (!atomicFailed.load(std::memory_order_relaxed)) {
+                    const auto uItemIndex =
+                        atomicNextItemIndex.fetch_add(1, std::memory_order_relaxed);
+                    if (uItemIndex >= uItemCount)
                         break;
-                    valWorkerSum += fnValueAt(iitem);
+                    iWorkerSum += functionValueAt(uItemIndex);
                 }
-                mpiwkrvalSum[iwkr] = valWorkerSum;
+                vectorWorkerSums[uWorkerIndex] = iWorkerSum;
             } catch (...) {
-                mpiwkrerr[iwkr] = std::current_exception();
-                fFailed.store(true, std::memory_order_relaxed);
+                vectorWorkerErrors[uWorkerIndex] = std::current_exception();
+                atomicFailed.store(true, std::memory_order_relaxed);
             }
         });
     }
 
-    for (auto& wkr : rgwkr) {
-        wkr.join();
+    for (auto& jthreadWorker : vectorWorkers) {
+        jthreadWorker.join();
     }
 
-    for (const auto& errWorker : mpiwkrerr) {
-        if (errWorker)
-            std::rethrow_exception(errWorker);
+    for (const auto& exceptionptrWorkerError : vectorWorkerErrors) {
+        if (exceptionptrWorkerError)
+            std::rethrow_exception(exceptionptrWorkerError);
     }
-    return std::accumulate(mpiwkrvalSum.begin(), mpiwkrvalSum.end(), std::int64_t{0});
+    return std::accumulate(vectorWorkerSums.begin(), vectorWorkerSums.end(), std::int64_t{0});
 }
 
 } // namespace core

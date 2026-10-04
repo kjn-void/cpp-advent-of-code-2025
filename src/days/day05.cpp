@@ -10,79 +10,81 @@
 // Registration
 // ------------------------------------------------------------
 namespace {
-const core::Drg<Day05> drgDay{5};
+const core::DayRegistration<Day05> dayregistration{5};
 } // namespace
 
 // ------------------------------------------------------------
 
-void Day05::SetInput(const std::vector<std::string>& rgusLines) {
-    rgrngFresh_.clear();
-    rgidAvailable_.clear();
+void Day05::SetInput(const std::vector<std::string>& vectorInputLines) {
+    m_vectorFreshIdRanges.clear();
+    m_vectorAvailableIngredientIds.clear();
 
-    int iterSection = 0;
+    int iSectionIndex = 0;
 
-    for (const auto& usRawLine : rgusLines) {
-        const auto usLine = core::UsTrim(usRawLine);
-        if (usLine.empty()) {
-            ++iterSection;
+    for (const auto& stringRawLine : vectorInputLines) {
+        const auto stringLine = core::Trim(stringRawLine);
+        if (stringLine.empty()) {
+            ++iSectionIndex;
             continue;
         }
 
-        if (iterSection == 0) {
+        if (iSectionIndex == 0) {
             // range
-            auto offDash = usLine.find('-');
-            if (offDash == std::string_view::npos)
+            auto uDashOffset = stringLine.find('-');
+            if (uDashOffset == std::string_view::npos)
                 throw std::invalid_argument("Expected a fresh ID range");
-            const auto idFirst = core::ValParseInteger<std::int64_t>(usLine.substr(0, offDash));
-            const auto idLast = core::ValParseInteger<std::int64_t>(usLine.substr(offDash + 1));
-            if (idFirst < 0 || idLast < idFirst)
+            const auto iFirstId =
+                core::ParseInteger<std::int64_t>(stringLine.substr(0, uDashOffset));
+            const auto iLastId =
+                core::ParseInteger<std::int64_t>(stringLine.substr(uDashOffset + 1));
+            if (iFirstId < 0 || iLastId < iFirstId)
                 throw std::invalid_argument("Invalid fresh ID range");
-            rgrngFresh_.emplace_back(idFirst, idLast);
+            m_vectorFreshIdRanges.emplace_back(iFirstId, iLastId);
         } else {
             // id
-            rgidAvailable_.push_back(core::ValParseInteger<std::int64_t>(usLine));
+            m_vectorAvailableIngredientIds.push_back(core::ParseInteger<std::int64_t>(stringLine));
         }
     }
 
     // merge overlapping ranges
-    std::ranges::sort(rgrngFresh_);
-    if (rgrngFresh_.empty())
+    std::ranges::sort(m_vectorFreshIdRanges);
+    if (m_vectorFreshIdRanges.empty())
         return;
 
-    std::vector<std::pair<std::int64_t, std::int64_t>> rgrngMerged;
-    std::int64_t idMergedFirst = rgrngFresh_[0].first;
-    std::int64_t idMergedLast = rgrngFresh_[0].second;
+    std::vector<std::pair<std::int64_t, std::int64_t>> vectorMergedRanges;
+    std::int64_t iMergedFirstId = m_vectorFreshIdRanges[0].first;
+    std::int64_t iMergedLastId = m_vectorFreshIdRanges[0].second;
 
-    for (std::size_t irng = 1; irng < rgrngFresh_.size(); ++irng) {
-        auto [idFirst, idLast] = rgrngFresh_[irng];
-        if (idFirst <= idMergedLast) {
-            idMergedLast = std::max(idMergedLast, idLast);
+    for (std::size_t uRangeIndex = 1; uRangeIndex < m_vectorFreshIdRanges.size(); ++uRangeIndex) {
+        auto [iFirstId, iLastId] = m_vectorFreshIdRanges[uRangeIndex];
+        if (iFirstId <= iMergedLastId) {
+            iMergedLastId = std::max(iMergedLastId, iLastId);
         } else {
-            rgrngMerged.emplace_back(idMergedFirst, idMergedLast);
-            idMergedFirst = idFirst;
-            idMergedLast = idLast;
+            vectorMergedRanges.emplace_back(iMergedFirstId, iMergedLastId);
+            iMergedFirstId = iFirstId;
+            iMergedLastId = iLastId;
         }
     }
-    rgrngMerged.emplace_back(idMergedFirst, idMergedLast);
-    rgrngFresh_.swap(rgrngMerged);
+    vectorMergedRanges.emplace_back(iMergedFirstId, iMergedLastId);
+    m_vectorFreshIdRanges.swap(vectorMergedRanges);
 }
 
 // ------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------
 
-bool Day05::FIsFresh(std::int64_t idIngredient) const {
+bool Day05::IsFresh(std::int64_t iIngredientId) const {
     // binary search in merged ranges
-    int irngFirst = 0;
-    int irngLast = static_cast<int>(rgrngFresh_.size()) - 1;
+    int iFirstRangeIndex = 0;
+    int iLastRangeIndex = static_cast<int>(m_vectorFreshIdRanges.size()) - 1;
 
-    while (irngFirst <= irngLast) {
-        int irngMiddle = (irngFirst + irngLast) / 2;
-        auto [idFirst, idLast] = rgrngFresh_[irngMiddle];
-        if (idIngredient < idFirst) {
-            irngLast = irngMiddle - 1;
-        } else if (idIngredient > idLast) {
-            irngFirst = irngMiddle + 1;
+    while (iFirstRangeIndex <= iLastRangeIndex) {
+        int iMiddleRangeIndex = (iFirstRangeIndex + iLastRangeIndex) / 2;
+        auto [iFirstId, iLastId] = m_vectorFreshIdRanges[iMiddleRangeIndex];
+        if (iIngredientId < iFirstId) {
+            iLastRangeIndex = iMiddleRangeIndex - 1;
+        } else if (iIngredientId > iLastId) {
+            iFirstRangeIndex = iMiddleRangeIndex + 1;
         } else {
             return true;
         }
@@ -94,26 +96,26 @@ bool Day05::FIsFresh(std::int64_t idIngredient) const {
 // Part 1
 // ------------------------------------------------------------
 
-std::string Day05::TxtPart1() {
-    int cidAvailableFresh = 0;
-    for (auto idIngredient : rgidAvailable_) {
-        if (FIsFresh(idIngredient))
-            ++cidAvailableFresh;
+std::string Day05::Part1() {
+    int iFreshIngredientCount = 0;
+    for (auto iIngredientId : m_vectorAvailableIngredientIds) {
+        if (IsFresh(iIngredientId))
+            ++iFreshIngredientCount;
     }
-    return std::to_string(cidAvailableFresh);
+    return std::to_string(iFreshIngredientCount);
 }
 
 // ------------------------------------------------------------
 // Part 2
 // ------------------------------------------------------------
 
-std::string Day05::TxtPart2() {
-    std::int64_t cidFresh = 0;
-    for (auto [idFirst, idLast] : rgrngFresh_) {
-        const auto didRange = idLast - idFirst;
-        if (didRange >= std::numeric_limits<std::int64_t>::max() - cidFresh)
+std::string Day05::Part2() {
+    std::int64_t iFreshIdCount = 0;
+    for (auto [iFirstId, iLastId] : m_vectorFreshIdRanges) {
+        const auto iIdDifference = iLastId - iFirstId;
+        if (iIdDifference >= std::numeric_limits<std::int64_t>::max() - iFreshIdCount)
             throw std::overflow_error("Fresh ID count exceeds int64_t");
-        cidFresh += didRange + 1;
+        iFreshIdCount += iIdDifference + 1;
     }
-    return std::to_string(cidFresh);
+    return std::to_string(iFreshIdCount);
 }

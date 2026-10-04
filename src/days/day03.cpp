@@ -10,28 +10,28 @@
 // ------------------------------------------------------------
 
 namespace {
-const core::Drg<Day03> drgDay{3};
+const core::DayRegistration<Day03> dayregistration{3};
 } // namespace
 
 // ------------------------------------------------------------
 // Input
 // ------------------------------------------------------------
 
-void Day03::SetInput(const std::vector<std::string>& rgusLines) {
-    rgbnk_.clear();
-    rgbnk_.reserve(rgusLines.size());
+void Day03::SetInput(const std::vector<std::string>& vectorInputLines) {
+    m_vectorBatteryBanks.clear();
+    m_vectorBatteryBanks.reserve(vectorInputLines.size());
 
-    for (const auto& usLine : rgusLines) {
-        std::vector<int> rgbat;
-        rgbat.reserve(usLine.size());
+    for (const auto& stringLine : vectorInputLines) {
+        std::vector<int> vectorBatteryRatings;
+        vectorBatteryRatings.reserve(stringLine.size());
 
-        for (char chDigit : usLine) {
-            if (chDigit < '0' || chDigit > '9')
+        for (char iDigit : stringLine) {
+            if (iDigit < '0' || iDigit > '9')
                 throw std::invalid_argument("Battery bank must contain digits");
-            rgbat.push_back(chDigit - '0');
+            vectorBatteryRatings.push_back(iDigit - '0');
         }
 
-        rgbnk_.push_back(std::move(rgbat));
+        m_vectorBatteryBanks.push_back(std::move(vectorBatteryRatings));
     }
 }
 
@@ -39,56 +39,58 @@ void Day03::SetInput(const std::vector<std::string>& rgusLines) {
 // Part 1 / Part 2
 // ------------------------------------------------------------
 
-std::string Day03::TxtPart1() {
-    return TxtTotalJoltage(2);
+std::string Day03::Part1() {
+    return TotalOutputJoltage(2);
 }
 
-std::string Day03::TxtPart2() {
-    return TxtTotalJoltage(12);
+std::string Day03::Part2() {
+    return TotalOutputJoltage(12);
 }
 
 // ------------------------------------------------------------
 // Core logic
 // ------------------------------------------------------------
 
-std::string Day03::TxtTotalJoltage(int cbatToSelect) const {
-    std::int64_t jolSum = 0;
+std::string Day03::TotalOutputJoltage(int iBatteriesToSelect) const {
+    std::int64_t iTotalJoltage = 0;
 
-    for (const auto& bnk : rgbnk_) {
-        const int cbat = static_cast<int>(bnk.size());
+    for (const auto& vectorBank : m_vectorBatteryBanks) {
+        const int iBatteryCount = static_cast<int>(vectorBank.size());
 
-        int cbatNeeded = cbatToSelect;
-        std::vector<int> rgbatSelected;
-        rgbatSelected.reserve(cbatToSelect);
+        int iBatteriesNeeded = iBatteriesToSelect;
+        std::vector<int> vectorSelectedRatings;
+        vectorSelectedRatings.reserve(iBatteriesToSelect);
 
-        for (int ibat = 0; ibat < cbat; ++ibat) {
-            int bat = bnk[ibat];
+        for (int iBatteryIndex = 0; iBatteryIndex < iBatteryCount; ++iBatteryIndex) {
+            int iRating = vectorBank[iBatteryIndex];
 
-            int cbatRemaining = cbat - ibat;
-            bool fCanDiscard = !rgbatSelected.empty() && cbatRemaining > cbatNeeded;
+            int iBatteriesRemaining = iBatteryCount - iBatteryIndex;
+            bool bCanDiscard =
+                !vectorSelectedRatings.empty() && iBatteriesRemaining > iBatteriesNeeded;
 
-            while (fCanDiscard && rgbatSelected.back() < bat) {
-                rgbatSelected.pop_back();
-                ++cbatNeeded;
-                fCanDiscard = !rgbatSelected.empty() && cbatRemaining > cbatNeeded;
+            while (bCanDiscard && vectorSelectedRatings.back() < iRating) {
+                vectorSelectedRatings.pop_back();
+                ++iBatteriesNeeded;
+                bCanDiscard =
+                    !vectorSelectedRatings.empty() && iBatteriesRemaining > iBatteriesNeeded;
             }
 
-            if (cbatNeeded > 0) {
-                rgbatSelected.push_back(bat);
-                --cbatNeeded;
+            if (iBatteriesNeeded > 0) {
+                vectorSelectedRatings.push_back(iRating);
+                --iBatteriesNeeded;
             }
         }
 
-        jolSum += JolFromRatings(rgbatSelected);
+        iTotalJoltage += JoltageFromRatings(vectorSelectedRatings);
     }
 
-    return std::to_string(jolSum);
+    return std::to_string(iTotalJoltage);
 }
 
-std::int64_t Day03::JolFromRatings(std::span<const int> rgbatSelected) {
-    std::int64_t jolBank = 0;
-    for (int bat : rgbatSelected) {
-        jolBank = jolBank * 10 + bat;
+std::int64_t Day03::JoltageFromRatings(std::span<const int> spanSelectedRatings) {
+    std::int64_t iBankJoltage = 0;
+    for (int iRating : spanSelectedRatings) {
+        iBankJoltage = iBankJoltage * 10 + iRating;
     }
-    return jolBank;
+    return iBankJoltage;
 }

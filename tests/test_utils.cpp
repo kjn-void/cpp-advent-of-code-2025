@@ -3,7 +3,7 @@
 
 #include <sstream>
 
-std::vector<std::string> RgusSplitLines(const std::string& usText) {
-    std::istringstream inLines(usText);
-    return core::RgusReadLines(inLines);
+std::vector<std::string> SplitLines(const std::string& stringText) {
+    std::istringstream istringstreamInput(stringText);
+    return core::ReadLines(istringstreamInput);
 }

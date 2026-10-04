@@ -7,8 +7,8 @@
 
 namespace core {
 
-std::vector<std::string> RgusReadLines(std::istream& inPuzzle);
-std::vector<std::string> RgusReadInput(int idDay,
-                                       const std::filesystem::path& pathDirectory = "input");
+std::vector<std::string> ReadLines(std::istream& istreamInput);
+std::vector<std::string> ReadInput(int iDay,
+                                   const std::filesystem::path& pathInputDirectory = "input");
 
 } // namespace core

@@ -6,18 +6,18 @@
 #include <string>
 #include <vector>
 
-class Day09 final : public Slv {
+class Day09 final : public Solution {
   public:
-    void SetInput(const std::vector<std::string>& rgusLines) override;
-    std::string TxtPart1() override;
-    std::string TxtPart2() override;
+    void SetInput(const std::vector<std::string>& vectorInputLines) override;
+    std::string Part1() override;
+    std::string Part2() override;
 
   private:
-    struct Tl {
-        int x, y;
+    struct Tile {
+        int m_iX, m_iY;
     };
 
-    std::vector<Tl> rgtlRed_;
+    std::vector<Tile> m_vectorRedTiles;
 
-    static std::int64_t AreaLargestRectangle(const std::vector<Tl>& rgtl);
+    static std::int64_t LargestRectangleArea(const std::vector<Tile>& vectorRedTiles);
 };

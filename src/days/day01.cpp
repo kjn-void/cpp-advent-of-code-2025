@@ -8,54 +8,56 @@
 #include <string_view>
 #include <vector>
 
-class Day01 final : public Slv {
+class Day01 final : public Solution {
   public:
-    void SetInput(const std::vector<std::string>& rgusLines) override {
-        rgrot_.clear();
-        rgrot_.reserve(rgusLines.size());
-        for (const auto& usLine : rgusLines) {
-            const auto usRotation = core::UsTrim(usLine);
-            if (usRotation.empty())
+    void SetInput(const std::vector<std::string>& vectorInputLines) override {
+        m_vectorRotations.clear();
+        m_vectorRotations.reserve(vectorInputLines.size());
+        for (const auto& stringLine : vectorInputLines) {
+            const auto stringRotation = core::Trim(stringLine);
+            if (stringRotation.empty())
                 continue;
-            if (usRotation.front() != 'L' && usRotation.front() != 'R') {
+            if (stringRotation.front() != 'L' && stringRotation.front() != 'R') {
                 throw std::invalid_argument("Rotation must start with L or R");
             }
-            const auto cclkRotation = core::ValParseInteger<std::int64_t>(usRotation.substr(1));
-            if (cclkRotation < 0)
+            const auto iClickCount = core::ParseInteger<std::int64_t>(stringRotation.substr(1));
+            if (iClickCount < 0)
                 throw std::invalid_argument("Rotation distance must be nonnegative");
-            rgrot_.push_back({usRotation.front() == 'L', cclkRotation});
+            m_vectorRotations.push_back({stringRotation.front() == 'L', iClickCount});
         }
     }
 
-    std::string TxtPart1() override { return TxtPassword(false); }
-    std::string TxtPart2() override { return TxtPassword(true); }
+    std::string Part1() override { return CalculatePassword(false); }
+    std::string Part2() override { return CalculatePassword(true); }
 
   private:
-    struct Rot {
-        bool fLeft;
-        std::int64_t cclkRotation;
+    struct Rotation {
+        bool m_bTurnsLeft;
+        std::int64_t m_iClickCount;
     };
-    std::vector<Rot> rgrot_;
+    std::vector<Rotation> m_vectorRotations;
 
-    std::string TxtPassword(bool fCountZeroClicks) const {
-        int posDial = 50;
-        std::int64_t cntZeroVisits = 0;
-        for (const auto& [fLeft, cclkRotation] : rgrot_) {
-            const auto cclkRemainder = static_cast<int>(cclkRotation % 100);
-            if (fCountZeroClicks) {
-                cntZeroVisits += cclkRotation / 100;
+    std::string CalculatePassword(bool bCountZeroClicks) const {
+        int iDialPosition = 50;
+        std::int64_t iZeroCount = 0;
+        for (const auto& [bTurnsLeft, iClickCount] : m_vectorRotations) {
+            const auto iRemainingClicks = static_cast<int>(iClickCount % 100);
+            if (bCountZeroClicks) {
+                iZeroCount += iClickCount / 100;
                 // Starting on zero does not itself count as a click onto zero.
-                const int cclkToZero = fLeft ? (posDial == 0 ? 100 : posDial) : 100 - posDial;
-                cntZeroVisits += cclkRemainder >= cclkToZero;
+                const int iClicksToZero =
+                    bTurnsLeft ? (iDialPosition == 0 ? 100 : iDialPosition) : 100 - iDialPosition;
+                iZeroCount += iRemainingClicks >= iClicksToZero;
             }
-            posDial = (posDial + (fLeft ? -cclkRemainder : cclkRemainder) + 100) % 100;
-            if (!fCountZeroClicks && posDial == 0)
-                ++cntZeroVisits;
+            iDialPosition =
+                (iDialPosition + (bTurnsLeft ? -iRemainingClicks : iRemainingClicks) + 100) % 100;
+            if (!bCountZeroClicks && iDialPosition == 0)
+                ++iZeroCount;
         }
-        return std::to_string(cntZeroVisits);
+        return std::to_string(iZeroCount);
     }
 };
 
 namespace {
-const core::Drg<Day01> drgDay{1};
+const core::DayRegistration<Day01> dayregistration{1};
 } // namespace

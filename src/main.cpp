@@ -4,46 +4,46 @@
 #include "core/Solution.h"
 #include <iostream>
 
-int main(int cusArgs, char** rgusArgs) {
-    if (cusArgs < 2) {
+int main(int iArgumentCount, char** ppbszArgument) {
+    if (iArgumentCount < 2) {
         std::cerr << "Usage: aoc2025 DAY [DAY ...]\n";
         return 1;
     }
 
-    int rcProgram = 0;
+    int iExitCode = 0;
 
-    for (int iusArg = 1; iusArg < cusArgs; iusArg++) {
-        int idDay = 0;
+    for (int iArgumentIndex = 1; iArgumentIndex < iArgumentCount; iArgumentIndex++) {
+        int iDay = 0;
         try {
-            idDay = core::ValParseInteger<int>(rgusArgs[iusArg]);
-        } catch (const std::exception& errFailure) {
-            std::cerr << "Invalid day argument '" << rgusArgs[iusArg] << "': " << errFailure.what()
-                      << "\n";
-            rcProgram = 1;
+            iDay = core::ParseInteger<int>(ppbszArgument[iArgumentIndex]);
+        } catch (const std::exception& exceptionError) {
+            std::cerr << "Invalid day argument '" << ppbszArgument[iArgumentIndex]
+                      << "': " << exceptionError.what() << "\n";
+            iExitCode = 1;
             continue;
         }
 
-        auto pslvDay = Regy::RegyInstance().PslvMake(idDay);
-        if (!pslvDay) {
-            std::cerr << "Day " << idDay << " not implemented\n";
-            rcProgram = 1;
+        auto psolution = Registry::Instance().Make(iDay);
+        if (!psolution) {
+            std::cerr << "Day " << iDay << " not implemented\n";
+            iExitCode = 1;
             continue;
         }
 
         try {
-            auto rgusLines = core::RgusReadInput(idDay);
-            pslvDay->SetInput(rgusLines);
+            auto vectorInputLines = core::ReadInput(iDay);
+            psolution->SetInput(vectorInputLines);
 
-            const auto txtPart1 = pslvDay->TxtPart1();
-            const auto txtPart2 = pslvDay->TxtPart2();
-            std::cout << "Day " << idDay << "\n";
-            std::cout << "  Part 1: " << txtPart1 << "\n";
-            std::cout << "  Part 2: " << txtPart2 << "\n";
-        } catch (const std::exception& errFailure) {
-            std::cerr << "Day " << idDay << " failed: " << errFailure.what() << "\n";
-            rcProgram = 1;
+            const auto stringPart1Answer = psolution->Part1();
+            const auto stringPart2Answer = psolution->Part2();
+            std::cout << "Day " << iDay << "\n";
+            std::cout << "  Part 1: " << stringPart1Answer << "\n";
+            std::cout << "  Part 2: " << stringPart2Answer << "\n";
+        } catch (const std::exception& exceptionError) {
+            std::cerr << "Day " << iDay << " failed: " << exceptionError.what() << "\n";
+            iExitCode = 1;
         }
     }
 
-    return rcProgram;
+    return iExitCode;
 }

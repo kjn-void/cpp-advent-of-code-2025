@@ -66,14 +66,14 @@ ctest --test-dir build-sanitize --output-on-failure
 
 ## Development tools and naming checks
 
-The project follows [Charles Simonyi's Apps Hungarian rules](https://learn.microsoft.com/en-us/previous-versions/visualstudio/visual-studio-6.0/aa260976%28v%3Dvs.60%29),
-with the domain vocabulary and explicit C++20 adaptations in [AGENTS.md](AGENTS.md).
-Names describe meaning and relationships: `rgbtn` is a sequence of buttons, `ibtn`
-is a button index, `cbtn` is a button count, and `mpcolrwPivot` maps a column to its
-pivot row. `Last` is inclusive and `Lim` exclusive. Procedures carry their result
-tag, such as `CprSolveJoltage`; `SetInput` returns no value. `cbtn` counts buttons,
-while `cpr` counts button presses. Junction boxes (`jb`) and tiles (`tl`) retain
-distinct tags; required and remaining quantities have explicit qualifiers.
+This branch follows the Systems Hungarian style of the `gd` library: a short prefix
+records the C++ type, and the rest of the name spells out the puzzle concept in full
+words so it stays searchable. [AGENTS.md](AGENTS.md) has the complete rules. For
+example, `iButtonCount` is a signed count, `uButtonIndex` an unsigned index,
+`vectorPivotRowByColumn` maps a column to its pivot row, `m_mapOutputsByDevice` is a
+member, and `pbszExampleText` points to a C string. Functions and types use
+PascalCase without prefixes (`FewestPressesForJoltage`, `JunctionBox`), and template
+parameters are UPPER_CASE.
 
 On macOS, install the Xcode Command Line Tools (or select a full Xcode toolchain)
 and the following Homebrew packages:
@@ -83,13 +83,13 @@ xcode-select --install  # only when no Apple development toolchain is installed
 brew install cmake llvm clang-format python googletest google-benchmark
 ```
 
-CMake drives builds; LLVM supplies `clang-tidy`; `clang-format` checks formatting;
+CMake drives builds; LLVM supplies `clang-tidy` and `clang-query`; `clang-format` checks formatting;
 Python 3 runs the validation scripts without pip dependencies. GoogleTest and
 Google Benchmark supply the optional test and benchmark targets. The CLI itself
 requires only a C++20 compiler and CMake. The style script finds Homebrew's keg-only
 LLVM automatically and obtains Apple's SDK from `xcrun`. On other platforms,
-provide `clang-tidy`, `clang-format`, and Python 3 on PATH (or use the script's
-`--clang-tidy` and `--clang-format` options).
+provide `clang-tidy`, `clang-query`, `clang-format`, and Python 3 on PATH (or use the
+script's `--clang-tidy`, `--clang-query`, and `--clang-format` options).
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
@@ -112,10 +112,13 @@ actionlint .github/workflows/ci.yml
 Keep both optional targets enabled in the **lint build's** compilation database:
 the checker visits every first-party translation unit, including benchmark source
 and project headers. It fails on missing sources/tools, formatting violations,
-invalid names, or compiler diagnostics. `.clang-tidy` checks registered tags,
-compositions, and capitalization; code review must still check their meaning.
-The guardrail tests exercise valid/invalid declarations and missing compilation
-units. LLVM/clang-format 23.1.2 were used for local validation of this migration.
+invalid names, or compiler diagnostics. `.clang-tidy` checks capitalization and the
+`m_` member prefix. [tools/hungarian_prefixes.py](tools/hungarian_prefixes.py) uses
+`clang-query` (from LLVM) to compare each prefix with the declared or deduced type, so
+`std::size_t iCount` or `bool uReady` fails. Code review must still check that the
+words after the prefix match the puzzle. The guardrail tests exercise valid and
+invalid declarations, mismatched prefixes, and missing compilation units.
+LLVM/clang-format 23.1.2 were used for local validation of this migration.
 
 [CI](.github/workflows/ci.yml) runs on macOS 26 on every push and pull request.
 This supplies the required C++20 thread library. It validates
@@ -184,7 +187,7 @@ cleanup results rather than presenting new timings for renamed code.
 | [12: Christmas Tree Farm](https://adventofcode.com/2025/day/12) | present shapes, orientations, tree regions, present counts; part 2 is the 24th star |
 
 Coordinates (`x`, `y`, `z`) remain distinct from grid rows/columns and sequence
-indices. Inclusive endpoints use `First`/`Last`; exclusive endpoints use `Lim`.
+indices. Inclusive endpoints use `First`/`Last`; exclusive endpoints use `End`.
 Algorithm terms such as pivot rows, parity, and prefix sums remain explicit where
 they explain the implementation better than a story noun.
 
@@ -196,10 +199,10 @@ they explain the implementation better than a story noun.
 - `tests/`: examples, regressions, and independent reference checks.
 - `benchmarks/`: full-solver benchmarks.
 
-Solvers implement `Slv::SetInput`, `TxtPart1`, and `TxtPart2`. Calling either part
+Solvers implement `Solution::SetInput`, `Part1`, and `Part2`. Calling either part
 repeatedly is supported; `SetInput` replaces the previous input. An object library
 ensures the linker includes every day's static registration. Registration uses the
-constrained `core::Drg<SlvDay>` template.
+constrained `core::DayRegistration<DAY_SOLVER>` template.
 
 The implementation uses standard C++20 facilities, including ranges algorithms,
 `std::span` for non-owning helper parameters, `std::from_chars` for integer parsing,

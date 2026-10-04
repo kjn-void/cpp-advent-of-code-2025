@@ -9,74 +9,75 @@
 // Registration
 // -----------------------------------------------------------------------------
 namespace {
-const core::Drg<Day06> drgDay{6};
+const core::DayRegistration<Day06> dayregistration{6};
 } // namespace
 
 // -----------------------------------------------------------------------------
 // Input
 // -----------------------------------------------------------------------------
 
-void Day06::SetInput(const std::vector<std::string>& rgusLines) {
-    gridWorksheet_ = rgusLines;
+void Day06::SetInput(const std::vector<std::string>& vectorInputLines) {
+    m_vectorWorksheet = vectorInputLines;
 
     // normalize width
-    ccol_ = 0;
-    for (const auto& usRow : gridWorksheet_) {
-        ccol_ = std::max(ccol_, static_cast<int>(usRow.size()));
+    m_iColumnCount = 0;
+    for (const auto& stringInputRow : m_vectorWorksheet) {
+        m_iColumnCount = std::max(m_iColumnCount, static_cast<int>(stringInputRow.size()));
     }
-    for (auto& usRow : gridWorksheet_) {
-        if (static_cast<int>(usRow.size()) < ccol_) {
-            usRow.append(ccol_ - usRow.size(), ' ');
+    for (auto& stringInputRow : m_vectorWorksheet) {
+        if (static_cast<int>(stringInputRow.size()) < m_iColumnCount) {
+            stringInputRow.append(m_iColumnCount - stringInputRow.size(), ' ');
         }
     }
 
-    crw_ = static_cast<int>(gridWorksheet_.size());
+    m_iRowCount = static_cast<int>(m_vectorWorksheet.size());
 }
 
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
 
-std::vector<Day06::Prb> Day06::RgprbFindProblems() const {
-    std::vector<bool> mpcolfBlank(ccol_, true);
+std::vector<Day06::ProblemColumns> Day06::FindProblems() const {
+    std::vector<bool> vectorIsBlankColumn(m_iColumnCount, true);
 
-    for (int col = 0; col < ccol_; ++col) {
-        for (int rw = 0; rw < crw_; ++rw) {
-            if (gridWorksheet_[rw][col] != ' ') {
-                mpcolfBlank[col] = false;
+    for (int iColumn = 0; iColumn < m_iColumnCount; ++iColumn) {
+        for (int iRow = 0; iRow < m_iRowCount; ++iRow) {
+            if (m_vectorWorksheet[iRow][iColumn] != ' ') {
+                vectorIsBlankColumn[iColumn] = false;
                 break;
             }
         }
     }
 
-    std::vector<Prb> rgprb;
-    bool fInProblem = false;
-    int colFirst = 0;
+    std::vector<ProblemColumns> vectorProblems;
+    bool bInProblem = false;
+    int iFirstColumn = 0;
 
-    for (int col = 0; col < ccol_; ++col) {
-        if (!mpcolfBlank[col]) {
-            if (!fInProblem) {
-                fInProblem = true;
-                colFirst = col;
+    for (int iColumn = 0; iColumn < m_iColumnCount; ++iColumn) {
+        if (!vectorIsBlankColumn[iColumn]) {
+            if (!bInProblem) {
+                bInProblem = true;
+                iFirstColumn = iColumn;
             }
-        } else if (fInProblem) {
-            rgprb.push_back({colFirst, col - 1});
-            fInProblem = false;
+        } else if (bInProblem) {
+            vectorProblems.push_back({iFirstColumn, iColumn - 1});
+            bInProblem = false;
         }
     }
 
-    if (fInProblem) {
-        rgprb.push_back({colFirst, ccol_ - 1});
+    if (bInProblem) {
+        vectorProblems.push_back({iFirstColumn, m_iColumnCount - 1});
     }
 
-    return rgprb;
+    return vectorProblems;
 }
 
-char Day06::ChProblemOperator(const Prb& prb) const {
-    const auto& usRow = gridWorksheet_[crw_ - 1];
-    for (int col = prb.colFirst; col <= prb.colLast; ++col) {
-        if (usRow[col] == '+' || usRow[col] == '*') {
-            return usRow[col];
+char Day06::ProblemOperation(const ProblemColumns& problemcolumns) const {
+    const auto& stringInputRow = m_vectorWorksheet[m_iRowCount - 1];
+    for (int iColumn = problemcolumns.m_iFirstColumn; iColumn <= problemcolumns.m_iLastColumn;
+         ++iColumn) {
+        if (stringInputRow[iColumn] == '+' || stringInputRow[iColumn] == '*') {
+            return stringInputRow[iColumn];
         }
     }
     throw std::invalid_argument("Missing worksheet operator");
@@ -86,74 +87,79 @@ char Day06::ChProblemOperator(const Prb& prb) const {
 // Extractors
 // -----------------------------------------------------------------------------
 
-std::vector<std::int64_t> Day06::RgvalReadRows(const Prb& prb) const {
-    std::vector<std::int64_t> rgvalOperands;
-    rgvalOperands.reserve(crw_);
+std::vector<std::int64_t> Day06::ReadNumbersByRow(const ProblemColumns& problemcolumns) const {
+    std::vector<std::int64_t> vectorNumbers;
+    vectorNumbers.reserve(m_iRowCount);
 
-    for (int rw = 0; rw < crw_ - 1; ++rw) {
-        std::string usNumber =
-            gridWorksheet_[rw].substr(prb.colFirst, prb.colLast - prb.colFirst + 1);
-        usNumber.erase(0, usNumber.find_first_not_of(' '));
-        usNumber.erase(usNumber.find_last_not_of(' ') + 1);
-        rgvalOperands.push_back(core::ValParseInteger<std::int64_t>(usNumber));
+    for (int iRow = 0; iRow < m_iRowCount - 1; ++iRow) {
+        std::string stringNumber = m_vectorWorksheet[iRow].substr(
+            problemcolumns.m_iFirstColumn,
+            problemcolumns.m_iLastColumn - problemcolumns.m_iFirstColumn + 1);
+        stringNumber.erase(0, stringNumber.find_first_not_of(' '));
+        stringNumber.erase(stringNumber.find_last_not_of(' ') + 1);
+        vectorNumbers.push_back(core::ParseInteger<std::int64_t>(stringNumber));
     }
-    return rgvalOperands;
+    return vectorNumbers;
 }
 
-std::vector<std::int64_t> Day06::RgvalReadColumns(const Prb& prb) const {
-    std::vector<std::int64_t> rgvalOperands;
-    rgvalOperands.reserve(prb.colLast - prb.colFirst + 1);
+std::vector<std::int64_t> Day06::ReadNumbersByColumn(const ProblemColumns& problemcolumns) const {
+    std::vector<std::int64_t> vectorNumbers;
+    vectorNumbers.reserve(problemcolumns.m_iLastColumn - problemcolumns.m_iFirstColumn + 1);
 
-    for (int col = prb.colFirst; col <= prb.colLast; ++col) {
-        std::string usNumber;
-        for (int rw = 0; rw < crw_ - 1; ++rw) {
-            char chDigit = gridWorksheet_[rw][col];
-            if (chDigit != ' ')
-                usNumber.push_back(chDigit);
+    for (int iColumn = problemcolumns.m_iFirstColumn; iColumn <= problemcolumns.m_iLastColumn;
+         ++iColumn) {
+        std::string stringNumber;
+        for (int iRow = 0; iRow < m_iRowCount - 1; ++iRow) {
+            char iDigit = m_vectorWorksheet[iRow][iColumn];
+            if (iDigit != ' ')
+                stringNumber.push_back(iDigit);
         }
-        rgvalOperands.push_back(core::ValParseInteger<std::int64_t>(usNumber));
+        vectorNumbers.push_back(core::ParseInteger<std::int64_t>(stringNumber));
     }
-    return rgvalOperands;
+    return vectorNumbers;
 }
 
 // -----------------------------------------------------------------------------
 // Evaluation
 // -----------------------------------------------------------------------------
 
-std::int64_t Day06::ValEvaluateProblem(std::span<const std::int64_t> rgvalOperands,
-                                       char chOperator) {
-    if (chOperator == '+') {
-        std::int64_t valSumOperands = 0;
-        for (auto valOperand : rgvalOperands)
-            valSumOperands += valOperand;
-        return valSumOperands;
+std::int64_t Day06::EvaluateProblem(std::span<const std::int64_t> spanNumbers, char iOperation) {
+    if (iOperation == '+') {
+        std::int64_t iSum = 0;
+        for (auto iNumber : spanNumbers)
+            iSum += iNumber;
+        return iSum;
     }
 
-    std::int64_t valProductOperands = 1;
-    for (auto valOperand : rgvalOperands)
-        valProductOperands *= valOperand;
-    return valProductOperands;
+    std::int64_t iProduct = 1;
+    for (auto iNumber : spanNumbers)
+        iProduct *= iNumber;
+    return iProduct;
 }
 
-template <typename Fn> std::int64_t Day06::ValGrandTotal(Fn&& fnReadNumbers) const {
-    std::int64_t valGrandTotal = 0;
+template <typename NUMBER_READER>
+std::int64_t Day06::GrandTotal(NUMBER_READER&& numberreader) const {
+    std::int64_t iTotal = 0;
 
-    for (const auto& prb : RgprbFindProblems()) {
-        auto rgvalOperands = fnReadNumbers(prb);
-        char chOperator = ChProblemOperator(prb);
-        valGrandTotal += ValEvaluateProblem(rgvalOperands, chOperator);
+    for (const auto& problemcolumns : FindProblems()) {
+        auto vectorNumbers = numberreader(problemcolumns);
+        char iOperation = ProblemOperation(problemcolumns);
+        iTotal += EvaluateProblem(vectorNumbers, iOperation);
     }
-    return valGrandTotal;
+    return iTotal;
 }
 
 // -----------------------------------------------------------------------------
 // Parts
 // -----------------------------------------------------------------------------
 
-std::string Day06::TxtPart1() {
-    return std::to_string(ValGrandTotal([this](const Prb& prb) { return RgvalReadRows(prb); }));
+std::string Day06::Part1() {
+    return std::to_string(GrandTotal(
+        [this](const ProblemColumns& problemcolumns) { return ReadNumbersByRow(problemcolumns); }));
 }
 
-std::string Day06::TxtPart2() {
-    return std::to_string(ValGrandTotal([this](const Prb& prb) { return RgvalReadColumns(prb); }));
+std::string Day06::Part2() {
+    return std::to_string(GrandTotal([this](const ProblemColumns& problemcolumns) {
+        return ReadNumbersByColumn(problemcolumns);
+    }));
 }

@@ -7,14 +7,14 @@
 #include <string>
 #include <vector>
 
-class Day02 final : public Slv {
+class Day02 final : public Solution {
   public:
-    void SetInput(const std::vector<std::string>& rgusLines) override;
-    std::string TxtPart1() override;
-    std::string TxtPart2() override;
+    void SetInput(const std::vector<std::string>& vectorInputLines) override;
+    std::string Part1() override;
+    std::string Part2() override;
 
   private:
-    std::vector<std::pair<std::int64_t, std::int64_t>> rgrngIds_;
+    std::vector<std::pair<std::int64_t, std::int64_t>> m_vectorProductIdRanges;
 
-    static int LenFindSmallestBlock(const std::string& txtDigits);
+    static int ShortestRepeatingBlockLength(const std::string& stringDigits);
 };

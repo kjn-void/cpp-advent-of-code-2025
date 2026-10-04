@@ -10,129 +10,135 @@
 // Registration (static init)
 // ------------------------------------------------------------
 namespace {
-const core::Drg<Day04> drgDay{4};
+const core::DayRegistration<Day04> dayregistration{4};
 } // namespace
 
 // ------------------------------------------------------------
 // Direction table (8 neighbors)
 // ------------------------------------------------------------
-static constexpr std::array<std::pair<int, int>, 8> rgdeltaNeighbors{
+static constexpr std::array<std::pair<int, int>, 8> arrayNeighborOffsets{
     {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}}};
 
 // ------------------------------------------------------------
 
-void Day04::SetInput(const std::vector<std::string>& rgusLines) {
-    if (!rgusLines.empty() && !std::ranges::all_of(rgusLines, [&](const auto& usRow) {
-            return usRow.size() == rgusLines.front().size();
+void Day04::SetInput(const std::vector<std::string>& vectorInputLines) {
+    if (!vectorInputLines.empty() &&
+        !std::ranges::all_of(vectorInputLines, [&](const auto& stringInputRow) {
+            return stringInputRow.size() == vectorInputLines.front().size();
         }))
         throw std::invalid_argument("Paper roll grid must be rectangular");
-    gridRolls_ = rgusLines;
-    crw_ = static_cast<int>(gridRolls_.size());
-    ccol_ = crw_ ? static_cast<int>(gridRolls_[0].size()) : 0;
+    m_vectorPaperRollDiagram = vectorInputLines;
+    m_iRowCount = static_cast<int>(m_vectorPaperRollDiagram.size());
+    m_iColumnCount = m_iRowCount ? static_cast<int>(m_vectorPaperRollDiagram[0].size()) : 0;
 }
 
 // ------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------
 
-int Day04::CrolAdjacent(int rw, int col) const {
-    int crolAdjacent = 0;
-    for (auto [drwNeighbor, dcolNeighbor] : rgdeltaNeighbors) {
-        int rwNeighbor = rw + drwNeighbor;
-        int colNeighbor = col + dcolNeighbor;
-        if (rwNeighbor >= 0 && rwNeighbor < crw_ && colNeighbor >= 0 && colNeighbor < ccol_ &&
-            gridRolls_[rwNeighbor][colNeighbor] == '@') {
-            ++crolAdjacent;
+int Day04::CountAdjacentRolls(int iRow, int iColumn) const {
+    int iAdjacentRollCount = 0;
+    for (auto [iRowOffset, iColumnOffset] : arrayNeighborOffsets) {
+        int iNeighborRow = iRow + iRowOffset;
+        int iNeighborColumn = iColumn + iColumnOffset;
+        if (iNeighborRow >= 0 && iNeighborRow < m_iRowCount && iNeighborColumn >= 0 &&
+            iNeighborColumn < m_iColumnCount &&
+            m_vectorPaperRollDiagram[iNeighborRow][iNeighborColumn] == '@') {
+            ++iAdjacentRollCount;
         }
     }
-    return crolAdjacent;
+    return iAdjacentRollCount;
 }
 
 // ------------------------------------------------------------
 // Part 1
 // ------------------------------------------------------------
 
-std::string Day04::TxtPart1() {
-    if (crw_ == 0 || ccol_ == 0)
+std::string Day04::Part1() {
+    if (m_iRowCount == 0 || m_iColumnCount == 0)
         return "0";
 
-    int crolAccessible = 0;
-    for (int rw = 0; rw < crw_; ++rw) {
-        for (int col = 0; col < ccol_; ++col) {
-            if (gridRolls_[rw][col] != '@')
+    int iAccessibleRollCount = 0;
+    for (int iRow = 0; iRow < m_iRowCount; ++iRow) {
+        for (int iColumn = 0; iColumn < m_iColumnCount; ++iColumn) {
+            if (m_vectorPaperRollDiagram[iRow][iColumn] != '@')
                 continue;
-            if (CrolAdjacent(rw, col) < 4)
-                ++crolAccessible;
+            if (CountAdjacentRolls(iRow, iColumn) < 4)
+                ++iAccessibleRollCount;
         }
     }
-    return std::to_string(crolAccessible);
+    return std::to_string(iAccessibleRollCount);
 }
 
 // ------------------------------------------------------------
 // Part 2
 // ------------------------------------------------------------
 
-std::string Day04::TxtPart2() {
-    if (crw_ == 0 || ccol_ == 0)
+std::string Day04::Part2() {
+    if (m_iRowCount == 0 || m_iColumnCount == 0)
         return "0";
 
-    // Rolls still in the grid
-    std::vector<std::vector<bool>> gridRollPresent(crw_, std::vector<bool>(ccol_, false));
-    for (int rw = 0; rw < crw_; ++rw)
-        for (int col = 0; col < ccol_; ++col)
-            gridRollPresent[rw][col] = (gridRolls_[rw][col] == '@');
+    // Rolls still in the diagram
+    std::vector<std::vector<bool>> vectorHasRoll(m_iRowCount,
+                                                 std::vector<bool>(m_iColumnCount, false));
+    for (int iRow = 0; iRow < m_iRowCount; ++iRow)
+        for (int iColumn = 0; iColumn < m_iColumnCount; ++iColumn)
+            vectorHasRoll[iRow][iColumn] = (m_vectorPaperRollDiagram[iRow][iColumn] == '@');
 
     // Adjacent roll count for each roll
-    std::vector<std::vector<int>> gridAdjacentRollCounts(crw_, std::vector<int>(ccol_, 0));
-    for (int rw = 0; rw < crw_; ++rw) {
-        for (int col = 0; col < ccol_; ++col) {
-            if (!gridRollPresent[rw][col])
+    std::vector<std::vector<int>> vectorAdjacentRollCounts(m_iRowCount,
+                                                           std::vector<int>(m_iColumnCount, 0));
+    for (int iRow = 0; iRow < m_iRowCount; ++iRow) {
+        for (int iColumn = 0; iColumn < m_iColumnCount; ++iColumn) {
+            if (!vectorHasRoll[iRow][iColumn])
                 continue;
-            for (auto [drwNeighbor, dcolNeighbor] : rgdeltaNeighbors) {
-                int rwNeighbor = rw + drwNeighbor;
-                int colNeighbor = col + dcolNeighbor;
-                if (rwNeighbor >= 0 && rwNeighbor < crw_ && colNeighbor >= 0 &&
-                    colNeighbor < ccol_ && gridRollPresent[rwNeighbor][colNeighbor]) {
-                    ++gridAdjacentRollCounts[rw][col];
+            for (auto [iRowOffset, iColumnOffset] : arrayNeighborOffsets) {
+                int iNeighborRow = iRow + iRowOffset;
+                int iNeighborColumn = iColumn + iColumnOffset;
+                if (iNeighborRow >= 0 && iNeighborRow < m_iRowCount && iNeighborColumn >= 0 &&
+                    iNeighborColumn < m_iColumnCount &&
+                    vectorHasRoll[iNeighborRow][iNeighborColumn]) {
+                    ++vectorAdjacentRollCounts[iRow][iColumn];
                 }
             }
         }
     }
 
-    struct Cel {
-        int rw, col;
+    struct Cell {
+        int m_iRow, m_iColumn;
     };
-    std::queue<Cel> qcelRemovals;
+    std::queue<Cell> queueRemovableRolls;
 
-    for (int rw = 0; rw < crw_; ++rw)
-        for (int col = 0; col < ccol_; ++col)
-            if (gridRollPresent[rw][col] && gridAdjacentRollCounts[rw][col] < 4)
-                qcelRemovals.push({rw, col});
+    for (int iRow = 0; iRow < m_iRowCount; ++iRow)
+        for (int iColumn = 0; iColumn < m_iColumnCount; ++iColumn)
+            if (vectorHasRoll[iRow][iColumn] && vectorAdjacentRollCounts[iRow][iColumn] < 4)
+                queueRemovableRolls.push({iRow, iColumn});
 
-    int crolRemoved = 0;
+    int iRemovedRollCount = 0;
 
-    while (!qcelRemovals.empty()) {
-        auto [rw, col] = qcelRemovals.front();
-        qcelRemovals.pop();
+    while (!queueRemovableRolls.empty()) {
+        auto [iRow, iColumn] = queueRemovableRolls.front();
+        queueRemovableRolls.pop();
 
-        if (!gridRollPresent[rw][col])
+        if (!vectorHasRoll[iRow][iColumn])
             continue;
 
-        gridRollPresent[rw][col] = false;
-        ++crolRemoved;
+        vectorHasRoll[iRow][iColumn] = false;
+        ++iRemovedRollCount;
 
-        for (auto [drwNeighbor, dcolNeighbor] : rgdeltaNeighbors) {
-            int rwNeighbor = rw + drwNeighbor;
-            int colNeighbor = col + dcolNeighbor;
-            if (rwNeighbor < 0 || rwNeighbor >= crw_ || colNeighbor < 0 || colNeighbor >= ccol_)
+        for (auto [iRowOffset, iColumnOffset] : arrayNeighborOffsets) {
+            int iNeighborRow = iRow + iRowOffset;
+            int iNeighborColumn = iColumn + iColumnOffset;
+            if (iNeighborRow < 0 || iNeighborRow >= m_iRowCount || iNeighborColumn < 0 ||
+                iNeighborColumn >= m_iColumnCount)
                 continue;
-            if (!gridRollPresent[rwNeighbor][colNeighbor])
+            if (!vectorHasRoll[iNeighborRow][iNeighborColumn])
                 continue;
 
-            if (--gridAdjacentRollCounts[rwNeighbor][colNeighbor] == 3)
-                qcelRemovals.push({rwNeighbor, colNeighbor});
+            if (--vectorAdjacentRollCounts[iNeighborRow][iNeighborColumn] == 3)
+                queueRemovableRolls.push({iNeighborRow, iNeighborColumn});
         }
     }
 
-    return std::to_string(crolRemoved);
+    return std::to_string(iRemovedRollCount);
 }

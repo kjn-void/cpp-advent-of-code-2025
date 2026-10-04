@@ -9,38 +9,42 @@
 #include <unordered_set>
 #include <vector>
 
-class Day11 final : public Slv {
+class Day11 final : public Solution {
   public:
-    void SetInput(const std::vector<std::string>& rgusLines) override;
-    std::string TxtPart1() override;
-    std::string TxtPart2() override;
+    void SetInput(const std::vector<std::string>& vectorInputLines) override;
+    std::string Part1() override;
+    std::string Part2() override;
 
   private:
     // adjacency list
-    std::unordered_map<std::string, std::vector<std::string>> mpdevrgdevOutputs_;
+    std::unordered_map<std::string, std::vector<std::string>> m_mapOutputsByDevice;
 
     // ---------- Part 1 ----------
-    std::int64_t CntPathsFrom(const std::string& dev,
-                              std::unordered_map<std::string, std::int64_t>& mpdevcntPaths,
-                              std::unordered_set<std::string>& setdevOnPath);
+    std::int64_t
+    CountPathsFrom(const std::string& stringDevice,
+                   std::unordered_map<std::string, std::int64_t>& mapPathCountsByDevice,
+                   std::unordered_set<std::string>& setDevicesOnPath);
 
     // ---------- Part 2 ----------
-    struct Vst {
-        std::string dev;
-        int maskVisits;
+    struct VisitState {
+        std::string m_stringDevice;
+        int m_iRequiredVisitMask;
 
-        bool operator==(const Vst& vstOther) const {
-            return dev == vstOther.dev && maskVisits == vstOther.maskVisits;
+        bool operator==(const VisitState& visitstateOther) const {
+            return m_stringDevice == visitstateOther.m_stringDevice &&
+                   m_iRequiredVisitMask == visitstateOther.m_iRequiredVisitMask;
         }
     };
 
-    struct Hashvst {
-        std::size_t operator()(const Vst& vst) const {
-            return std::hash<std::string>()(vst.dev) ^ (std::hash<int>()(vst.maskVisits) << 1);
+    struct VisitStateHash {
+        std::size_t operator()(const VisitState& visitstate) const {
+            return std::hash<std::string>()(visitstate.m_stringDevice) ^
+                   (std::hash<int>()(visitstate.m_iRequiredVisitMask) << 1);
         }
     };
 
-    std::int64_t CntPathsThroughRequired(const std::string& devStart, const std::string& devEnd,
-                                         const std::string& devRequiredFirst,
-                                         const std::string& devRequiredSecond);
+    std::int64_t CountPathsThroughRequiredDevices(const std::string& stringStartDevice,
+                                                  const std::string& stringEndDevice,
+                                                  const std::string& stringFirstRequiredDevice,
+                                                  const std::string& stringSecondRequiredDevice);
 };

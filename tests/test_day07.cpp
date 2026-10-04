@@ -6,7 +6,7 @@
 // Example test data
 // ------------------------
 
-static const std::vector<std::string> rgusDay07Sample = {
+static const std::vector<std::string> vectorExampleInput = {
     ".......S.......", "...............", ".......^.......", "...............",
     "......^.^......", "...............", ".....^.^.^.....", "...............",
     "....^.^...^....", "...............", "...^.^...^.^...", "...............",
@@ -18,15 +18,15 @@ static const std::vector<std::string> rgusDay07Sample = {
 // ------------------------
 
 TEST(Day07, ExamplePart1) {
-    Day07 slvDay;
-    slvDay.SetInput(rgusDay07Sample);
+    Day07 day07Solver;
+    day07Solver.SetInput(vectorExampleInput);
 
-    EXPECT_EQ(slvDay.TxtPart1(), "21");
+    EXPECT_EQ(day07Solver.Part1(), "21");
 }
 
 TEST(Day07, ExamplePart2) {
-    Day07 slvDay;
-    slvDay.SetInput(rgusDay07Sample);
+    Day07 day07Solver;
+    day07Solver.SetInput(vectorExampleInput);
 
-    EXPECT_EQ(slvDay.TxtPart2(), "40");
+    EXPECT_EQ(day07Solver.Part2(), "40");
 }

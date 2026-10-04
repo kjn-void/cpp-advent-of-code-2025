@@ -6,27 +6,27 @@
 
 namespace core {
 
-std::vector<std::string> RgusReadLines(std::istream& inPuzzle) {
-    std::vector<std::string> rgusLines;
-    for (std::string usLine; std::getline(inPuzzle, usLine);) {
-        if (!usLine.empty() && usLine.back() == '\r')
-            usLine.pop_back();
-        rgusLines.push_back(std::move(usLine));
+std::vector<std::string> ReadLines(std::istream& istreamInput) {
+    std::vector<std::string> vectorInputLines;
+    for (std::string stringLine; std::getline(istreamInput, stringLine);) {
+        if (!stringLine.empty() && stringLine.back() == '\r')
+            stringLine.pop_back();
+        vectorInputLines.push_back(std::move(stringLine));
     }
-    if (inPuzzle.bad() || (inPuzzle.fail() && !inPuzzle.eof())) {
+    if (istreamInput.bad() || (istreamInput.fail() && !istreamInput.eof())) {
         throw std::runtime_error("Failed to read input");
     }
-    return rgusLines;
+    return vectorInputLines;
 }
 
-std::vector<std::string> RgusReadInput(int idDay, const std::filesystem::path& pathDirectory) {
-    const auto pathInput = pathDirectory / ("day" + std::string(idDay < 10 ? "0" : "") +
-                                            std::to_string(idDay) + ".txt");
-    std::ifstream inPuzzle(pathInput);
-    if (!inPuzzle)
+std::vector<std::string> ReadInput(int iDay, const std::filesystem::path& pathInputDirectory) {
+    const auto pathInput = pathInputDirectory / ("day" + std::string(iDay < 10 ? "0" : "") +
+                                                 std::to_string(iDay) + ".txt");
+    std::ifstream ifstreamInput(pathInput);
+    if (!ifstreamInput)
         throw std::runtime_error("Could not open input file: " +
                                  std::filesystem::absolute(pathInput).string());
-    return RgusReadLines(inPuzzle);
+    return ReadLines(ifstreamInput);
 }
 
 } // namespace core

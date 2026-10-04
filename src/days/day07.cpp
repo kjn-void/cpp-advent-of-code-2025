@@ -7,115 +7,115 @@
 
 // Registration
 namespace {
-const core::Drg<Day07> drgDay{7};
+const core::DayRegistration<Day07> dayregistration{7};
 } // namespace
 
 // ------------------------------------------------------------
 
-void Day07::SetInput(const std::vector<std::string>& rgusLines) {
-    gridManifold_ = rgusLines;
-    crw_ = static_cast<int>(gridManifold_.size());
-    ccol_ = 0;
-    colStart_ = -1;
-    for (const auto& usRow : gridManifold_)
-        ccol_ = std::max(ccol_, static_cast<int>(usRow.size()));
-    if (ccol_ == 0)
+void Day07::SetInput(const std::vector<std::string>& vectorInputLines) {
+    m_vectorManifold = vectorInputLines;
+    m_iRowCount = static_cast<int>(m_vectorManifold.size());
+    m_iColumnCount = 0;
+    m_iStartColumn = -1;
+    for (const auto& stringInputRow : m_vectorManifold)
+        m_iColumnCount = std::max(m_iColumnCount, static_cast<int>(stringInputRow.size()));
+    if (m_iColumnCount == 0)
         return;
-    for (auto& usRow : gridManifold_)
-        usRow.resize(ccol_, '.');
-    const auto colStart = gridManifold_.front().find('S');
-    if (colStart == std::string::npos ||
-        gridManifold_.front().find('S', colStart + 1) != std::string::npos)
+    for (auto& stringInputRow : m_vectorManifold)
+        stringInputRow.resize(m_iColumnCount, '.');
+    const auto uStartColumn = m_vectorManifold.front().find('S');
+    if (uStartColumn == std::string::npos ||
+        m_vectorManifold.front().find('S', uStartColumn + 1) != std::string::npos)
         throw std::invalid_argument("Tachyon manifold must have one start in its first row");
-    colStart_ = static_cast<int>(colStart);
+    m_iStartColumn = static_cast<int>(uStartColumn);
 }
 
 // ------------------------------------------------------------
 // Part 1 — count splits
 // ------------------------------------------------------------
 
-std::string Day07::TxtPart1() {
-    if (colStart_ < 0)
+std::string Day07::Part1() {
+    if (m_iStartColumn < 0)
         return "0";
-    std::vector<bool> mpcolfBeamA(ccol_, false);
-    std::vector<bool> mpcolfBeamB(ccol_, false);
+    std::vector<bool> vectorBeamBufferA(m_iColumnCount, false);
+    std::vector<bool> vectorBeamBufferB(m_iColumnCount, false);
 
-    auto* pmpcolfActive = &mpcolfBeamA;
-    auto* pmpcolfNext = &mpcolfBeamB;
+    auto* pvectorActiveBeams = &vectorBeamBufferA;
+    auto* pvectorNextBeams = &vectorBeamBufferB;
 
-    (*pmpcolfActive)[colStart_] = true;
+    (*pvectorActiveBeams)[m_iStartColumn] = true;
 
-    int cntSplits = 0;
+    int iSplitCount = 0;
 
-    for (int rw = 1; rw < crw_; ++rw) {
-        std::fill(pmpcolfNext->begin(), pmpcolfNext->end(), false);
-        const auto& usRow = gridManifold_[rw];
+    for (int iRow = 1; iRow < m_iRowCount; ++iRow) {
+        std::fill(pvectorNextBeams->begin(), pvectorNextBeams->end(), false);
+        const auto& stringInputRow = m_vectorManifold[iRow];
 
-        for (int col = 0; col < ccol_; ++col) {
-            if (!(*pmpcolfActive)[col])
+        for (int iColumn = 0; iColumn < m_iColumnCount; ++iColumn) {
+            if (!(*pvectorActiveBeams)[iColumn])
                 continue;
 
-            if (usRow[col] == '^') {
-                cntSplits++;
-                if (col > 0)
-                    (*pmpcolfNext)[col - 1] = true;
-                if (col + 1 < ccol_)
-                    (*pmpcolfNext)[col + 1] = true;
+            if (stringInputRow[iColumn] == '^') {
+                iSplitCount++;
+                if (iColumn > 0)
+                    (*pvectorNextBeams)[iColumn - 1] = true;
+                if (iColumn + 1 < m_iColumnCount)
+                    (*pvectorNextBeams)[iColumn + 1] = true;
             } else {
-                (*pmpcolfNext)[col] = true;
+                (*pvectorNextBeams)[iColumn] = true;
             }
         }
 
-        std::swap(pmpcolfActive, pmpcolfNext);
+        std::swap(pvectorActiveBeams, pvectorNextBeams);
     }
 
-    return std::to_string(cntSplits);
+    return std::to_string(iSplitCount);
 }
 
 // ------------------------------------------------------------
 // Part 2 — count timelines
 // ------------------------------------------------------------
 
-std::string Day07::TxtPart2() {
-    if (colStart_ < 0)
+std::string Day07::Part2() {
+    if (m_iStartColumn < 0)
         return "0";
-    std::int64_t cntExitedTimelines = 0;
-    std::vector<std::int64_t> mpcolcntTimelinesA(ccol_, 0);
-    std::vector<std::int64_t> mpcolcntTimelinesB(ccol_, 0);
+    std::int64_t iExitedTimelines = 0;
+    std::vector<std::int64_t> vectorTimelineBufferA(m_iColumnCount, 0);
+    std::vector<std::int64_t> vectorTimelineBufferB(m_iColumnCount, 0);
 
-    auto* pmpcolcntActive = &mpcolcntTimelinesA;
-    auto* pmpcolcntNext = &mpcolcntTimelinesB;
+    auto* pvectorActiveTimelines = &vectorTimelineBufferA;
+    auto* pvectorNextTimelines = &vectorTimelineBufferB;
 
-    (*pmpcolcntActive)[colStart_] = 1;
+    (*pvectorActiveTimelines)[m_iStartColumn] = 1;
 
-    for (int rw = 1; rw < crw_; ++rw) {
-        std::fill(pmpcolcntNext->begin(), pmpcolcntNext->end(), 0);
-        const auto& usRow = gridManifold_[rw];
+    for (int iRow = 1; iRow < m_iRowCount; ++iRow) {
+        std::fill(pvectorNextTimelines->begin(), pvectorNextTimelines->end(), 0);
+        const auto& stringInputRow = m_vectorManifold[iRow];
 
-        for (int col = 0; col < ccol_; ++col) {
-            std::int64_t cntTimelines = (*pmpcolcntActive)[col];
-            if (cntTimelines == 0)
+        for (int iColumn = 0; iColumn < m_iColumnCount; ++iColumn) {
+            std::int64_t iTimelineCount = (*pvectorActiveTimelines)[iColumn];
+            if (iTimelineCount == 0)
                 continue;
 
-            if (usRow[col] == '^') {
-                if (col > 0)
-                    (*pmpcolcntNext)[col - 1] += cntTimelines;
+            if (stringInputRow[iColumn] == '^') {
+                if (iColumn > 0)
+                    (*pvectorNextTimelines)[iColumn - 1] += iTimelineCount;
                 else
-                    cntExitedTimelines += cntTimelines;
-                if (col + 1 < ccol_)
-                    (*pmpcolcntNext)[col + 1] += cntTimelines;
+                    iExitedTimelines += iTimelineCount;
+                if (iColumn + 1 < m_iColumnCount)
+                    (*pvectorNextTimelines)[iColumn + 1] += iTimelineCount;
                 else
-                    cntExitedTimelines += cntTimelines;
+                    iExitedTimelines += iTimelineCount;
             } else {
-                (*pmpcolcntNext)[col] += cntTimelines;
+                (*pvectorNextTimelines)[iColumn] += iTimelineCount;
             }
         }
 
-        std::swap(pmpcolcntActive, pmpcolcntNext);
+        std::swap(pvectorActiveTimelines, pvectorNextTimelines);
     }
 
-    std::int64_t cntSurvivingTimelines =
-        std::accumulate(pmpcolcntActive->begin(), pmpcolcntActive->end(), std::int64_t{0});
+    std::int64_t iTotalTimelines = std::accumulate(pvectorActiveTimelines->begin(),
+                                                   pvectorActiveTimelines->end(), std::int64_t{0});
 
-    return std::to_string(cntSurvivingTimelines + cntExitedTimelines);
+    return std::to_string(iTotalTimelines + iExitedTimelines);
 }

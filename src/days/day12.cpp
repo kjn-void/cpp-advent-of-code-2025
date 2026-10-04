@@ -11,61 +11,65 @@
 
 // Registration
 namespace {
-const core::Drg<Day12> drgDay{12};
+const core::DayRegistration<Day12> dayregistration{12};
 } // namespace
 
 // ------------------------------------------------------------
 // Parsing
 // ------------------------------------------------------------
 
-void Day12::SetInput(const std::vector<std::string>& rgusLines) {
-    rgshp_.clear();
-    rgreg_.clear();
+void Day12::SetInput(const std::vector<std::string>& vectorInputLines) {
+    m_vectorPresentShapes.clear();
+    m_vectorTreeRegions.clear();
 
-    for (std::size_t iusLine = 0; iusLine < rgusLines.size();) {
-        const auto usLine = core::UsTrim(rgusLines[iusLine++]);
-        if (usLine.empty())
+    for (std::size_t uLineIndex = 0; uLineIndex < vectorInputLines.size();) {
+        const auto stringLine = core::Trim(vectorInputLines[uLineIndex++]);
+        if (stringLine.empty())
             continue;
-        const auto offColon = usLine.find(':');
-        if (offColon == std::string_view::npos)
+        const auto uColonOffset = stringLine.find(':');
+        if (uColonOffset == std::string_view::npos)
             throw std::invalid_argument("Expected shape or region header");
-        const auto usHeader = usLine.substr(0, offColon);
-        const auto offDimensionSeparator = usHeader.find('x');
-        if (offDimensionSeparator == std::string_view::npos) {
-            if (!rgreg_.empty() || core::ValParseInteger<std::size_t>(usHeader) != rgshp_.size())
+        const auto stringHeader = stringLine.substr(0, uColonOffset);
+        const auto uDimensionSeparatorOffset = stringHeader.find('x');
+        if (uDimensionSeparatorOffset == std::string_view::npos) {
+            if (!m_vectorTreeRegions.empty() ||
+                core::ParseInteger<std::size_t>(stringHeader) != m_vectorPresentShapes.size())
                 throw std::invalid_argument("Shape IDs must be consecutive, starting at zero");
-            std::vector<std::string> rgusShapeRows;
-            while (iusLine < rgusLines.size()) {
-                const auto usRow = core::UsTrim(rgusLines[iusLine]);
-                if (usRow.empty() || usRow.find(':') != std::string_view::npos)
+            std::vector<std::string> vectorShapeRows;
+            while (uLineIndex < vectorInputLines.size()) {
+                const auto stringInputRow = core::Trim(vectorInputLines[uLineIndex]);
+                if (stringInputRow.empty() || stringInputRow.find(':') != std::string_view::npos)
                     break;
-                if (usRow.find_first_not_of(".#") != std::string_view::npos)
+                if (stringInputRow.find_first_not_of(".#") != std::string_view::npos)
                     throw std::invalid_argument("Invalid shape cell");
-                rgusShapeRows.emplace_back(usRow);
-                ++iusLine;
+                vectorShapeRows.emplace_back(stringInputRow);
+                ++uLineIndex;
             }
-            if (rgusShapeRows.empty())
+            if (vectorShapeRows.empty())
                 throw std::invalid_argument("Missing shape cells");
-            auto shpParsed = ShpBuild(rgusShapeRows);
-            if (shpParsed.areaOccupied == 0)
+            auto presentshape = MakePresentShape(vectorShapeRows);
+            if (presentshape.m_iOccupiedArea == 0)
                 throw std::invalid_argument("Shape must occupy at least one cell");
-            rgshp_.push_back(std::move(shpParsed));
+            m_vectorPresentShapes.push_back(std::move(presentshape));
         } else {
-            const auto ccol = core::ValParseInteger<int>(usHeader.substr(0, offDimensionSeparator));
-            const auto crw = core::ValParseInteger<int>(usHeader.substr(offDimensionSeparator + 1));
-            if (ccol <= 0 || crw <= 0)
+            const auto iWidth =
+                core::ParseInteger<int>(stringHeader.substr(0, uDimensionSeparatorOffset));
+            const auto iHeight =
+                core::ParseInteger<int>(stringHeader.substr(uDimensionSeparatorOffset + 1));
+            if (iWidth <= 0 || iHeight <= 0)
                 throw std::invalid_argument("Region dimensions must be positive");
-            std::istringstream inCounts(std::string{usLine.substr(offColon + 1)});
-            std::vector<int> mpishpcpreRequired;
-            for (std::string usCount; inCounts >> usCount;) {
-                const auto cpre = core::ValParseInteger<int>(usCount);
-                if (cpre < 0)
+            std::istringstream istringstreamCountsInput(
+                std::string{stringLine.substr(uColonOffset + 1)});
+            std::vector<int> vectorPresentCounts;
+            for (std::string stringCount; istringstreamCountsInput >> stringCount;) {
+                const auto iPresentCount = core::ParseInteger<int>(stringCount);
+                if (iPresentCount < 0)
                     throw std::invalid_argument("Present counts must be nonnegative");
-                mpishpcpreRequired.push_back(cpre);
+                vectorPresentCounts.push_back(iPresentCount);
             }
-            if (mpishpcpreRequired.size() != rgshp_.size())
+            if (vectorPresentCounts.size() != m_vectorPresentShapes.size())
                 throw std::invalid_argument("Expected one present count per shape");
-            rgreg_.push_back({ccol, crw, std::move(mpishpcpreRequired)});
+            m_vectorTreeRegions.push_back({iWidth, iHeight, std::move(vectorPresentCounts)});
         }
     }
 }
@@ -74,235 +78,263 @@ void Day12::SetInput(const std::vector<std::string>& rgusLines) {
 // Shape helpers
 // ------------------------------------------------------------
 
-Day12::Shp Day12::ShpBuild(const std::vector<std::string>& rgusShapeRows) {
-    int crw = rgusShapeRows.size();
-    int ccol = 0;
-    for (auto& usRow : rgusShapeRows)
-        ccol = std::max(ccol, static_cast<int>(usRow.size()));
+Day12::PresentShape Day12::MakePresentShape(const std::vector<std::string>& vectorShapeRows) {
+    int iHeight = vectorShapeRows.size();
+    int iWidth = 0;
+    for (auto& stringInputRow : vectorShapeRows)
+        iWidth = std::max(iWidth, static_cast<int>(stringInputRow.size()));
 
-    std::vector<std::vector<bool>> gridShape(crw, std::vector<bool>(ccol, false));
-    for (int rw = 0; rw < crw; ++rw)
-        for (int col = 0; col < static_cast<int>(rgusShapeRows[rw].size()); ++col)
-            if (rgusShapeRows[rw][col] == '#')
-                gridShape[rw][col] = true;
+    std::vector<std::vector<bool>> vectorShapeGrid(iHeight, std::vector<bool>(iWidth, false));
+    for (int iRow = 0; iRow < iHeight; ++iRow)
+        for (int iColumn = 0; iColumn < static_cast<int>(vectorShapeRows[iRow].size()); ++iColumn)
+            if (vectorShapeRows[iRow][iColumn] == '#')
+                vectorShapeGrid[iRow][iColumn] = true;
 
-    std::unordered_set<std::string> settxtOrientationKeys;
-    std::vector<Ori> rgori;
+    std::unordered_set<std::string> setOrientationKeys;
+    std::vector<PresentOrientation> vectorOrientations;
 
-    auto gridRotated = gridShape;
-    for (int iterRotation = 0; iterRotation < 4; ++iterRotation) {
-        if (iterRotation > 0)
-            gridRotated = GridRotate(gridRotated);
-        for (int iterReflection = 0; iterReflection < 2; ++iterReflection) {
-            auto gridReflected = (iterReflection == 0) ? gridRotated : GridReflect(gridRotated);
-            auto ori = OriFromGrid(gridReflected);
-            if (!ori.rgdelta.empty()) {
-                auto txtOrientationKey = TxtOrientationKey(ori);
-                if (settxtOrientationKeys.insert(txtOrientationKey).second)
-                    rgori.push_back(std::move(ori));
+    auto vectorRotatedGrid = vectorShapeGrid;
+    for (int iRotationIndex = 0; iRotationIndex < 4; ++iRotationIndex) {
+        if (iRotationIndex > 0)
+            vectorRotatedGrid = RotateClockwise(vectorRotatedGrid);
+        for (int iReflectionIndex = 0; iReflectionIndex < 2; ++iReflectionIndex) {
+            auto vectorReflectedGrid = (iReflectionIndex == 0)
+                                           ? vectorRotatedGrid
+                                           : ReflectHorizontally(vectorRotatedGrid);
+            auto presentorientation = GridToOrientation(vectorReflectedGrid);
+            if (!presentorientation.m_vectorCellOffsets.empty()) {
+                auto stringOrientationKey = OrientationKey(presentorientation);
+                if (setOrientationKeys.insert(stringOrientationKey).second)
+                    vectorOrientations.push_back(std::move(presentorientation));
             }
         }
     }
 
-    Shp shp;
-    shp.rgori = std::move(rgori);
-    if (!shp.rgori.empty())
-        shp.areaOccupied = shp.rgori[0].rgdelta.size();
-    return shp;
-}
-
-std::vector<std::vector<bool>> Day12::GridRotate(const std::vector<std::vector<bool>>& gridSource) {
-    int crw = gridSource.size();
-    int ccol = gridSource[0].size();
-    std::vector<std::vector<bool>> gridRotated(ccol, std::vector<bool>(crw));
-    for (int rw = 0; rw < crw; ++rw)
-        for (int col = 0; col < ccol; ++col)
-            gridRotated[col][crw - 1 - rw] = gridSource[rw][col];
-    return gridRotated;
+    PresentShape presentshape;
+    presentshape.m_vectorOrientations = std::move(vectorOrientations);
+    if (!presentshape.m_vectorOrientations.empty())
+        presentshape.m_iOccupiedArea =
+            presentshape.m_vectorOrientations[0].m_vectorCellOffsets.size();
+    return presentshape;
 }
 
 std::vector<std::vector<bool>>
-Day12::GridReflect(const std::vector<std::vector<bool>>& gridSource) {
-    int crw = gridSource.size();
-    int ccol = gridSource[0].size();
-    std::vector<std::vector<bool>> gridReflected(crw, std::vector<bool>(ccol));
-    for (int rw = 0; rw < crw; ++rw)
-        for (int col = 0; col < ccol; ++col)
-            gridReflected[rw][ccol - 1 - col] = gridSource[rw][col];
-    return gridReflected;
+Day12::RotateClockwise(const std::vector<std::vector<bool>>& vectorGrid) {
+    int iHeight = vectorGrid.size();
+    int iWidth = vectorGrid[0].size();
+    std::vector<std::vector<bool>> vectorRotatedGrid(iWidth, std::vector<bool>(iHeight));
+    for (int iRow = 0; iRow < iHeight; ++iRow)
+        for (int iColumn = 0; iColumn < iWidth; ++iColumn)
+            vectorRotatedGrid[iColumn][iHeight - 1 - iRow] = vectorGrid[iRow][iColumn];
+    return vectorRotatedGrid;
 }
 
-Day12::Ori Day12::OriFromGrid(const std::vector<std::vector<bool>>& gridSource) {
-    int crw = gridSource.size(), ccol = gridSource[0].size();
-    int colFirst = ccol, rwFirst = crw, colLast = -1, rwLast = -1;
+std::vector<std::vector<bool>>
+Day12::ReflectHorizontally(const std::vector<std::vector<bool>>& vectorGrid) {
+    int iHeight = vectorGrid.size();
+    int iWidth = vectorGrid[0].size();
+    std::vector<std::vector<bool>> vectorReflectedGrid(iHeight, std::vector<bool>(iWidth));
+    for (int iRow = 0; iRow < iHeight; ++iRow)
+        for (int iColumn = 0; iColumn < iWidth; ++iColumn)
+            vectorReflectedGrid[iRow][iWidth - 1 - iColumn] = vectorGrid[iRow][iColumn];
+    return vectorReflectedGrid;
+}
 
-    for (int rw = 0; rw < crw; ++rw)
-        for (int col = 0; col < ccol; ++col)
-            if (gridSource[rw][col]) {
-                colFirst = std::min(colFirst, col);
-                rwFirst = std::min(rwFirst, rw);
-                colLast = std::max(colLast, col);
-                rwLast = std::max(rwLast, rw);
+Day12::PresentOrientation
+Day12::GridToOrientation(const std::vector<std::vector<bool>>& vectorGrid) {
+    int iHeight = vectorGrid.size(), iWidth = vectorGrid[0].size();
+    int iFirstColumn = iWidth, iFirstRow = iHeight, iLastColumn = -1, iLastRow = -1;
+
+    for (int iRow = 0; iRow < iHeight; ++iRow)
+        for (int iColumn = 0; iColumn < iWidth; ++iColumn)
+            if (vectorGrid[iRow][iColumn]) {
+                iFirstColumn = std::min(iFirstColumn, iColumn);
+                iFirstRow = std::min(iFirstRow, iRow);
+                iLastColumn = std::max(iLastColumn, iColumn);
+                iLastRow = std::max(iLastRow, iRow);
             }
 
-    if (colLast < colFirst)
+    if (iLastColumn < iFirstColumn)
         return {};
 
-    Ori ori;
-    ori.ccol = colLast - colFirst + 1;
-    ori.crw = rwLast - rwFirst + 1;
+    PresentOrientation presentorientation;
+    presentorientation.m_iWidth = iLastColumn - iFirstColumn + 1;
+    presentorientation.m_iHeight = iLastRow - iFirstRow + 1;
 
-    for (int rw = rwFirst; rw <= rwLast; ++rw)
-        for (int col = colFirst; col <= colLast; ++col)
-            if (gridSource[rw][col])
-                ori.rgdelta.push_back({col - colFirst, rw - rwFirst});
+    for (int iRow = iFirstRow; iRow <= iLastRow; ++iRow)
+        for (int iColumn = iFirstColumn; iColumn <= iLastColumn; ++iColumn)
+            if (vectorGrid[iRow][iColumn])
+                presentorientation.m_vectorCellOffsets.push_back(
+                    {iColumn - iFirstColumn, iRow - iFirstRow});
 
-    return ori;
+    return presentorientation;
 }
 
-std::string Day12::TxtOrientationKey(const Ori& ori) {
-    std::ostringstream outKey;
-    outKey << ori.ccol << "x" << ori.crw << ":";
-    for (auto& delta : ori.rgdelta)
-        outKey << delta.dcol << "," << delta.drw << ";";
-    return outKey.str();
+std::string Day12::OrientationKey(const PresentOrientation& presentorientation) {
+    std::ostringstream ostringstreamEncodedOrientation;
+    ostringstreamEncodedOrientation << presentorientation.m_iWidth << "x"
+                                    << presentorientation.m_iHeight << ":";
+    for (auto& celloffset : presentorientation.m_vectorCellOffsets)
+        ostringstreamEncodedOrientation << celloffset.m_iColumnOffset << ","
+                                        << celloffset.m_iRowOffset << ";";
+    return ostringstreamEncodedOrientation.str();
 }
 
 // ------------------------------------------------------------
 // Solver
 // ------------------------------------------------------------
 
-std::string Day12::TxtPart1() {
-    int cregFitting = 0;
-    for (auto& reg : rgreg_)
-        if (FPresentsFit(reg))
-            ++cregFitting;
-    return std::to_string(cregFitting);
+std::string Day12::Part1() {
+    int iFittingRegionCount = 0;
+    for (auto& treeregion : m_vectorTreeRegions)
+        if (PresentsFit(treeregion))
+            ++iFittingRegionCount;
+    return std::to_string(iFittingRegionCount);
 }
 
-std::string Day12::TxtPart2() {
+std::string Day12::Part2() {
     // Day 12 has no second puzzle; its star is awarded once the other 23 are earned.
     return "0";
 }
 
-bool Day12::FPresentsFit(const Reg& reg) const {
-    const auto areaRegion = std::int64_t{reg.ccol} * reg.crw;
-    std::int64_t areaRequired = 0;
-    std::int64_t cpre = 0;
-    int ccolSlot = 0, crwSlot = 0;
-    for (std::size_t ishp = 0; ishp < rgshp_.size(); ++ishp) {
-        if (reg.mpishpcpreRequired[ishp] == 0)
+bool Day12::PresentsFit(const TreeRegion& treeregion) const {
+    const auto iRegionArea = std::int64_t{treeregion.m_iWidth} * treeregion.m_iHeight;
+    std::int64_t iRequiredArea = 0;
+    std::int64_t iPresentCount = 0;
+    int iSlotWidth = 0, iSlotHeight = 0;
+    for (std::size_t uShapeIndex = 0; uShapeIndex < m_vectorPresentShapes.size(); ++uShapeIndex) {
+        if (treeregion.m_vectorPresentCounts[uShapeIndex] == 0)
             continue;
-        areaRequired += std::int64_t{reg.mpishpcpreRequired[ishp]} * rgshp_[ishp].areaOccupied;
-        if (areaRequired > areaRegion)
+        iRequiredArea += std::int64_t{treeregion.m_vectorPresentCounts[uShapeIndex]} *
+                         m_vectorPresentShapes[uShapeIndex].m_iOccupiedArea;
+        if (iRequiredArea > iRegionArea)
             return false;
-        if (!std::ranges::any_of(rgshp_[ishp].rgori, [&](const auto& ori) {
-                return ori.ccol <= reg.ccol && ori.crw <= reg.crw;
-            }))
+        if (!std::ranges::any_of(m_vectorPresentShapes[uShapeIndex].m_vectorOrientations,
+                                 [&](const auto& presentorientation) {
+                                     return presentorientation.m_iWidth <= treeregion.m_iWidth &&
+                                            presentorientation.m_iHeight <= treeregion.m_iHeight;
+                                 }))
             return false;
-        cpre += reg.mpishpcpreRequired[ishp];
-        const auto& ori = rgshp_[ishp].rgori.front();
-        ccolSlot = std::max(ccolSlot, ori.ccol);
-        crwSlot = std::max(crwSlot, ori.crw);
+        iPresentCount += treeregion.m_vectorPresentCounts[uShapeIndex];
+        const auto& presentorientation =
+            m_vectorPresentShapes[uShapeIndex].m_vectorOrientations.front();
+        iSlotWidth = std::max(iSlotWidth, presentorientation.m_iWidth);
+        iSlotHeight = std::max(iSlotHeight, presentorientation.m_iHeight);
     }
-    if (cpre == 0)
+    if (iPresentCount == 0)
         return true;
 
     // A disjoint bounding box for every piece is a constructive proof of fit.
-    const auto cpreCapacity = std::int64_t{reg.ccol / ccolSlot} * (reg.crw / crwSlot);
-    if (cpre <= cpreCapacity)
+    const auto iSlotCount =
+        std::int64_t{treeregion.m_iWidth / iSlotWidth} * (treeregion.m_iHeight / iSlotHeight);
+    if (iPresentCount <= iSlotCount)
         return true;
-    return FPackRegion(reg);
+    return CanPackRegion(treeregion);
 }
 
 // ------------------------------------------------------------
 // Exact packing when area and bounding boxes do not decide the result
 // ------------------------------------------------------------
 
-bool Day12::FPackRegion(const Reg& reg) const {
-    int ccol = reg.ccol, crw = reg.crw;
-    std::vector<std::vector<std::vector<std::size_t>>> mpishprgplc(rgshp_.size());
+bool Day12::CanPackRegion(const TreeRegion& treeregion) const {
+    int iWidth = treeregion.m_iWidth, iHeight = treeregion.m_iHeight;
+    std::vector<std::vector<std::vector<std::size_t>>> vectorPlacementsByShape(
+        m_vectorPresentShapes.size());
 
-    for (std::size_t ishp = 0; ishp < rgshp_.size(); ++ishp) {
-        if (reg.mpishpcpreRequired[ishp] == 0)
+    for (std::size_t uShapeIndex = 0; uShapeIndex < m_vectorPresentShapes.size(); ++uShapeIndex) {
+        if (treeregion.m_vectorPresentCounts[uShapeIndex] == 0)
             continue;
-        for (const auto& ori : rgshp_[ishp].rgori) {
-            for (int rwAnchor = 0; rwAnchor <= crw - ori.crw; ++rwAnchor)
-                for (int colAnchor = 0; colAnchor <= ccol - ori.ccol; ++colAnchor) {
-                    std::vector<std::size_t> plc;
-                    for (auto& delta : ori.rgdelta)
-                        plc.push_back(static_cast<std::size_t>(rwAnchor + delta.drw) * ccol +
-                                      colAnchor + delta.dcol);
-                    mpishprgplc[ishp].push_back(std::move(plc));
+        for (const auto& presentorientation :
+             m_vectorPresentShapes[uShapeIndex].m_vectorOrientations) {
+            for (int iAnchorRow = 0; iAnchorRow <= iHeight - presentorientation.m_iHeight;
+                 ++iAnchorRow)
+                for (int iAnchorColumn = 0; iAnchorColumn <= iWidth - presentorientation.m_iWidth;
+                     ++iAnchorColumn) {
+                    std::vector<std::size_t> vectorPlacement;
+                    for (auto& celloffset : presentorientation.m_vectorCellOffsets)
+                        vectorPlacement.push_back(
+                            static_cast<std::size_t>(iAnchorRow + celloffset.m_iRowOffset) *
+                                iWidth +
+                            iAnchorColumn + celloffset.m_iColumnOffset);
+                    vectorPlacementsByShape[uShapeIndex].push_back(std::move(vectorPlacement));
                 }
         }
     }
 
-    std::vector<bool> mpicelfOccupied(static_cast<std::size_t>(ccol) * crw, false);
-    auto mpishpcpreRemaining = reg.mpishpcpreRequired;
-    std::vector<std::size_t> mpishpiplcFirst(rgshp_.size(), 0);
-    return FPlaceRemaining(mpicelfOccupied, mpishpcpreRemaining, mpishprgplc, mpishpiplcFirst);
+    std::vector<bool> vectorOccupiedCells(static_cast<std::size_t>(iWidth) * iHeight, false);
+    auto vectorRemainingCounts = treeregion.m_vectorPresentCounts;
+    std::vector<std::size_t> vectorFirstPlacementByShape(m_vectorPresentShapes.size(), 0);
+    return PlaceRemainingPresents(vectorOccupiedCells, vectorRemainingCounts,
+                                  vectorPlacementsByShape, vectorFirstPlacementByShape);
 }
 
-bool Day12::FPlaceRemaining(std::vector<bool>& mpicelfOccupied,
-                            std::vector<int>& mpishpcpreRemaining,
-                            const std::vector<std::vector<std::vector<std::size_t>>>& mpishprgplc,
-                            std::vector<std::size_t>& mpishpiplcFirst) const {
-    const auto ccelFree = std::ranges::count(mpicelfOccupied, false);
+bool Day12::PlaceRemainingPresents(
+    std::vector<bool>& vectorOccupiedCells, std::vector<int>& vectorRemainingCounts,
+    const std::vector<std::vector<std::vector<std::size_t>>>& vectorPlacementsByShape,
+    std::vector<std::size_t>& vectorFirstPlacementByShape) const {
+    const auto iFreeCellCount = std::ranges::count(vectorOccupiedCells, false);
 
-    std::int64_t areaRequired = 0;
-    bool fComplete = true;
-    for (std::size_t ishp = 0; ishp < mpishpcpreRemaining.size() && ishp < rgshp_.size(); ++ishp) {
-        if (mpishpcpreRemaining[ishp] > 0) {
-            fComplete = false;
-            areaRequired += std::int64_t{mpishpcpreRemaining[ishp]} * rgshp_[ishp].areaOccupied;
+    std::int64_t iRequiredArea = 0;
+    bool bAllPresentsPlaced = true;
+    for (std::size_t uShapeIndex = 0;
+         uShapeIndex < vectorRemainingCounts.size() && uShapeIndex < m_vectorPresentShapes.size();
+         ++uShapeIndex) {
+        if (vectorRemainingCounts[uShapeIndex] > 0) {
+            bAllPresentsPlaced = false;
+            iRequiredArea += std::int64_t{vectorRemainingCounts[uShapeIndex]} *
+                             m_vectorPresentShapes[uShapeIndex].m_iOccupiedArea;
         }
     }
 
-    if (fComplete)
+    if (bAllPresentsPlaced)
         return true;
-    if (areaRequired > ccelFree)
+    if (iRequiredArea > iFreeCellCount)
         return false;
 
-    std::size_t ishpBest = 0, cplcBest = std::numeric_limits<std::size_t>::max();
+    std::size_t uChosenShapeIndex = 0,
+                uFewestFeasiblePlacements = std::numeric_limits<std::size_t>::max();
 
-    for (std::size_t ishp = 0; ishp < mpishpcpreRemaining.size(); ++ishp) {
-        if (mpishpcpreRemaining[ishp] <= 0)
+    for (std::size_t uShapeIndex = 0; uShapeIndex < vectorRemainingCounts.size(); ++uShapeIndex) {
+        if (vectorRemainingCounts[uShapeIndex] <= 0)
             continue;
-        std::size_t cplcFeasible = 0;
-        for (std::size_t iplc = mpishpiplcFirst[ishp]; iplc < mpishprgplc[ishp].size(); ++iplc) {
-            const auto& plc = mpishprgplc[ishp][iplc];
-            if (std::all_of(plc.begin(), plc.end(),
-                            [&](std::size_t icel) { return !mpicelfOccupied[icel]; })) {
-                ++cplcFeasible;
-                if (cplcFeasible >= cplcBest)
+        std::size_t uFeasiblePlacementCount = 0;
+        for (std::size_t uPlacementIndex = vectorFirstPlacementByShape[uShapeIndex];
+             uPlacementIndex < vectorPlacementsByShape[uShapeIndex].size(); ++uPlacementIndex) {
+            const auto& vectorPlacement = vectorPlacementsByShape[uShapeIndex][uPlacementIndex];
+            if (std::all_of(
+                    vectorPlacement.begin(), vectorPlacement.end(),
+                    [&](std::size_t uCellIndex) { return !vectorOccupiedCells[uCellIndex]; })) {
+                ++uFeasiblePlacementCount;
+                if (uFeasiblePlacementCount >= uFewestFeasiblePlacements)
                     break;
             }
         }
-        if (cplcFeasible == 0)
+        if (uFeasiblePlacementCount == 0)
             return false;
-        if (cplcFeasible < cplcBest) {
-            cplcBest = cplcFeasible;
-            ishpBest = ishp;
+        if (uFeasiblePlacementCount < uFewestFeasiblePlacements) {
+            uFewestFeasiblePlacements = uFeasiblePlacementCount;
+            uChosenShapeIndex = uShapeIndex;
         }
     }
 
-    mpishpcpreRemaining[ishpBest]--;
-    const auto iplcFirst = mpishpiplcFirst[ishpBest];
-    for (std::size_t iplc = iplcFirst; iplc < mpishprgplc[ishpBest].size(); ++iplc) {
-        const auto& plc = mpishprgplc[ishpBest][iplc];
-        if (std::all_of(plc.begin(), plc.end(),
-                        [&](std::size_t icel) { return !mpicelfOccupied[icel]; })) {
-            for (auto icel : plc)
-                mpicelfOccupied[icel] = true;
-            mpishpiplcFirst[ishpBest] = iplc + 1;
-            if (FPlaceRemaining(mpicelfOccupied, mpishpcpreRemaining, mpishprgplc, mpishpiplcFirst))
+    vectorRemainingCounts[uChosenShapeIndex]--;
+    const auto uFirstPlacementIndex = vectorFirstPlacementByShape[uChosenShapeIndex];
+    for (std::size_t uPlacementIndex = uFirstPlacementIndex;
+         uPlacementIndex < vectorPlacementsByShape[uChosenShapeIndex].size(); ++uPlacementIndex) {
+        const auto& vectorPlacement = vectorPlacementsByShape[uChosenShapeIndex][uPlacementIndex];
+        if (std::all_of(vectorPlacement.begin(), vectorPlacement.end(),
+                        [&](std::size_t uCellIndex) { return !vectorOccupiedCells[uCellIndex]; })) {
+            for (auto uCellIndex : vectorPlacement)
+                vectorOccupiedCells[uCellIndex] = true;
+            vectorFirstPlacementByShape[uChosenShapeIndex] = uPlacementIndex + 1;
+            if (PlaceRemainingPresents(vectorOccupiedCells, vectorRemainingCounts,
+                                       vectorPlacementsByShape, vectorFirstPlacementByShape))
                 return true;
-            for (auto icel : plc)
-                mpicelfOccupied[icel] = false;
+            for (auto uCellIndex : vectorPlacement)
+                vectorOccupiedCells[uCellIndex] = false;
         }
     }
-    mpishpiplcFirst[ishpBest] = iplcFirst;
-    mpishpcpreRemaining[ishpBest]++;
+    vectorFirstPlacementByShape[uChosenShapeIndex] = uFirstPlacementIndex;
+    vectorRemainingCounts[uChosenShapeIndex]++;
     return false;
 }

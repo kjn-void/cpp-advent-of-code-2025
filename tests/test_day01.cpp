@@ -4,23 +4,23 @@
 #include "core/Solution.h"
 
 TEST(Day01, ExamplePart1) {
-    auto pslvDay = Regy::RegyInstance().PslvMake(1);
-    ASSERT_TRUE(pslvDay);
+    auto psolution = Registry::Instance().Make(1);
+    ASSERT_TRUE(psolution);
 
-    pslvDay->SetInput({
+    psolution->SetInput({
         "L68",
         "L30",
         "R48",
     });
 
-    EXPECT_EQ(pslvDay->TxtPart1(), "1");
+    EXPECT_EQ(psolution->Part1(), "1");
 }
 
 TEST(Day01, ExamplePart2) {
-    auto pslvDay = Regy::RegyInstance().PslvMake(1);
-    ASSERT_TRUE(pslvDay);
+    auto psolution = Registry::Instance().Make(1);
+    ASSERT_TRUE(psolution);
 
-    pslvDay->SetInput({
+    psolution->SetInput({
         "L68",
         "L30",
         "R48",
@@ -33,5 +33,5 @@ TEST(Day01, ExamplePart2) {
         "L82",
     });
 
-    EXPECT_EQ(pslvDay->TxtPart2(), "6");
+    EXPECT_EQ(psolution->Part2(), "6");
 }

@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   tests-and-naming:
-    name: Tests and Apps Hungarian naming
+    name: Tests and gd Hungarian naming
     # Xcode 26 provides the C++20 std::jthread implementation used by the solvers.
     runs-on: macos-26
     timeout-minutes: 30
@@ -27,7 +27,7 @@ jobs:
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DAOC_BUILD_BENCHMARKS=ON
       - name: Test the naming guardrails
         run: python3 tools/test_style_guardrails.py
-      - name: Validate formatting and Apps Hungarian names
+      - name: Validate formatting and gd Hungarian names
         run: python3 tools/check_style.py --build-dir build
       - name: Build application and tests
         run: cmake --build build --parallel --target aoc2025 tests
