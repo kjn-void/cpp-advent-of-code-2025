@@ -31,18 +31,18 @@ static constexpr std::array<std::uint64_t, 20> RgcoefBuildPowersOfTen() {
 
 static constexpr auto rgcoefPowersOfTen = RgcoefBuildPowersOfTen();
 
-int Day02::LenFindSmallestBlock(const std::string& usDigits) {
-    const int cdig = static_cast<int>(usDigits.size());
+int Day02::LenFindSmallestBlock(const std::string& txtDigits) {
+    const int cdig = static_cast<int>(txtDigits.size());
     for (int lenBlock = 1; lenBlock <= cdig / 2; ++lenBlock) {
         if (cdig % lenBlock != 0)
             continue;
 
-        const std::string_view usBlock{usDigits.data(), static_cast<std::size_t>(lenBlock)};
+        const std::string_view txtBlockFirst{txtDigits.data(), static_cast<std::size_t>(lenBlock)};
         bool fRepeated = true;
 
         for (int offBlock = lenBlock; offBlock < cdig; offBlock += lenBlock) {
-            if (std::string_view{usDigits.data() + offBlock, static_cast<std::size_t>(lenBlock)} !=
-                usBlock) {
+            if (std::string_view{txtDigits.data() + offBlock, static_cast<std::size_t>(lenBlock)} !=
+                txtBlockFirst) {
                 fRepeated = false;
                 break;
             }
@@ -102,29 +102,29 @@ std::string Day02::TxtPart1() {
             std::int64_t coefBase = rgcoefPowersOfTen[lenBlock];
             std::int64_t coefRepeat = coefBase + 1;
 
-            std::int64_t coefBlockFirst = rgcoefPowersOfTen[lenBlock - 1];
-            std::int64_t coefBlockLast = coefBase - 1;
+            std::int64_t blkFirstOfLength = rgcoefPowersOfTen[lenBlock - 1];
+            std::int64_t blkLastOfLength = coefBase - 1;
 
-            std::int64_t coefCandidateFirst = idFirst / coefRepeat + (idFirst % coefRepeat != 0);
-            std::int64_t coefCandidateLast = idLast / coefRepeat;
+            std::int64_t blkFirst = idFirst / coefRepeat + (idFirst % coefRepeat != 0);
+            std::int64_t blkLast = idLast / coefRepeat;
 
-            coefCandidateFirst = std::max(coefCandidateFirst, coefBlockFirst);
-            coefCandidateLast = std::min(coefCandidateLast, coefBlockLast);
-            if (coefCandidateFirst > coefCandidateLast)
+            blkFirst = std::max(blkFirst, blkFirstOfLength);
+            blkLast = std::min(blkLast, blkLastOfLength);
+            if (blkFirst > blkLast)
                 continue;
 
             // Sum the arithmetic progression without enumerating every repeated ID.
-            auto ccoefCandidates = coefCandidateLast - coefCandidateFirst + 1;
-            auto valSumEndpointCoefficients = coefCandidateFirst + coefCandidateLast;
-            if (ccoefCandidates % 2 == 0)
-                ccoefCandidates /= 2;
+            auto cblk = blkLast - blkFirst + 1;
+            auto valSumEndpointBlocks = blkFirst + blkLast;
+            if (cblk % 2 == 0)
+                cblk /= 2;
             else
-                valSumEndpointCoefficients /= 2;
+                valSumEndpointBlocks /= 2;
             const auto valSumRemaining =
                 std::numeric_limits<std::int64_t>::max() - valSumInvalidIds;
-            if (valSumEndpointCoefficients > valSumRemaining / coefRepeat / ccoefCandidates)
+            if (valSumEndpointBlocks > valSumRemaining / coefRepeat / cblk)
                 throw std::overflow_error("ID sum exceeds int64_t");
-            valSumInvalidIds += valSumEndpointCoefficients * ccoefCandidates * coefRepeat;
+            valSumInvalidIds += valSumEndpointBlocks * cblk * coefRepeat;
         }
     }
 
@@ -141,38 +141,36 @@ std::string Day02::TxtPart2() {
     for (auto [idFirst, idLast] : rgrngIds_) {
         int cdigLast = static_cast<int>(std::to_string(idLast).size());
 
-        for (int cdigTotal = 2; cdigTotal <= cdigLast; ++cdigTotal) {
-            const auto coefTotalDigits = rgcoefPowersOfTen[cdigTotal];
+        for (int cdigId = 2; cdigId <= cdigLast; ++cdigId) {
+            const auto coefIdBase = rgcoefPowersOfTen[cdigId];
 
-            for (int cntRepeats = 2; cntRepeats <= cdigTotal; ++cntRepeats) {
-                if (cdigTotal % cntRepeats != 0)
+            for (int cblkPerId = 2; cblkPerId <= cdigId; ++cblkPerId) {
+                if (cdigId % cblkPerId != 0)
                     continue;
 
-                int lenBlock = cdigTotal / cntRepeats;
+                int lenBlock = cdigId / cblkPerId;
                 std::int64_t coefBlockBase = rgcoefPowersOfTen[lenBlock];
                 const auto coefRepeat =
-                    static_cast<std::int64_t>((coefTotalDigits - 1) / (coefBlockBase - 1));
+                    static_cast<std::int64_t>((coefIdBase - 1) / (coefBlockBase - 1));
 
-                std::int64_t coefBlockFirst = rgcoefPowersOfTen[lenBlock - 1];
-                std::int64_t coefBlockLast = coefBlockBase - 1;
+                std::int64_t blkFirstOfLength = rgcoefPowersOfTen[lenBlock - 1];
+                std::int64_t blkLastOfLength = coefBlockBase - 1;
 
-                std::int64_t coefCandidateFirst =
-                    idFirst / coefRepeat + (idFirst % coefRepeat != 0);
-                std::int64_t coefCandidateLast = idLast / coefRepeat;
+                std::int64_t blkFirst = idFirst / coefRepeat + (idFirst % coefRepeat != 0);
+                std::int64_t blkLast = idLast / coefRepeat;
 
-                coefCandidateFirst = std::max(coefCandidateFirst, coefBlockFirst);
-                coefCandidateLast = std::min(coefCandidateLast, coefBlockLast);
-                if (coefCandidateFirst > coefCandidateLast)
+                blkFirst = std::max(blkFirst, blkFirstOfLength);
+                blkLast = std::min(blkLast, blkLastOfLength);
+                if (blkFirst > blkLast)
                     continue;
 
-                for (std::int64_t coefBlock = coefCandidateFirst; coefBlock <= coefCandidateLast;
-                     ++coefBlock) {
-                    std::string txtBlock = std::to_string(coefBlock);
+                for (std::int64_t blk = blkFirst; blk <= blkLast; ++blk) {
+                    std::string txtBlock = std::to_string(blk);
                     if (LenFindSmallestBlock(txtBlock) != static_cast<int>(txtBlock.size()))
                         continue;
-                    const auto idRepeated = coefBlock * coefRepeat;
+                    const auto idRepeated = blk * coefRepeat;
                     if (idRepeated > std::numeric_limits<std::int64_t>::max() - valSumInvalidIds)
-                        throw std::overflow_error("ID sum exceeds std::int64_t");
+                        throw std::overflow_error("ID sum exceeds int64_t");
                     valSumInvalidIds += idRepeated;
                 }
             }

@@ -61,12 +61,16 @@ class NamingGuardrailTests(unittest.TestCase):
                 int cplcFeasible = 4;
                 int ccelFree = 20;
                 int cregFitting = 1;
+                long blkFirst = 10;
+                int cblkPerId = 2;
+                int mpcolbitParity[2]{0, 1};
                 return rwFirst + colFirst + valParsed + fnAdvance(idDay) + crw
                        + mpcolrwPivot[0] + fReady + rgjb[ijbFirst].x + cjb
                        + mpijbijbParent[0] + mpijbcjbSize[0] + cprTotal + cbtn
                        + mpishpcpreRequired[0] + mpishpcpreRemaining[0]
                        + rgbatSelected[0] + cclkRotation + crolAdjacent + ccn
                        + ccir + cpre + cplcFeasible + ccelFree + cregFitting
+                       + static_cast<int>(blkFirst) + cblkPerId + mpcolbitParity[0]
                        + static_cast<int>(costMinimum) + (pchLim != nullptr);
             }
         ''')
@@ -85,6 +89,8 @@ class NamingGuardrailTests(unittest.TestCase):
             "pointer without domain": "void Solve(const char* pName) {}",
             "retired rotation tag": "void Solve(int rgmovInstructions) {}",
             "retired generic connection tag": "void Solve(int edgCandidate) {}",
+            "retired endpoint-pair tag": "void Solve(int linkFinal) {}",
+            "retired button-index parity map": "void Solve(int mpibtnbitParity) {}",
             "present count without domain": "void Solve(int mpishpcntRequired) {}",
             "former custom dialect": "void Solve(int idxButton) {}",
             "nonstandard composition": "void Solve(int cRows) {}",

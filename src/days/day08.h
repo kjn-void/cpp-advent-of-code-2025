@@ -2,8 +2,6 @@
 
 #include <span>
 
-#include <utility>
-
 #include "core/Solution.h"
 
 #include <cstdint>
@@ -20,30 +18,31 @@ class Day08 final : public Slv {
         std::int64_t x, y, z;
     };
 
+    // Every pair of junction boxes is a candidate connection.
     struct Cn {
         std::int64_t distSquared;
         int ijbFirst, ijbSecond;
     };
 
     std::vector<Jb> rgjb;
-    std::vector<Cn> rgcn;
+    std::vector<Cn> rgcnByDistance;
 
     // Helpers
     static std::int64_t DistSquared(const Jb& jbFirst, const Jb& jbSecond);
-    static std::vector<Cn> RgcnBuildSorted(std::span<const Jb> rgjb);
+    static std::vector<Cn> RgcnSortByDistance(std::span<const Jb> rgjb);
 
-    // DSU
+    // Union-find
     struct Dsu {
         std::vector<int> mpijbijbParent;
         std::vector<int> mpijbcjbSize;
 
         explicit Dsu(int cjb);
-        int IjbFindCircuit(int ijbRoot);
-        bool FUnite(int ijbFirstRoot, int ijbSecondRoot);
+        int IjbFindRoot(int ijb);
+        bool FUnite(int ijbFirst, int ijbSecond);
     };
 
-    static std::vector<int> RgcjbConnectNearest(std::span<const Jb> rgjb, std::span<const Cn> rgcn,
-                                                int ccn);
+    static std::vector<int> RgcjbConnectNearest(std::span<const Jb> rgjb,
+                                                std::span<const Cn> rgcnByDistance, int ccn);
 
-    static std::pair<int, int> LinkConnectAll(std::span<const Jb> rgjb, std::span<const Cn> rgcn);
+    static Cn CnConnectAll(std::span<const Jb> rgjb, std::span<const Cn> rgcnByDistance);
 };

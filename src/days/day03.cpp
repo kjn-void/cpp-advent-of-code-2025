@@ -40,18 +40,18 @@ void Day03::SetInput(const std::vector<std::string>& rgusLines) {
 // ------------------------------------------------------------
 
 std::string Day03::TxtPart1() {
-    return TxtMaxJoltage(2);
+    return TxtTotalJoltage(2);
 }
 
 std::string Day03::TxtPart2() {
-    return TxtMaxJoltage(12);
+    return TxtTotalJoltage(12);
 }
 
 // ------------------------------------------------------------
 // Core logic
 // ------------------------------------------------------------
 
-std::string Day03::TxtMaxJoltage(int cbatToSelect) const {
+std::string Day03::TxtTotalJoltage(int cbatToSelect) const {
     std::int64_t jolSum = 0;
 
     for (const auto& bnk : rgbnk_) {

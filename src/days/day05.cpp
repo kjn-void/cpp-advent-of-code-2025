@@ -17,7 +17,7 @@ const core::Drg<Day05> drgDay{5};
 
 void Day05::SetInput(const std::vector<std::string>& rgusLines) {
     rgrngFresh_.clear();
-    rgidIngredients_.clear();
+    rgidAvailable_.clear();
 
     int iterSection = 0;
 
@@ -40,7 +40,7 @@ void Day05::SetInput(const std::vector<std::string>& rgusLines) {
             rgrngFresh_.emplace_back(idFirst, idLast);
         } else {
             // id
-            rgidIngredients_.push_back(core::ValParseInteger<std::int64_t>(usLine));
+            rgidAvailable_.push_back(core::ValParseInteger<std::int64_t>(usLine));
         }
     }
 
@@ -95,12 +95,12 @@ bool Day05::FIsFresh(std::int64_t idIngredient) const {
 // ------------------------------------------------------------
 
 std::string Day05::TxtPart1() {
-    int cntFresh = 0;
-    for (auto idIngredient : rgidIngredients_) {
+    int cidAvailableFresh = 0;
+    for (auto idIngredient : rgidAvailable_) {
         if (FIsFresh(idIngredient))
-            ++cntFresh;
+            ++cidAvailableFresh;
     }
-    return std::to_string(cntFresh);
+    return std::to_string(cidAvailableFresh);
 }
 
 // ------------------------------------------------------------

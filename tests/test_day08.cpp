@@ -12,8 +12,8 @@ TEST(Day08, ExamplePart1) {
     Day08 slvDay;
     slvDay.SetInput(rgusDay08Sample);
 
-    // Example uses 10 shortest connections
-    auto rgcjbCircuits = Day08::RgcjbConnectNearest(slvDay.rgjb, slvDay.rgcn, 10);
+    // The example connects the 10 closest pairs.
+    auto rgcjbCircuits = Day08::RgcjbConnectNearest(slvDay.rgjb, slvDay.rgcnByDistance, 10);
     ASSERT_GE(rgcjbCircuits.size(), 3);
     EXPECT_EQ(rgcjbCircuits[0] * rgcjbCircuits[1] * rgcjbCircuits[2], 40);
 }
@@ -22,6 +22,6 @@ TEST(Day08, ExamplePart2) {
     Day08 slvDay;
     slvDay.SetInput(rgusDay08Sample);
 
-    auto [ijbFirst, ijbSecond] = Day08::LinkConnectAll(slvDay.rgjb, slvDay.rgcn);
-    EXPECT_EQ(slvDay.rgjb[ijbFirst].x * slvDay.rgjb[ijbSecond].x, 25272);
+    const auto cnFinal = Day08::CnConnectAll(slvDay.rgjb, slvDay.rgcnByDistance);
+    EXPECT_EQ(slvDay.rgjb[cnFinal.ijbFirst].x * slvDay.rgjb[cnFinal.ijbSecond].x, 25272);
 }

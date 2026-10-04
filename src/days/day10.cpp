@@ -44,14 +44,14 @@ void Day10::SetInput(const std::vector<std::string>& rgusLines) {
             continue;
 
         // lights
-        auto offLightsBegin = usLine.find('[');
-        auto offLightsEnd = usLine.find(']');
-        if (offLightsBegin == std::string::npos || offLightsEnd == std::string::npos ||
-            offLightsEnd <= offLightsBegin)
+        auto offLightsFirst = usLine.find('[');
+        auto offLightsLast = usLine.find(']');
+        if (offLightsFirst == std::string::npos || offLightsLast == std::string::npos ||
+            offLightsLast <= offLightsFirst)
             throw std::invalid_argument("Missing machine lights");
 
         std::vector<int> rgfDiagram;
-        for (char chLight : usLine.substr(offLightsBegin + 1, offLightsEnd - offLightsBegin - 1)) {
+        for (char chLight : usLine.substr(offLightsFirst + 1, offLightsLast - offLightsFirst - 1)) {
             if (chLight != '#' && chLight != '.')
                 throw std::invalid_argument("Invalid light state");
             rgfDiagram.push_back(chLight == '#' ? 1 : 0);
@@ -59,37 +59,38 @@ void Day10::SetInput(const std::vector<std::string>& rgusLines) {
 
         // joltage
         std::vector<int> jvRequired;
-        auto offJoltageBegin = usLine.find('{');
-        auto offJoltageEnd = usLine.find('}');
-        if (offJoltageBegin == std::string::npos || offJoltageEnd == std::string::npos ||
-            offJoltageBegin <= offLightsEnd || offJoltageEnd <= offJoltageBegin)
+        auto offJoltageFirst = usLine.find('{');
+        auto offJoltageLast = usLine.find('}');
+        if (offJoltageFirst == std::string::npos || offJoltageLast == std::string::npos ||
+            offJoltageFirst <= offLightsLast || offJoltageLast <= offJoltageFirst)
             throw std::invalid_argument("Missing machine joltage");
         jvRequired =
-            RgvalParseList(usLine.substr(offJoltageBegin, offJoltageEnd - offJoltageBegin + 1));
+            RgvalParseList(usLine.substr(offJoltageFirst, offJoltageLast - offJoltageFirst + 1));
 
         // buttons
         std::vector<std::vector<int>> rgbtn;
-        auto usButtons = core::UsTrim(
-            std::string_view(usLine).substr(offLightsEnd + 1, offJoltageBegin - offLightsEnd - 1));
+        auto usButtons = core::UsTrim(std::string_view(usLine).substr(
+            offLightsLast + 1, offJoltageFirst - offLightsLast - 1));
 
-        std::size_t offButtonBegin = 0;
+        std::size_t offButtonFirst = 0;
         while (!usButtons.empty()) {
             if (usButtons.front() != '(')
                 throw std::invalid_argument("Expected a machine button");
-            auto offButtonEnd = usButtons.find(')', offButtonBegin);
-            if (offButtonEnd == std::string::npos)
+            auto offButtonLast = usButtons.find(')', offButtonFirst);
+            if (offButtonLast == std::string::npos)
                 throw std::invalid_argument("Unclosed machine button");
             rgbtn.push_back(RgvalParseList(
-                usButtons.substr(offButtonBegin, offButtonEnd - offButtonBegin + 1)));
-            usButtons = core::UsTrim(usButtons.substr(offButtonEnd + 1));
+                usButtons.substr(offButtonFirst, offButtonLast - offButtonFirst + 1)));
+            usButtons = core::UsTrim(usButtons.substr(offButtonLast + 1));
         }
 
-        if (!core::UsTrim(std::string_view(usLine).substr(0, offLightsBegin)).empty() ||
-            !core::UsTrim(std::string_view(usLine).substr(offJoltageEnd + 1)).empty())
+        if (!core::UsTrim(std::string_view(usLine).substr(0, offLightsFirst)).empty() ||
+            !core::UsTrim(std::string_view(usLine).substr(offJoltageLast + 1)).empty())
             throw std::invalid_argument("Unexpected text around machine");
         if (rgfDiagram.empty() || rgfDiagram.size() != jvRequired.size() ||
             std::ranges::any_of(jvRequired, [](int jolRequired) { return jolRequired < 0; }))
             throw std::invalid_argument("Invalid machine targets");
+        // A wiring index names an indicator light in part 1 and a joltage counter in part 2.
         for (auto& btn : rgbtn) {
             std::ranges::sort(btn);
             if (std::ranges::any_of(btn,
@@ -162,15 +163,15 @@ int Day10::CprSolveLights(const Mch& mch) {
             rgcolFree.push_back(colButton);
 
     int cprBest = cbtn + 1;
-    std::vector<int> mpibtnbitParity(cbtn, 0);
+    std::vector<int> mpcolbitParity(cbtn, 0);
     const auto fnSearch = [&](auto&& fnRecurSearch, std::size_t icolFree, int cpr) -> void {
         if (cpr >= cprBest)
             return;
         if (icolFree < rgcolFree.size()) {
             const int colFree = rgcolFree[icolFree];
-            mpibtnbitParity[colFree] = 0;
+            mpcolbitParity[colFree] = 0;
             fnRecurSearch(fnRecurSearch, icolFree + 1, cpr);
-            mpibtnbitParity[colFree] = 1;
+            mpcolbitParity[colFree] = 1;
             fnRecurSearch(fnRecurSearch, icolFree + 1, cpr + 1);
             return;
         }
@@ -180,8 +181,8 @@ int Day10::CprSolveLights(const Mch& mch) {
             const int rw = mpcolrwPivot[colButton];
             int bitPress = matLights[rw][cbtn];
             for (int colCoefficient = colButton + 1; colCoefficient < cbtn; ++colCoefficient)
-                bitPress ^= matLights[rw][colCoefficient] & mpibtnbitParity[colCoefficient];
-            mpibtnbitParity[colButton] = bitPress;
+                bitPress ^= matLights[rw][colCoefficient] & mpcolbitParity[colCoefficient];
+            mpcolbitParity[colButton] = bitPress;
             cpr += bitPress;
         }
         cprBest = std::min(cprBest, cpr);
@@ -212,22 +213,24 @@ std::int64_t Day10::CprSolveJoltage(const Mch& mch) {
     const auto cictr = mch.jvRequired.size();
     std::unordered_map<std::vector<int>, std::vector<Chc>, Hashrgval> mpparrgchc;
     std::vector<int> jvIncrement(cictr, 0);
-    const auto fnEnumerateParity = [&](auto&& fnRecurSolve, std::size_t ibtn, int cpr) -> void {
+    // Enumerate every set of buttons pressed an odd number of times.
+    const auto fnEnumerateOddPresses = [&](auto&& fnRecurEnumerate, std::size_t ibtn,
+                                           int cpr) -> void {
         if (ibtn == mch.rgbtn.size()) {
-            auto parTarget = jvIncrement;
-            for (auto& valComponent : parTarget)
-                valComponent %= 2;
-            mpparrgchc[parTarget].push_back({jvIncrement, cpr});
+            auto parIncrement = jvIncrement;
+            for (auto& bitCounter : parIncrement)
+                bitCounter %= 2;
+            mpparrgchc[parIncrement].push_back({jvIncrement, cpr});
             return;
         }
-        fnRecurSolve(fnRecurSolve, ibtn + 1, cpr);
+        fnRecurEnumerate(fnRecurEnumerate, ibtn + 1, cpr);
         for (int ictr : mch.rgbtn[ibtn])
             ++jvIncrement[ictr];
-        fnRecurSolve(fnRecurSolve, ibtn + 1, cpr + 1);
+        fnRecurEnumerate(fnRecurEnumerate, ibtn + 1, cpr + 1);
         for (int ictr : mch.rgbtn[ibtn])
             --jvIncrement[ictr];
     };
-    fnEnumerateParity(fnEnumerateParity, 0, 0);
+    fnEnumerateOddPresses(fnEnumerateOddPresses, 0, 0);
 
     using Optcpr = std::optional<std::int64_t>;
     std::unordered_map<std::vector<int>, Optcpr, Hashrgval> mpjvoptcprMemo;
@@ -239,10 +242,10 @@ std::int64_t Day10::CprSolveJoltage(const Mch& mch) {
             itCachedPressCount != mpjvoptcprMemo.end())
             return itCachedPressCount->second;
 
-        auto parTarget = jvRemaining;
-        for (auto& valComponent : parTarget)
-            valComponent %= 2;
-        const auto itChoices = mpparrgchc.find(parTarget);
+        auto parRemaining = jvRemaining;
+        for (auto& bitCounter : parRemaining)
+            bitCounter %= 2;
+        const auto itChoices = mpparrgchc.find(parRemaining);
         Optcpr optcprBest;
         if (itChoices != mpparrgchc.end()) {
             for (const auto& chc : itChoices->second) {

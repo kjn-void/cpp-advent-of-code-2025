@@ -16,6 +16,6 @@ class Day03 final : public Slv {
   private:
     std::vector<std::vector<int>> rgbnk_;
 
-    std::string TxtMaxJoltage(int cbatToSelect) const;
+    std::string TxtTotalJoltage(int cbatToSelect) const;
     static std::int64_t JolFromRatings(std::span<const int> rgbatSelected);
 };

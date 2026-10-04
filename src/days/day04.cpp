@@ -76,14 +76,14 @@ std::string Day04::TxtPart2() {
     if (crw_ == 0 || ccol_ == 0)
         return "0";
 
-    // on-grid
+    // Rolls still in the grid
     std::vector<std::vector<bool>> gridRollPresent(crw_, std::vector<bool>(ccol_, false));
     for (int rw = 0; rw < crw_; ++rw)
         for (int col = 0; col < ccol_; ++col)
             gridRollPresent[rw][col] = (gridRolls_[rw][col] == '@');
 
-    // degree grid
-    std::vector<std::vector<int>> gridAdjacentRolls(crw_, std::vector<int>(ccol_, 0));
+    // Adjacent roll count for each roll
+    std::vector<std::vector<int>> gridAdjacentRollCounts(crw_, std::vector<int>(ccol_, 0));
     for (int rw = 0; rw < crw_; ++rw) {
         for (int col = 0; col < ccol_; ++col) {
             if (!gridRollPresent[rw][col])
@@ -93,7 +93,7 @@ std::string Day04::TxtPart2() {
                 int colNeighbor = col + dcolNeighbor;
                 if (rwNeighbor >= 0 && rwNeighbor < crw_ && colNeighbor >= 0 &&
                     colNeighbor < ccol_ && gridRollPresent[rwNeighbor][colNeighbor]) {
-                    ++gridAdjacentRolls[rw][col];
+                    ++gridAdjacentRollCounts[rw][col];
                 }
             }
         }
@@ -106,7 +106,7 @@ std::string Day04::TxtPart2() {
 
     for (int rw = 0; rw < crw_; ++rw)
         for (int col = 0; col < ccol_; ++col)
-            if (gridRollPresent[rw][col] && gridAdjacentRolls[rw][col] < 4)
+            if (gridRollPresent[rw][col] && gridAdjacentRollCounts[rw][col] < 4)
                 qcelRemovals.push({rw, col});
 
     int crolRemoved = 0;
@@ -129,7 +129,7 @@ std::string Day04::TxtPart2() {
             if (!gridRollPresent[rwNeighbor][colNeighbor])
                 continue;
 
-            if (--gridAdjacentRolls[rwNeighbor][colNeighbor] == 3)
+            if (--gridAdjacentRollCounts[rwNeighbor][colNeighbor] == 3)
                 qcelRemovals.push({rwNeighbor, colNeighbor});
         }
     }

@@ -9,6 +9,10 @@
 // Registration
 namespace {
 const core::Drg<Day11> drgDay{11};
+
+constexpr int maskFirstRequired = 1;
+constexpr int maskSecondRequired = 2;
+constexpr int maskAllRequired = maskFirstRequired | maskSecondRequired;
 } // namespace
 
 // ------------------------------------------------------------
@@ -32,11 +36,11 @@ void Day11::SetInput(const std::vector<std::string>& rgusLines) {
         std::string usOutputs = usLine.substr(offColon + 1);
 
         std::istringstream inOutputs(usOutputs);
-        std::string usDevice;
+        std::string devOutput;
         std::vector<std::string> rgdevOutputs;
 
-        while (inOutputs >> usDevice) {
-            rgdevOutputs.push_back(usDevice);
+        while (inOutputs >> devOutput) {
+            rgdevOutputs.push_back(devOutput);
         }
 
         mpdevrgdevOutputs_[devSource] = std::move(rgdevOutputs);
@@ -49,7 +53,7 @@ void Day11::SetInput(const std::vector<std::string>& rgusLines) {
 
 std::int64_t Day11::CntPathsFrom(const std::string& dev,
                                  std::unordered_map<std::string, std::int64_t>& mpdevcntPaths,
-                                 std::unordered_set<std::string>& setdevActive) {
+                                 std::unordered_set<std::string>& setdevOnPath) {
     if (dev == "out") {
         return 1;
     }
@@ -59,17 +63,17 @@ std::int64_t Day11::CntPathsFrom(const std::string& dev,
     }
 
     // cycle guard (should not happen for valid input)
-    if (!setdevActive.insert(dev).second) {
+    if (!setdevOnPath.insert(dev).second) {
         throw std::invalid_argument("Device graph contains a cycle");
     }
 
     std::int64_t cntPaths = 0;
     if (const auto itLookup = mpdevrgdevOutputs_.find(dev); itLookup != mpdevrgdevOutputs_.end()) {
         for (const auto& devNext : itLookup->second)
-            cntPaths += CntPathsFrom(devNext, mpdevcntPaths, setdevActive);
+            cntPaths += CntPathsFrom(devNext, mpdevcntPaths, setdevOnPath);
     }
 
-    setdevActive.erase(dev);
+    setdevOnPath.erase(dev);
     mpdevcntPaths[dev] = cntPaths;
     return cntPaths;
 }
@@ -80,31 +84,31 @@ std::string Day11::TxtPart1() {
     }
 
     std::unordered_map<std::string, std::int64_t> mpdevcntPaths;
-    std::unordered_set<std::string> setdevActive;
+    std::unordered_set<std::string> setdevOnPath;
 
-    std::int64_t cntPaths = CntPathsFrom("you", mpdevcntPaths, setdevActive);
+    std::int64_t cntPaths = CntPathsFrom("you", mpdevcntPaths, setdevOnPath);
     return std::to_string(cntPaths);
 }
 
 // ------------------------------------------------------------
-// Part 2 — paths that visit both required nodes
+// Part 2 — paths from "svr" to "out" that visit both "dac" and "fft"
 // ------------------------------------------------------------
 
-std::int64_t Day11::CntPathsWithRequired(const std::string& devStart, const std::string& devEnd,
-                                         const std::string& devRequiredFirst,
-                                         const std::string& devRequiredSecond) {
+std::int64_t Day11::CntPathsThroughRequired(const std::string& devStart, const std::string& devEnd,
+                                            const std::string& devRequiredFirst,
+                                            const std::string& devRequiredSecond) {
     if (mpdevrgdevOutputs_.empty()) {
         return 0;
     }
 
     std::unordered_map<Vst, std::int64_t, Hashvst> mpvstcntPaths;
-    std::unordered_set<Vst, Hashvst> setvstActive;
+    std::unordered_set<Vst, Hashvst> setvstOnPath;
 
     int maskInitialVisits = 0;
     if (devStart == devRequiredFirst)
-        maskInitialVisits |= 1;
+        maskInitialVisits |= maskFirstRequired;
     if (devStart == devRequiredSecond)
-        maskInitialVisits |= 2;
+        maskInitialVisits |= maskSecondRequired;
 
     const auto fnCountPaths = [&](auto&& fnRecurCountPaths, const std::string& dev,
                                   int maskVisits) -> std::int64_t {
@@ -115,10 +119,10 @@ std::int64_t Day11::CntPathsWithRequired(const std::string& devStart, const std:
         }
 
         if (dev == devEnd) {
-            return mpvstcntPaths[vst] = (maskVisits == 3 ? 1 : 0);
+            return mpvstcntPaths[vst] = (maskVisits == maskAllRequired ? 1 : 0);
         }
 
-        if (!setvstActive.insert(vst).second)
+        if (!setvstOnPath.insert(vst).second)
             throw std::invalid_argument("Device graph contains a cycle");
         std::int64_t cntPaths = 0;
         if (const auto itLookup = mpdevrgdevOutputs_.find(dev);
@@ -126,13 +130,13 @@ std::int64_t Day11::CntPathsWithRequired(const std::string& devStart, const std:
             for (const auto& devNext : itLookup->second) {
                 int maskNextVisits = maskVisits;
                 if (devNext == devRequiredFirst)
-                    maskNextVisits |= 1;
+                    maskNextVisits |= maskFirstRequired;
                 if (devNext == devRequiredSecond)
-                    maskNextVisits |= 2;
+                    maskNextVisits |= maskSecondRequired;
                 cntPaths += fnRecurCountPaths(fnRecurCountPaths, devNext, maskNextVisits);
             }
         }
-        setvstActive.erase(vst);
+        setvstOnPath.erase(vst);
         mpvstcntPaths[vst] = cntPaths;
         return cntPaths;
     };
@@ -141,6 +145,6 @@ std::int64_t Day11::CntPathsWithRequired(const std::string& devStart, const std:
 }
 
 std::string Day11::TxtPart2() {
-    std::int64_t cntPaths = CntPathsWithRequired("svr", "out", "dac", "fft");
+    std::int64_t cntPaths = CntPathsThroughRequired("svr", "out", "dac", "fft");
     return std::to_string(cntPaths);
 }

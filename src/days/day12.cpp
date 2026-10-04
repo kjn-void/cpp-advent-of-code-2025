@@ -60,11 +60,11 @@ void Day12::SetInput(const std::vector<std::string>& rgusLines) {
             for (std::string usCount; inCounts >> usCount;) {
                 const auto cpre = core::ValParseInteger<int>(usCount);
                 if (cpre < 0)
-                    throw std::invalid_argument("Shape counts must be nonnegative");
+                    throw std::invalid_argument("Present counts must be nonnegative");
                 mpishpcpreRequired.push_back(cpre);
             }
             if (mpishpcpreRequired.size() != rgshp_.size())
-                throw std::invalid_argument("Expected one count per shape");
+                throw std::invalid_argument("Expected one present count per shape");
             rgreg_.push_back({ccol, crw, std::move(mpishpcpreRequired)});
         }
     }
@@ -114,22 +114,22 @@ Day12::Shp Day12::ShpBuild(const std::vector<std::string>& rgusShapeRows) {
 std::vector<std::vector<bool>> Day12::GridRotate(const std::vector<std::vector<bool>>& gridSource) {
     int crw = gridSource.size();
     int ccol = gridSource[0].size();
-    std::vector<std::vector<bool>> gridResult(ccol, std::vector<bool>(crw));
+    std::vector<std::vector<bool>> gridRotated(ccol, std::vector<bool>(crw));
     for (int rw = 0; rw < crw; ++rw)
         for (int col = 0; col < ccol; ++col)
-            gridResult[col][crw - 1 - rw] = gridSource[rw][col];
-    return gridResult;
+            gridRotated[col][crw - 1 - rw] = gridSource[rw][col];
+    return gridRotated;
 }
 
 std::vector<std::vector<bool>>
 Day12::GridReflect(const std::vector<std::vector<bool>>& gridSource) {
     int crw = gridSource.size();
     int ccol = gridSource[0].size();
-    std::vector<std::vector<bool>> gridResult(crw, std::vector<bool>(ccol));
+    std::vector<std::vector<bool>> gridReflected(crw, std::vector<bool>(ccol));
     for (int rw = 0; rw < crw; ++rw)
         for (int col = 0; col < ccol; ++col)
-            gridResult[rw][ccol - 1 - col] = gridSource[rw][col];
-    return gridResult;
+            gridReflected[rw][ccol - 1 - col] = gridSource[rw][col];
+    return gridReflected;
 }
 
 Day12::Ori Day12::OriFromGrid(const std::vector<std::vector<bool>>& gridSource) {
@@ -164,7 +164,7 @@ std::string Day12::TxtOrientationKey(const Ori& ori) {
     std::ostringstream outKey;
     outKey << ori.ccol << "x" << ori.crw << ":";
     for (auto& delta : ori.rgdelta)
-        outKey << delta.dxCell << "," << delta.dyCell << ";";
+        outKey << delta.dcol << "," << delta.drw << ";";
     return outKey.str();
 }
 
@@ -181,11 +181,12 @@ std::string Day12::TxtPart1() {
 }
 
 std::string Day12::TxtPart2() {
-    return "0"; // Day 12 has no second computational puzzle.
+    // Day 12 has no second puzzle; its star is awarded once the other 23 are earned.
+    return "0";
 }
 
 bool Day12::FPresentsFit(const Reg& reg) const {
-    const auto areaBoard = std::int64_t{reg.ccol} * reg.crw;
+    const auto areaRegion = std::int64_t{reg.ccol} * reg.crw;
     std::int64_t areaRequired = 0;
     std::int64_t cpre = 0;
     int ccolSlot = 0, crwSlot = 0;
@@ -193,7 +194,7 @@ bool Day12::FPresentsFit(const Reg& reg) const {
         if (reg.mpishpcpreRequired[ishp] == 0)
             continue;
         areaRequired += std::int64_t{reg.mpishpcpreRequired[ishp]} * rgshp_[ishp].areaOccupied;
-        if (areaRequired > areaBoard)
+        if (areaRequired > areaRegion)
             return false;
         if (!std::ranges::any_of(rgshp_[ishp].rgori, [&](const auto& ori) {
                 return ori.ccol <= reg.ccol && ori.crw <= reg.crw;
@@ -230,8 +231,8 @@ bool Day12::FPackRegion(const Reg& reg) const {
                 for (int colAnchor = 0; colAnchor <= ccol - ori.ccol; ++colAnchor) {
                     std::vector<std::size_t> plc;
                     for (auto& delta : ori.rgdelta)
-                        plc.push_back(static_cast<std::size_t>(rwAnchor + delta.dyCell) * ccol +
-                                      colAnchor + delta.dxCell);
+                        plc.push_back(static_cast<std::size_t>(rwAnchor + delta.drw) * ccol +
+                                      colAnchor + delta.dcol);
                     mpishprgplc[ishp].push_back(std::move(plc));
                 }
         }

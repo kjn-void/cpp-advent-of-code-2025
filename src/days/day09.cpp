@@ -42,15 +42,15 @@ void Day09::SetInput(const std::vector<std::string>& rgusLines) {
 // ----------------------------------------------------------
 
 std::string Day09::TxtPart1() {
-    return std::to_string(AreaMaxInclusive(rgtlRed_));
+    return std::to_string(AreaLargestRectangle(rgtlRed_));
 }
 
-std::int64_t Day09::AreaMaxInclusive(const std::vector<Tl>& rgtl) {
-    int ctl = static_cast<int>(rgtl.size());
+std::int64_t Day09::AreaLargestRectangle(const std::vector<Tl>& rgtl) {
+    int ctlRed = static_cast<int>(rgtl.size());
     std::int64_t areaLargest = 0;
 
-    for (int itlFirst = 0; itlFirst < ctl; ++itlFirst) {
-        for (int itlSecond = itlFirst + 1; itlSecond < ctl; ++itlSecond) {
+    for (int itlFirst = 0; itlFirst < ctlRed; ++itlFirst) {
+        for (int itlSecond = itlFirst + 1; itlSecond < ctlRed; ++itlSecond) {
             std::int64_t lenWidth =
                 std::abs(std::int64_t{rgtl[itlFirst].x} - rgtl[itlSecond].x) + 1;
             std::int64_t lenHeight =
@@ -113,8 +113,9 @@ std::string Day09::TxtPart2() {
                          celFirst.rwCompressed == celSecond.rwCompressed});
     }
 
-    // Scan each compressed row, then build a prefix sum of forbidden cells.
-    // A rectangle is valid precisely when its forbidden-cell count is zero.
+    // Scan each compressed row, then build a prefix sum of forbidden cells: those
+    // that are neither red nor green. A rectangle is valid precisely when its
+    // forbidden-cell count is zero.
     const auto ccolPrefix = rgx.size();
     std::vector<std::int64_t> gridForbiddenPrefix(ccolPrefix * rgy.size(), 0);
     std::vector<int> mpcolcntDelta(ccolPrefix);
@@ -168,11 +169,11 @@ std::string Day09::TxtPart2() {
             const auto rwLim = std::max(rgcelVertices[icelFirst].rwCompressed,
                                         rgcelVertices[icelSecond].rwCompressed) +
                                1;
-            const auto cntForbiddenCells = gridForbiddenPrefix[rwLim * ccolPrefix + colLim] -
-                                           gridForbiddenPrefix[rwFirst * ccolPrefix + colLim] -
-                                           gridForbiddenPrefix[rwLim * ccolPrefix + colFirst] +
-                                           gridForbiddenPrefix[rwFirst * ccolPrefix + colFirst];
-            if (cntForbiddenCells == 0)
+            const auto ccelForbidden = gridForbiddenPrefix[rwLim * ccolPrefix + colLim] -
+                                       gridForbiddenPrefix[rwFirst * ccolPrefix + colLim] -
+                                       gridForbiddenPrefix[rwLim * ccolPrefix + colFirst] +
+                                       gridForbiddenPrefix[rwFirst * ccolPrefix + colFirst];
+            if (ccelForbidden == 0)
                 areaLargest = std::max(areaLargest, AreaRectangle(rgx[colLim] - rgx[colFirst],
                                                                   rgy[rwLim] - rgy[rwFirst]));
         }

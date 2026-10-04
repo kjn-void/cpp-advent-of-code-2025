@@ -19,5 +19,5 @@ class Day09 final : public Slv {
 
     std::vector<Tl> rgtlRed_;
 
-    static std::int64_t AreaMaxInclusive(const std::vector<Tl>& rgtl);
+    static std::int64_t AreaLargestRectangle(const std::vector<Tl>& rgtl);
 };

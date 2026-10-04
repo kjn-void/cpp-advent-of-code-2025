@@ -22,7 +22,7 @@ class Day11 final : public Slv {
     // ---------- Part 1 ----------
     std::int64_t CntPathsFrom(const std::string& dev,
                               std::unordered_map<std::string, std::int64_t>& mpdevcntPaths,
-                              std::unordered_set<std::string>& setdevActive);
+                              std::unordered_set<std::string>& setdevOnPath);
 
     // ---------- Part 2 ----------
     struct Vst {
@@ -40,7 +40,7 @@ class Day11 final : public Slv {
         }
     };
 
-    std::int64_t CntPathsWithRequired(const std::string& devStart, const std::string& devEnd,
-                                      const std::string& devRequiredFirst,
-                                      const std::string& devRequiredSecond);
+    std::int64_t CntPathsThroughRequired(const std::string& devStart, const std::string& devEnd,
+                                         const std::string& devRequiredFirst,
+                                         const std::string& devRequiredSecond);
 };

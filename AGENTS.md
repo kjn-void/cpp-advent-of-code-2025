@@ -18,7 +18,7 @@ constructed tag stays lowercase: `mpcolrwPivot`, not `mpColRwPivot`.
 | `cX` | Count of X | `crw`, `cbtn`, `cpr`, `cusArgs` |
 | `rgX` / `iX` | Indexed sequence of X / its index | `rgbtn` / `ibtn`, `rgjb` / `ijbFirst` |
 | `mpXY` | Mapping from X to Y | `mpcolrwPivot`, `mpdevrgdevOutputs_` |
-| `setX` | Membership set (project extension) | `setdevActive` |
+| `setX` | Membership set (project extension) | `setdevOnPath` |
 | `qX` | Pending work queue (project extension) | `qcelRemovals` |
 | `optX` | Optional result (C++ extension) | `optcprBest`, `mpjvoptcprMemo` |
 
@@ -51,14 +51,14 @@ Prefer an existing precise tag or a composition to adding another tag.
 | --- | --- |
 | `rw`, `col` | Grid or matrix row and column indices; keep distinct from spatial coordinates |
 | `x`, `y`, `z`, `xy` | Original spatial coordinates; `xy` is an axis-agnostic helper coordinate |
-| `pt`, `cel`, `delta`, `seg`, `link` | Generic spatial point, indexed grid cell, displacement pair, polygon segment, connected endpoint pair |
-| `jb`, `cn`, `cir`, `tl` | Junction box, connection between boxes, circuit, original puzzle tile |
+| `pt`, `cel`, `delta`, `seg` | Generic spatial point, indexed grid cell, displacement pair, polygon segment |
+| `jb`, `cn`, `cir`, `tl` | Junction box, candidate connection (a pair of junction boxes), circuit, original red tile |
 | `pos`, `rot`, `clk` | Dial position, rotation instruction, click unit; `cclk` can span several full rotations |
-| `id`, `dev` | Numeric puzzle identity and device name; neither is a positional index |
+| `id`, `blk`, `dev` | Numeric puzzle identity, repeated digit block of an ID, and device name; none is a positional index |
 | `dig`, `bat`, `bnk`, `jol` | Decimal digit, battery joltage rating, ordered battery bank, output joltage |
 | `rol` | Paper roll; `crol` counts rolls, including adjacent, accessible, or removed rolls |
 | `prb`, `rng` | Worksheet math problem (its inclusive column bounds) and interval/subrange |
-| `mch`, `btn`, `pr`, `ictr`, `jv`, `par`, `chc` | Machine, button wiring (affected counter indices), button press unit, counter index, full joltage vector, parity vector, parity-choice record |
+| `mch`, `btn`, `pr`, `ictr`, `jv`, `par`, `chc` | Machine, button wiring (affected light or counter indices), button press unit, counter index, full joltage vector, parity vector, parity-choice record |
 | `pre`, `shp`, `ori`, `reg`, `plc` | Present unit, present shape, rotated/reflected orientation, region under a tree, placement |
 | `vst`, `dsu` | Device visit state and disjoint-set circuit state |
 | `area`, `len`, `dist`, `coef`, `cost` | Area, length, distance, algebraic coefficient, optimization cost |

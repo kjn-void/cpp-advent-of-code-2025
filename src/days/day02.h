@@ -16,5 +16,5 @@ class Day02 final : public Slv {
   private:
     std::vector<std::pair<std::int64_t, std::int64_t>> rgrngIds_;
 
-    static int LenFindSmallestBlock(const std::string& usDigits);
+    static int LenFindSmallestBlock(const std::string& txtDigits);
 };

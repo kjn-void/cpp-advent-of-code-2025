@@ -44,7 +44,7 @@ class Day01 final : public Slv {
             const auto cclkRemainder = static_cast<int>(cclkRotation % 100);
             if (fCountZeroClicks) {
                 cntZeroVisits += cclkRotation / 100;
-                // Starting on zero does not itself count as a crossing.
+                // Starting on zero does not itself count as a click onto zero.
                 const int cclkToZero = fLeft ? (posDial == 0 ? 100 : posDial) : 100 - posDial;
                 cntZeroVisits += cclkRemainder >= cclkToZero;
             }

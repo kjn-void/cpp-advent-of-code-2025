@@ -15,7 +15,7 @@ class Day05 final : public Slv {
 
   private:
     std::vector<std::pair<std::int64_t, std::int64_t>> rgrngFresh_;
-    std::vector<std::int64_t> rgidIngredients_;
+    std::vector<std::int64_t> rgidAvailable_;
 
     bool FIsFresh(std::int64_t idIngredient) const;
 };

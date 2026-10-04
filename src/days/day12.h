@@ -18,7 +18,7 @@ class Day12 final : public Slv {
     // ------------------------------------------------------------
 
     struct Delta {
-        int dxCell, dyCell;
+        int dcol, drw;
     };
 
     struct Ori {
