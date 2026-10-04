@@ -13,11 +13,11 @@ class Day09 final : public Slv {
     std::string TxtPart2() override;
 
   private:
-    struct Pt {
-        int xTile, yTile;
+    struct Tl {
+        int x, y;
     };
 
-    std::vector<Pt> rgptRed_;
+    std::vector<Tl> rgtlRed_;
 
-    static std::int64_t AreaMaxInclusive(const std::vector<Pt>& rgpt);
+    static std::int64_t AreaMaxInclusive(const std::vector<Tl>& rgtl);
 };

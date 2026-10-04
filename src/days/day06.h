@@ -14,7 +14,7 @@ class Day06 final : public Slv {
     std::string TxtPart2() override;
 
   private:
-    struct Blk {
+    struct Prb {
         int colFirst;
         int colLast;
     };
@@ -23,14 +23,14 @@ class Day06 final : public Slv {
     int crw_ = 0;
     int ccol_ = 0;
 
-    std::vector<Blk> RgblkFind() const;
-    char ChGetOperator(const Blk& blk) const;
+    std::vector<Prb> RgprbFindProblems() const;
+    char ChProblemOperator(const Prb& prb) const;
 
-    std::vector<std::int64_t> RgvalExtractPart1(const Blk& blk) const;
-    std::vector<std::int64_t> RgvalExtractPart2(const Blk& blk) const;
+    std::vector<std::int64_t> RgvalReadRows(const Prb& prb) const;
+    std::vector<std::int64_t> RgvalReadColumns(const Prb& prb) const;
 
-    template <typename Fn> std::int64_t ValEvaluateBlocks(Fn&& fnExtractOperands) const;
+    template <typename Fn> std::int64_t ValGrandTotal(Fn&& fnReadNumbers) const;
 
-    static std::int64_t ValEvaluateOperands(std::span<const std::int64_t> rgvalOperands,
-                                            char chOperator);
+    static std::int64_t ValEvaluateProblem(std::span<const std::int64_t> rgvalOperands,
+                                           char chOperator);
 };

@@ -15,16 +15,16 @@ class Day10 final : public Slv {
 
   private:
     struct Mch {
-        std::vector<int> rgfLights;
-        std::vector<int> jvTarget;
+        std::vector<int> rgfDiagram;
+        std::vector<int> jvRequired;
         std::vector<std::vector<int>> rgbtn;
     };
 
     std::vector<Mch> rgmch_;
 
     // solvers
-    static int CostSolveLights(const Mch& mch);
-    static std::int64_t CostSolveJoltage(const Mch& mch);
+    static int CprSolveLights(const Mch& mch);
+    static std::int64_t CprSolveJoltage(const Mch& mch);
 
     // parsing helpers
     static std::vector<int> RgvalParseList(std::string_view usList);

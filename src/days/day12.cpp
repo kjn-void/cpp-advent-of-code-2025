@@ -56,16 +56,16 @@ void Day12::SetInput(const std::vector<std::string>& rgusLines) {
             if (ccol <= 0 || crw <= 0)
                 throw std::invalid_argument("Region dimensions must be positive");
             std::istringstream inCounts(std::string{usLine.substr(offColon + 1)});
-            std::vector<int> mpishpcnt;
+            std::vector<int> mpishpcpreRequired;
             for (std::string usCount; inCounts >> usCount;) {
-                const auto cntPieces = core::ValParseInteger<int>(usCount);
-                if (cntPieces < 0)
+                const auto cpre = core::ValParseInteger<int>(usCount);
+                if (cpre < 0)
                     throw std::invalid_argument("Shape counts must be nonnegative");
-                mpishpcnt.push_back(cntPieces);
+                mpishpcpreRequired.push_back(cpre);
             }
-            if (mpishpcnt.size() != rgshp_.size())
+            if (mpishpcpreRequired.size() != rgshp_.size())
                 throw std::invalid_argument("Expected one count per shape");
-            rgreg_.push_back({ccol, crw, std::move(mpishpcnt)});
+            rgreg_.push_back({ccol, crw, std::move(mpishpcpreRequired)});
         }
     }
 }
@@ -86,8 +86,8 @@ Day12::Shp Day12::ShpBuild(const std::vector<std::string>& rgusShapeRows) {
             if (rgusShapeRows[rw][col] == '#')
                 gridShape[rw][col] = true;
 
-    std::unordered_set<std::string> settxtVariantKeys;
-    std::vector<Var> rgvar;
+    std::unordered_set<std::string> settxtOrientationKeys;
+    std::vector<Ori> rgori;
 
     auto gridRotated = gridShape;
     for (int iterRotation = 0; iterRotation < 4; ++iterRotation) {
@@ -95,19 +95,19 @@ Day12::Shp Day12::ShpBuild(const std::vector<std::string>& rgusShapeRows) {
             gridRotated = GridRotate(gridRotated);
         for (int iterReflection = 0; iterReflection < 2; ++iterReflection) {
             auto gridReflected = (iterReflection == 0) ? gridRotated : GridReflect(gridRotated);
-            auto var = VarFromGrid(gridReflected);
-            if (!var.rgdelta.empty()) {
-                auto txtVariantKey = TxtVariantKey(var);
-                if (settxtVariantKeys.insert(txtVariantKey).second)
-                    rgvar.push_back(std::move(var));
+            auto ori = OriFromGrid(gridReflected);
+            if (!ori.rgdelta.empty()) {
+                auto txtOrientationKey = TxtOrientationKey(ori);
+                if (settxtOrientationKeys.insert(txtOrientationKey).second)
+                    rgori.push_back(std::move(ori));
             }
         }
     }
 
     Shp shp;
-    shp.rgvar = std::move(rgvar);
-    if (!shp.rgvar.empty())
-        shp.areaOccupied = shp.rgvar[0].rgdelta.size();
+    shp.rgori = std::move(rgori);
+    if (!shp.rgori.empty())
+        shp.areaOccupied = shp.rgori[0].rgdelta.size();
     return shp;
 }
 
@@ -132,7 +132,7 @@ Day12::GridReflect(const std::vector<std::vector<bool>>& gridSource) {
     return gridResult;
 }
 
-Day12::Var Day12::VarFromGrid(const std::vector<std::vector<bool>>& gridSource) {
+Day12::Ori Day12::OriFromGrid(const std::vector<std::vector<bool>>& gridSource) {
     int crw = gridSource.size(), ccol = gridSource[0].size();
     int colFirst = ccol, rwFirst = crw, colLast = -1, rwLast = -1;
 
@@ -148,22 +148,22 @@ Day12::Var Day12::VarFromGrid(const std::vector<std::vector<bool>>& gridSource) 
     if (colLast < colFirst)
         return {};
 
-    Var var;
-    var.ccol = colLast - colFirst + 1;
-    var.crw = rwLast - rwFirst + 1;
+    Ori ori;
+    ori.ccol = colLast - colFirst + 1;
+    ori.crw = rwLast - rwFirst + 1;
 
     for (int rw = rwFirst; rw <= rwLast; ++rw)
         for (int col = colFirst; col <= colLast; ++col)
             if (gridSource[rw][col])
-                var.rgdelta.push_back({col - colFirst, rw - rwFirst});
+                ori.rgdelta.push_back({col - colFirst, rw - rwFirst});
 
-    return var;
+    return ori;
 }
 
-std::string Day12::TxtVariantKey(const Var& var) {
+std::string Day12::TxtOrientationKey(const Ori& ori) {
     std::ostringstream outKey;
-    outKey << var.ccol << "x" << var.crw << ":";
-    for (auto& delta : var.rgdelta)
+    outKey << ori.ccol << "x" << ori.crw << ":";
+    for (auto& delta : ori.rgdelta)
         outKey << delta.dxCell << "," << delta.dyCell << ";";
     return outKey.str();
 }
@@ -173,63 +173,63 @@ std::string Day12::TxtVariantKey(const Var& var) {
 // ------------------------------------------------------------
 
 std::string Day12::TxtPart1() {
-    int cntFittingRegions = 0;
+    int cregFitting = 0;
     for (auto& reg : rgreg_)
-        if (FRegionFits(reg))
-            ++cntFittingRegions;
-    return std::to_string(cntFittingRegions);
+        if (FPresentsFit(reg))
+            ++cregFitting;
+    return std::to_string(cregFitting);
 }
 
 std::string Day12::TxtPart2() {
     return "0"; // Day 12 has no second computational puzzle.
 }
 
-bool Day12::FRegionFits(const Reg& reg) const {
+bool Day12::FPresentsFit(const Reg& reg) const {
     const auto areaBoard = std::int64_t{reg.ccol} * reg.crw;
     std::int64_t areaRequired = 0;
-    std::int64_t cntPieces = 0;
-    int ccolSlots = 0, crwSlots = 0;
+    std::int64_t cpre = 0;
+    int ccolSlot = 0, crwSlot = 0;
     for (std::size_t ishp = 0; ishp < rgshp_.size(); ++ishp) {
-        if (reg.mpishpcnt[ishp] == 0)
+        if (reg.mpishpcpreRequired[ishp] == 0)
             continue;
-        areaRequired += std::int64_t{reg.mpishpcnt[ishp]} * rgshp_[ishp].areaOccupied;
+        areaRequired += std::int64_t{reg.mpishpcpreRequired[ishp]} * rgshp_[ishp].areaOccupied;
         if (areaRequired > areaBoard)
             return false;
-        if (!std::ranges::any_of(rgshp_[ishp].rgvar, [&](const auto& var) {
-                return var.ccol <= reg.ccol && var.crw <= reg.crw;
+        if (!std::ranges::any_of(rgshp_[ishp].rgori, [&](const auto& ori) {
+                return ori.ccol <= reg.ccol && ori.crw <= reg.crw;
             }))
             return false;
-        cntPieces += reg.mpishpcnt[ishp];
-        const auto& var = rgshp_[ishp].rgvar.front();
-        ccolSlots = std::max(ccolSlots, var.ccol);
-        crwSlots = std::max(crwSlots, var.crw);
+        cpre += reg.mpishpcpreRequired[ishp];
+        const auto& ori = rgshp_[ishp].rgori.front();
+        ccolSlot = std::max(ccolSlot, ori.ccol);
+        crwSlot = std::max(crwSlot, ori.crw);
     }
-    if (cntPieces == 0)
+    if (cpre == 0)
         return true;
 
     // A disjoint bounding box for every piece is a constructive proof of fit.
-    const auto cntSlots = std::int64_t{reg.ccol / ccolSlots} * (reg.crw / crwSlots);
-    if (cntPieces <= cntSlots)
+    const auto cpreCapacity = std::int64_t{reg.ccol / ccolSlot} * (reg.crw / crwSlot);
+    if (cpre <= cpreCapacity)
         return true;
-    return FCanPackRegion(reg);
+    return FPackRegion(reg);
 }
 
 // ------------------------------------------------------------
 // Exact packing when area and bounding boxes do not decide the result
 // ------------------------------------------------------------
 
-bool Day12::FCanPackRegion(const Reg& reg) const {
+bool Day12::FPackRegion(const Reg& reg) const {
     int ccol = reg.ccol, crw = reg.crw;
     std::vector<std::vector<std::vector<std::size_t>>> mpishprgplc(rgshp_.size());
 
     for (std::size_t ishp = 0; ishp < rgshp_.size(); ++ishp) {
-        if (reg.mpishpcnt[ishp] == 0)
+        if (reg.mpishpcpreRequired[ishp] == 0)
             continue;
-        for (const auto& var : rgshp_[ishp].rgvar) {
-            for (int rwAnchor = 0; rwAnchor <= crw - var.crw; ++rwAnchor)
-                for (int colAnchor = 0; colAnchor <= ccol - var.ccol; ++colAnchor) {
+        for (const auto& ori : rgshp_[ishp].rgori) {
+            for (int rwAnchor = 0; rwAnchor <= crw - ori.crw; ++rwAnchor)
+                for (int colAnchor = 0; colAnchor <= ccol - ori.ccol; ++colAnchor) {
                     std::vector<std::size_t> plc;
-                    for (auto& delta : var.rgdelta)
+                    for (auto& delta : ori.rgdelta)
                         plc.push_back(static_cast<std::size_t>(rwAnchor + delta.dyCell) * ccol +
                                       colAnchor + delta.dxCell);
                     mpishprgplc[ishp].push_back(std::move(plc));
@@ -238,54 +238,55 @@ bool Day12::FCanPackRegion(const Reg& reg) const {
     }
 
     std::vector<bool> mpicelfOccupied(static_cast<std::size_t>(ccol) * crw, false);
-    auto mpishpcnt = reg.mpishpcnt;
+    auto mpishpcpreRemaining = reg.mpishpcpreRequired;
     std::vector<std::size_t> mpishpiplcFirst(rgshp_.size(), 0);
-    return FPack(mpicelfOccupied, mpishpcnt, mpishprgplc, mpishpiplcFirst);
+    return FPlaceRemaining(mpicelfOccupied, mpishpcpreRemaining, mpishprgplc, mpishpiplcFirst);
 }
 
-bool Day12::FPack(std::vector<bool>& mpicelfOccupied, std::vector<int>& mpishpcnt,
-                  const std::vector<std::vector<std::vector<std::size_t>>>& mpishprgplc,
-                  std::vector<std::size_t>& mpishpiplcFirst) const {
-    const auto cntFreeCells = std::ranges::count(mpicelfOccupied, false);
+bool Day12::FPlaceRemaining(std::vector<bool>& mpicelfOccupied,
+                            std::vector<int>& mpishpcpreRemaining,
+                            const std::vector<std::vector<std::vector<std::size_t>>>& mpishprgplc,
+                            std::vector<std::size_t>& mpishpiplcFirst) const {
+    const auto ccelFree = std::ranges::count(mpicelfOccupied, false);
 
     std::int64_t areaRequired = 0;
     bool fComplete = true;
-    for (std::size_t ishp = 0; ishp < mpishpcnt.size() && ishp < rgshp_.size(); ++ishp) {
-        if (mpishpcnt[ishp] > 0) {
+    for (std::size_t ishp = 0; ishp < mpishpcpreRemaining.size() && ishp < rgshp_.size(); ++ishp) {
+        if (mpishpcpreRemaining[ishp] > 0) {
             fComplete = false;
-            areaRequired += std::int64_t{mpishpcnt[ishp]} * rgshp_[ishp].areaOccupied;
+            areaRequired += std::int64_t{mpishpcpreRemaining[ishp]} * rgshp_[ishp].areaOccupied;
         }
     }
 
     if (fComplete)
         return true;
-    if (areaRequired > cntFreeCells)
+    if (areaRequired > ccelFree)
         return false;
 
-    std::size_t ishpBest = 0, cntBestPlacements = std::numeric_limits<std::size_t>::max();
+    std::size_t ishpBest = 0, cplcBest = std::numeric_limits<std::size_t>::max();
 
-    for (std::size_t ishp = 0; ishp < mpishpcnt.size(); ++ishp) {
-        if (mpishpcnt[ishp] <= 0)
+    for (std::size_t ishp = 0; ishp < mpishpcpreRemaining.size(); ++ishp) {
+        if (mpishpcpreRemaining[ishp] <= 0)
             continue;
-        std::size_t cntFeasiblePlacements = 0;
+        std::size_t cplcFeasible = 0;
         for (std::size_t iplc = mpishpiplcFirst[ishp]; iplc < mpishprgplc[ishp].size(); ++iplc) {
             const auto& plc = mpishprgplc[ishp][iplc];
             if (std::all_of(plc.begin(), plc.end(),
                             [&](std::size_t icel) { return !mpicelfOccupied[icel]; })) {
-                ++cntFeasiblePlacements;
-                if (cntFeasiblePlacements >= cntBestPlacements)
+                ++cplcFeasible;
+                if (cplcFeasible >= cplcBest)
                     break;
             }
         }
-        if (cntFeasiblePlacements == 0)
+        if (cplcFeasible == 0)
             return false;
-        if (cntFeasiblePlacements < cntBestPlacements) {
-            cntBestPlacements = cntFeasiblePlacements;
+        if (cplcFeasible < cplcBest) {
+            cplcBest = cplcFeasible;
             ishpBest = ishp;
         }
     }
 
-    mpishpcnt[ishpBest]--;
+    mpishpcpreRemaining[ishpBest]--;
     const auto iplcFirst = mpishpiplcFirst[ishpBest];
     for (std::size_t iplc = iplcFirst; iplc < mpishprgplc[ishpBest].size(); ++iplc) {
         const auto& plc = mpishprgplc[ishpBest][iplc];
@@ -294,13 +295,13 @@ bool Day12::FPack(std::vector<bool>& mpicelfOccupied, std::vector<int>& mpishpcn
             for (auto icel : plc)
                 mpicelfOccupied[icel] = true;
             mpishpiplcFirst[ishpBest] = iplc + 1;
-            if (FPack(mpicelfOccupied, mpishpcnt, mpishprgplc, mpishpiplcFirst))
+            if (FPlaceRemaining(mpicelfOccupied, mpishpcpreRemaining, mpishprgplc, mpishpiplcFirst))
                 return true;
             for (auto icel : plc)
                 mpicelfOccupied[icel] = false;
         }
     }
     mpishpiplcFirst[ishpBest] = iplcFirst;
-    mpishpcnt[ishpBest]++;
+    mpishpcpreRemaining[ishpBest]++;
     return false;
 }

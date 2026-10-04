@@ -16,35 +16,34 @@ class Day08 final : public Slv {
     std::string TxtPart1() override;
     std::string TxtPart2() override;
 
-    struct Pt {
-        std::int64_t xJunction, yJunction, zJunction;
+    struct Jb {
+        std::int64_t x, y, z;
     };
 
-    struct Edg {
+    struct Cn {
         std::int64_t distSquared;
-        int iptFirst, iptSecond;
+        int ijbFirst, ijbSecond;
     };
 
-    std::vector<Pt> rgpt;
-    std::vector<Edg> rgedgConnections;
+    std::vector<Jb> rgjb;
+    std::vector<Cn> rgcn;
 
     // Helpers
-    static std::int64_t DistSquared(const Pt& ptFirst, const Pt& ptSecond);
-    static std::vector<Edg> RgedgBuildSorted(std::span<const Pt> rgpt);
+    static std::int64_t DistSquared(const Jb& jbFirst, const Jb& jbSecond);
+    static std::vector<Cn> RgcnBuildSorted(std::span<const Jb> rgjb);
 
     // DSU
     struct Dsu {
-        std::vector<int> mpiptiptParent;
-        std::vector<int> mpiptcntSize;
+        std::vector<int> mpijbijbParent;
+        std::vector<int> mpijbcjbSize;
 
-        explicit Dsu(int cpt);
-        int IptFind(int iptRoot);
-        bool FUnite(int iptFirstRoot, int iptSecondRoot);
+        explicit Dsu(int cjb);
+        int IjbFindCircuit(int ijbRoot);
+        bool FUnite(int ijbFirstRoot, int ijbSecondRoot);
     };
 
-    static std::vector<int> RgcntRunConnections(std::span<const Pt> rgpt,
-                                                std::span<const Edg> rgedgConnections, int cedg);
+    static std::vector<int> RgcjbConnectNearest(std::span<const Jb> rgjb, std::span<const Cn> rgcn,
+                                                int ccn);
 
-    static std::pair<int, int> LinkConnectAll(std::span<const Pt> rgpt,
-                                              std::span<const Edg> rgedgConnections);
+    static std::pair<int, int> LinkConnectAll(std::span<const Jb> rgjb, std::span<const Cn> rgcn);
 };

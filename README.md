@@ -70,7 +70,9 @@ with the domain vocabulary and explicit C++20 adaptations in [AGENTS.md](AGENTS.
 Names describe meaning and relationships: `rgbtn` is a sequence of buttons, `ibtn`
 is a button index, `cbtn` is a button count, and `mpcolrwPivot` maps a column to its
 pivot row. `Last` is inclusive and `Lim` exclusive. Procedures carry their result
-tag, such as `CostSolveJoltage`; `SetInput` returns no value.
+tag, such as `CprSolveJoltage`; `SetInput` returns no value. `cbtn` counts buttons,
+while `cpr` counts button presses. Junction boxes (`jb`) and tiles (`tl`) retain
+distinct tags; required and remaining quantities have explicit qualifiers.
 
 On macOS, install the Xcode Command Line Tools (or select a full Xcode toolchain)
 and the following Homebrew packages:
@@ -162,6 +164,28 @@ cmake --build build --parallel --target benchmarks
 These are measurements for the saved puzzle inputs, not worst-case bounds.
 The naming migration preserves the algorithms; this table retains the measured
 cleanup results rather than presenting new timings for renamed code.
+
+## Puzzle vocabulary
+
+| Day and original problem | Names used in the implementation |
+| --- | --- |
+| [1: Secret Entrance](https://adventofcode.com/2025/day/1) | rotations, clicks, dial position, zero crossings |
+| [2: Gift Shop](https://adventofcode.com/2025/day/2) | product ID ranges, repeated digit blocks, invalid ID sum |
+| [3: Lobby](https://adventofcode.com/2025/day/3) | battery banks, selected ratings, output joltage |
+| [4: Printing Department](https://adventofcode.com/2025/day/4) | paper rolls, adjacent roll counts, removable rolls |
+| [5: Cafeteria](https://adventofcode.com/2025/day/5) | fresh ID ranges, available ingredient IDs |
+| [6: Trash Compactor](https://adventofcode.com/2025/day/6) | worksheet, problem columns, numbers, grand total |
+| [7: Laboratories](https://adventofcode.com/2025/day/7) | manifold, beams, splitters, timelines |
+| [8: Playground](https://adventofcode.com/2025/day/8) | junction boxes, connections, circuits |
+| [9: Movie Theater](https://adventofcode.com/2025/day/9) | red tiles, rectangle area, compressed vertices, boundary segments |
+| [10: Factory](https://adventofcode.com/2025/day/10) | light diagram, button wirings, joltage requirements, press counts |
+| [11: Reactor](https://adventofcode.com/2025/day/11) | devices, outputs, paths, required-device visits |
+| [12: Christmas Tree Farm](https://adventofcode.com/2025/day/12) | present shapes, orientations, tree regions, present counts |
+
+Coordinates (`x`, `y`, `z`) remain distinct from grid rows/columns and sequence
+indices. Inclusive endpoints use `First`/`Last`; exclusive endpoints use `Lim`.
+Algorithm terms such as pivot rows, parity, and prefix sums remain explicit where
+they explain the implementation better than a story noun.
 
 ## Structure and conventions
 

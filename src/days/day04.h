@@ -16,5 +16,5 @@ class Day04 final : public Slv {
     int ccol_ = 0;
 
     // helpers
-    int CntAdjacent(int rw, int col) const;
+    int CrolAdjacent(int rw, int col) const;
 };

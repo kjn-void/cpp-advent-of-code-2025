@@ -33,6 +33,7 @@ class NamingGuardrailTests(unittest.TestCase):
     def test_semantic_tags_and_compositions(self):
         recCheck = self.RecCheckFixture('''
             struct Cel { int rw; long col; };
+            struct Jb { long x; long y; long z; };
             constexpr int crw = 4;
             int ValSolve(const char* pchLim, int idDay) {
                 Cel cel{1, 2};
@@ -42,8 +43,30 @@ class NamingGuardrailTests(unittest.TestCase):
                 int valParsed = 3;
                 int mpcolrwPivot[4]{};
                 bool fReady = true;
+                Jb rgjb[2]{{1, 2, 3}, {4, 5, 6}};
+                int ijbFirst = 0;
+                int cjb = 2;
+                int mpijbijbParent[2]{0, 1};
+                int mpijbcjbSize[2]{1, 1};
+                int cprTotal = 3;
+                int cbtn = 1;
+                int mpishpcpreRequired[2]{1, 2};
+                int mpishpcpreRemaining[2]{1, 1};
+                int rgbatSelected[2]{9, 8};
+                int cclkRotation = 150;
+                int crolAdjacent = 3;
+                int ccn = 1;
+                int ccir = 1;
+                int cpre = 3;
+                int cplcFeasible = 4;
+                int ccelFree = 20;
+                int cregFitting = 1;
                 return rwFirst + colFirst + valParsed + fnAdvance(idDay) + crw
-                       + mpcolrwPivot[0] + fReady
+                       + mpcolrwPivot[0] + fReady + rgjb[ijbFirst].x + cjb
+                       + mpijbijbParent[0] + mpijbcjbSize[0] + cprTotal + cbtn
+                       + mpishpcpreRequired[0] + mpishpcpreRemaining[0]
+                       + rgbatSelected[0] + cclkRotation + crolAdjacent + ccn
+                       + ccir + cpre + cplcFeasible + ccelFree + cregFitting
                        + static_cast<int>(costMinimum) + (pchLim != nullptr);
             }
         ''')
@@ -60,6 +83,9 @@ class NamingGuardrailTests(unittest.TestCase):
             "loop": "void Solve() { for (int i = 0; i < 3; ++i) {} }",
             "storage prefix": "int ValSolve() { int iCount = 1; return iCount; }",
             "pointer without domain": "void Solve(const char* pName) {}",
+            "retired rotation tag": "void Solve(int rgmovInstructions) {}",
+            "retired generic connection tag": "void Solve(int edgCandidate) {}",
+            "present count without domain": "void Solve(int mpishpcntRequired) {}",
             "former custom dialect": "void Solve(int idxButton) {}",
             "nonstandard composition": "void Solve(int cRows) {}",
             "procedure": "int parse_input() { return 0; }",

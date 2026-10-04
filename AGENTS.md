@@ -14,13 +14,13 @@ constructed tag stays lowercase: `mpcolrwPivot`, not `mpColRwPivot`.
 | Construction | Meaning | Project example |
 | --- | --- | --- |
 | `pX` | Explicit pointer to X | `pslvDay`, `pchLim` |
-| `dX` | Difference in X's coordinate/domain | `drwNeighbor`, `dposRotation` |
-| `cX` | Count of X | `crw`, `cbtn`, `cusArgs` |
-| `rgX` / `iX` | Indexed sequence of X / its index | `rgbtn` / `ibtn`, `rgpt` / `iptFirst` |
+| `dX` | Difference in X's coordinate/domain | `drwNeighbor`, `dxSegment` |
+| `cX` | Count of X | `crw`, `cbtn`, `cpr`, `cusArgs` |
+| `rgX` / `iX` | Indexed sequence of X / its index | `rgbtn` / `ibtn`, `rgjb` / `ijbFirst` |
 | `mpXY` | Mapping from X to Y | `mpcolrwPivot`, `mpdevrgdevOutputs_` |
 | `setX` | Membership set (project extension) | `setdevActive` |
 | `qX` | Pending work queue (project extension) | `qcelRemovals` |
-| `optX` | Optional result (C++ extension) | `optcostBest`, `mpjvoptcostMemo` |
+| `optX` | Optional result (C++ extension) | `optcprBest`, `mpjvoptcprMemo` |
 
 The original `f` flag tag is valid: `fHorizontal`, `fRepeated`. Its qualifier must
 describe the condition when true. Likewise, `p` is a valid construction, not a
@@ -37,7 +37,7 @@ Use these standard qualifiers with their precise meanings:
   when more than one value of the same tag is in scope.
 
 Name procedures with an initial capital, a return tag for value-producing
-operations, and a short action: `RgusReadInput`, `CostSolveJoltage`, `FRegionFits`,
+operations, and a short action: `RgusReadInput`, `CprSolveJoltage`, `FPresentsFit`,
 `SetInput`. Use the capitalized domain tag for structures (`Mch`, `Shp`, `Reg`).
 Callable variables remain variables (`fnSearch`, `fnRecurSearch`). Apply the same
 rules to constants, members, parameters, lambdas, structured bindings, and tests.
@@ -51,13 +51,15 @@ Prefer an existing precise tag or a composition to adding another tag.
 | --- | --- |
 | `rw`, `col` | Grid or matrix row and column indices; keep distinct from spatial coordinates |
 | `x`, `y`, `z`, `xy` | Original spatial coordinates; `xy` is an axis-agnostic helper coordinate |
-| `pt`, `cel`, `delta`, `seg`, `edg`, `link` | Spatial point, indexed grid cell, displacement pair, polygon segment, weighted graph edge, connected endpoint pair |
-| `pos`, `mov` | Dial position and dial rotation instruction |
+| `pt`, `cel`, `delta`, `seg`, `link` | Generic spatial point, indexed grid cell, displacement pair, polygon segment, connected endpoint pair |
+| `jb`, `cn`, `cir`, `tl` | Junction box, connection between boxes, circuit, original puzzle tile |
+| `pos`, `rot`, `clk` | Dial position, rotation instruction, click unit; `cclk` can span several full rotations |
 | `id`, `dev` | Numeric puzzle identity and device name; neither is a positional index |
-| `dig`, `bnk`, `jol` | Battery digit, bank of digits, and joltage |
-| `blk`, `rng` | Worksheet column block and interval/subrange |
-| `mch`, `btn`, `ictr`, `jv`, `par`, `chc` | Machine, button's affected counters, counter index, full joltage vector, parity vector, and parity-choice record |
-| `shp`, `var`, `reg`, `plc` | Gift shape, oriented variant, packing region, and placement |
+| `dig`, `bat`, `bnk`, `jol` | Decimal digit, battery joltage rating, ordered battery bank, output joltage |
+| `rol` | Paper roll; `crol` counts rolls, including adjacent, accessible, or removed rolls |
+| `prb`, `rng` | Worksheet math problem (its inclusive column bounds) and interval/subrange |
+| `mch`, `btn`, `pr`, `ictr`, `jv`, `par`, `chc` | Machine, button wiring (affected counter indices), button press unit, counter index, full joltage vector, parity vector, parity-choice record |
+| `pre`, `shp`, `ori`, `reg`, `plc` | Present unit, present shape, rotated/reflected orientation, region under a tree, placement |
 | `vst`, `dsu` | Device visit state and disjoint-set circuit state |
 | `area`, `len`, `dist`, `coef`, `cost` | Area, length, distance, algebraic coefficient, optimization cost |
 | `cnt`, `iter`, `off` | Event count, iteration ordinal, text/bit offset; use `cX`/`iX` when X exists |
@@ -71,9 +73,20 @@ Prefer an existing precise tag or a composition to adding another tag.
 | `arg`, `opt`, `prs`, `rec` | Tooling argument, parsed options, argument parser, process/database record |
 
 For example, `mpishprgplc` maps a shape index to its possible placements;
-`mpiptiptParent` maps a point index to its parent point index. A C++ container
+`mpijbijbParent` maps a junction-box index to its parent junction-box index. A C++ container
 change does not change either relationship. `jv` and `btn` are deliberately short
 logical tags for collections with domain operations of their own.
+
+Choose the tag from the puzzle's vocabulary (linked in README), then qualify the
+role. `cbtn` counts distinct buttons, while `cpr` counts presses, possibly of the
+same button. `cjb` counts junction boxes and `ccir` counts circuits. An original
+red tile is `tl`; a compressed grid cell is `cel`. Use `len` for a length and
+`dx`/`dy` for coordinate differences.
+
+Distinguish original requirements from changing search state: `jvRequired` versus
+`jvRemaining`, and `mpishpcpreRequired` versus `mpishpcpreRemaining`. Both present
+maps associate each shape index with a count of presents. Avoid an unqualified
+`cnt`, `cost`, `pt`, or `val` when an established puzzle domain is more precise.
 
 ## C++20 and tooling adaptations
 

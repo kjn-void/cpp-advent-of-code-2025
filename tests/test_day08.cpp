@@ -13,15 +13,15 @@ TEST(Day08, ExamplePart1) {
     slvDay.SetInput(rgusDay08Sample);
 
     // Example uses 10 shortest connections
-    auto rgcntCircuitSizes = Day08::RgcntRunConnections(slvDay.rgpt, slvDay.rgedgConnections, 10);
-    ASSERT_GE(rgcntCircuitSizes.size(), 3);
-    EXPECT_EQ(rgcntCircuitSizes[0] * rgcntCircuitSizes[1] * rgcntCircuitSizes[2], 40);
+    auto rgcjbCircuits = Day08::RgcjbConnectNearest(slvDay.rgjb, slvDay.rgcn, 10);
+    ASSERT_GE(rgcjbCircuits.size(), 3);
+    EXPECT_EQ(rgcjbCircuits[0] * rgcjbCircuits[1] * rgcjbCircuits[2], 40);
 }
 
 TEST(Day08, ExamplePart2) {
     Day08 slvDay;
     slvDay.SetInput(rgusDay08Sample);
 
-    auto [iptFirst, iptSecond] = Day08::LinkConnectAll(slvDay.rgpt, slvDay.rgedgConnections);
-    EXPECT_EQ(slvDay.rgpt[iptFirst].xJunction * slvDay.rgpt[iptSecond].xJunction, 25272);
+    auto [ijbFirst, ijbSecond] = Day08::LinkConnectAll(slvDay.rgjb, slvDay.rgcn);
+    EXPECT_EQ(slvDay.rgjb[ijbFirst].x * slvDay.rgjb[ijbSecond].x, 25272);
 }

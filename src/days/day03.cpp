@@ -22,16 +22,16 @@ void Day03::SetInput(const std::vector<std::string>& rgusLines) {
     rgbnk_.reserve(rgusLines.size());
 
     for (const auto& usLine : rgusLines) {
-        std::vector<int> rgdig;
-        rgdig.reserve(usLine.size());
+        std::vector<int> rgbat;
+        rgbat.reserve(usLine.size());
 
         for (char chDigit : usLine) {
             if (chDigit < '0' || chDigit > '9')
                 throw std::invalid_argument("Battery bank must contain digits");
-            rgdig.push_back(chDigit - '0');
+            rgbat.push_back(chDigit - '0');
         }
 
-        rgbnk_.push_back(std::move(rgdig));
+        rgbnk_.push_back(std::move(rgbat));
     }
 }
 
@@ -51,44 +51,44 @@ std::string Day03::TxtPart2() {
 // Core logic
 // ------------------------------------------------------------
 
-std::string Day03::TxtMaxJoltage(int cdigToSelect) const {
+std::string Day03::TxtMaxJoltage(int cbatToSelect) const {
     std::int64_t jolSum = 0;
 
     for (const auto& bnk : rgbnk_) {
-        const int cdig = static_cast<int>(bnk.size());
+        const int cbat = static_cast<int>(bnk.size());
 
-        int cdigNeeded = cdigToSelect;
-        std::vector<int> rgdigSelected;
-        rgdigSelected.reserve(cdigToSelect);
+        int cbatNeeded = cbatToSelect;
+        std::vector<int> rgbatSelected;
+        rgbatSelected.reserve(cbatToSelect);
 
-        for (int idigBattery = 0; idigBattery < cdig; ++idigBattery) {
-            int dig = bnk[idigBattery];
+        for (int ibat = 0; ibat < cbat; ++ibat) {
+            int bat = bnk[ibat];
 
-            int cdigRemaining = cdig - idigBattery;
-            bool fCanDiscard = !rgdigSelected.empty() && cdigRemaining > cdigNeeded;
+            int cbatRemaining = cbat - ibat;
+            bool fCanDiscard = !rgbatSelected.empty() && cbatRemaining > cbatNeeded;
 
-            while (fCanDiscard && rgdigSelected.back() < dig) {
-                rgdigSelected.pop_back();
-                ++cdigNeeded;
-                fCanDiscard = !rgdigSelected.empty() && cdigRemaining > cdigNeeded;
+            while (fCanDiscard && rgbatSelected.back() < bat) {
+                rgbatSelected.pop_back();
+                ++cbatNeeded;
+                fCanDiscard = !rgbatSelected.empty() && cbatRemaining > cbatNeeded;
             }
 
-            if (cdigNeeded > 0) {
-                rgdigSelected.push_back(dig);
-                --cdigNeeded;
+            if (cbatNeeded > 0) {
+                rgbatSelected.push_back(bat);
+                --cbatNeeded;
             }
         }
 
-        jolSum += JolFromDigits(rgdigSelected);
+        jolSum += JolFromRatings(rgbatSelected);
     }
 
     return std::to_string(jolSum);
 }
 
-std::int64_t Day03::JolFromDigits(std::span<const int> rgdigSelected) {
-    std::int64_t jolSum = 0;
-    for (int dig : rgdigSelected) {
-        jolSum = jolSum * 10 + dig;
+std::int64_t Day03::JolFromRatings(std::span<const int> rgbatSelected) {
+    std::int64_t jolBank = 0;
+    for (int bat : rgbatSelected) {
+        jolBank = jolBank * 10 + bat;
     }
-    return jolSum;
+    return jolBank;
 }

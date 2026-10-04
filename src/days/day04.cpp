@@ -35,17 +35,17 @@ void Day04::SetInput(const std::vector<std::string>& rgusLines) {
 // Helpers
 // ------------------------------------------------------------
 
-int Day04::CntAdjacent(int rw, int col) const {
-    int cntAdjacent = 0;
+int Day04::CrolAdjacent(int rw, int col) const {
+    int crolAdjacent = 0;
     for (auto [drwNeighbor, dcolNeighbor] : rgdeltaNeighbors) {
         int rwNeighbor = rw + drwNeighbor;
         int colNeighbor = col + dcolNeighbor;
         if (rwNeighbor >= 0 && rwNeighbor < crw_ && colNeighbor >= 0 && colNeighbor < ccol_ &&
             gridRolls_[rwNeighbor][colNeighbor] == '@') {
-            ++cntAdjacent;
+            ++crolAdjacent;
         }
     }
-    return cntAdjacent;
+    return crolAdjacent;
 }
 
 // ------------------------------------------------------------
@@ -56,16 +56,16 @@ std::string Day04::TxtPart1() {
     if (crw_ == 0 || ccol_ == 0)
         return "0";
 
-    int cntAccessible = 0;
+    int crolAccessible = 0;
     for (int rw = 0; rw < crw_; ++rw) {
         for (int col = 0; col < ccol_; ++col) {
             if (gridRolls_[rw][col] != '@')
                 continue;
-            if (CntAdjacent(rw, col) < 4)
-                ++cntAccessible;
+            if (CrolAdjacent(rw, col) < 4)
+                ++crolAccessible;
         }
     }
-    return std::to_string(cntAccessible);
+    return std::to_string(crolAccessible);
 }
 
 // ------------------------------------------------------------
@@ -77,23 +77,23 @@ std::string Day04::TxtPart2() {
         return "0";
 
     // on-grid
-    std::vector<std::vector<bool>> gridOccupied(crw_, std::vector<bool>(ccol_, false));
+    std::vector<std::vector<bool>> gridRollPresent(crw_, std::vector<bool>(ccol_, false));
     for (int rw = 0; rw < crw_; ++rw)
         for (int col = 0; col < ccol_; ++col)
-            gridOccupied[rw][col] = (gridRolls_[rw][col] == '@');
+            gridRollPresent[rw][col] = (gridRolls_[rw][col] == '@');
 
     // degree grid
-    std::vector<std::vector<int>> gridDegree(crw_, std::vector<int>(ccol_, 0));
+    std::vector<std::vector<int>> gridAdjacentRolls(crw_, std::vector<int>(ccol_, 0));
     for (int rw = 0; rw < crw_; ++rw) {
         for (int col = 0; col < ccol_; ++col) {
-            if (!gridOccupied[rw][col])
+            if (!gridRollPresent[rw][col])
                 continue;
             for (auto [drwNeighbor, dcolNeighbor] : rgdeltaNeighbors) {
                 int rwNeighbor = rw + drwNeighbor;
                 int colNeighbor = col + dcolNeighbor;
                 if (rwNeighbor >= 0 && rwNeighbor < crw_ && colNeighbor >= 0 &&
-                    colNeighbor < ccol_ && gridOccupied[rwNeighbor][colNeighbor]) {
-                    ++gridDegree[rw][col];
+                    colNeighbor < ccol_ && gridRollPresent[rwNeighbor][colNeighbor]) {
+                    ++gridAdjacentRolls[rw][col];
                 }
             }
         }
@@ -106,33 +106,33 @@ std::string Day04::TxtPart2() {
 
     for (int rw = 0; rw < crw_; ++rw)
         for (int col = 0; col < ccol_; ++col)
-            if (gridOccupied[rw][col] && gridDegree[rw][col] < 4)
+            if (gridRollPresent[rw][col] && gridAdjacentRolls[rw][col] < 4)
                 qcelRemovals.push({rw, col});
 
-    int cntRemoved = 0;
+    int crolRemoved = 0;
 
     while (!qcelRemovals.empty()) {
         auto [rw, col] = qcelRemovals.front();
         qcelRemovals.pop();
 
-        if (!gridOccupied[rw][col])
+        if (!gridRollPresent[rw][col])
             continue;
 
-        gridOccupied[rw][col] = false;
-        ++cntRemoved;
+        gridRollPresent[rw][col] = false;
+        ++crolRemoved;
 
         for (auto [drwNeighbor, dcolNeighbor] : rgdeltaNeighbors) {
             int rwNeighbor = rw + drwNeighbor;
             int colNeighbor = col + dcolNeighbor;
             if (rwNeighbor < 0 || rwNeighbor >= crw_ || colNeighbor < 0 || colNeighbor >= ccol_)
                 continue;
-            if (!gridOccupied[rwNeighbor][colNeighbor])
+            if (!gridRollPresent[rwNeighbor][colNeighbor])
                 continue;
 
-            if (--gridDegree[rwNeighbor][colNeighbor] == 3)
+            if (--gridAdjacentRolls[rwNeighbor][colNeighbor] == 3)
                 qcelRemovals.push({rwNeighbor, colNeighbor});
         }
     }
 
-    return std::to_string(cntRemoved);
+    return std::to_string(crolRemoved);
 }

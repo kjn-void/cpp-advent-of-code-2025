@@ -27,9 +27,9 @@ TEST(Day01, ArithmeticMatchesClickSimulation) {
     int posDial = 50, cntEndpoints = 0, cntCrossings = 0;
     for (int iterRotation = 0; iterRotation < 2000; ++iterRotation) {
         const bool fLeft = genRotations() % 2;
-        const int dposRotation = genRotations() % 500;
-        rgusLines.push_back(std::string(fLeft ? "L" : "R") + std::to_string(dposRotation));
-        for (int iterClick = 0; iterClick < dposRotation; ++iterClick) {
+        const int cclkRotation = genRotations() % 500;
+        rgusLines.push_back(std::string(fLeft ? "L" : "R") + std::to_string(cclkRotation));
+        for (int iterClick = 0; iterClick < cclkRotation; ++iterClick) {
             posDial = (posDial + (fLeft ? 99 : 1)) % 100;
             cntCrossings += posDial == 0;
         }
@@ -187,8 +187,8 @@ TEST(Day10, ExactSolversMatchExhaustiveSearchOnSmallMachines) {
         std::vector<int> rgmaskButtons(cbtn);
         for (auto& maskButton : rgmaskButtons)
             maskButton = 1 + genMachines() % 7;
-        std::vector<int> jvTarget(cictr);
-        for (auto& jolTarget : jvTarget)
+        std::vector<int> jvRequired(cictr);
+        for (auto& jolTarget : jvRequired)
             jolTarget = genMachines() % 5;
         const int maskTargetLights = genMachines() % 8;
         std::string usMachine = "[";
@@ -208,35 +208,34 @@ TEST(Day10, ExactSolversMatchExhaustiveSearchOnSmallMachines) {
             }
             usMachine += ')';
         }
-        usMachine += " {" + std::to_string(jvTarget[0]) + ',' + std::to_string(jvTarget[1]) + ',' +
-                     std::to_string(jvTarget[2]) + '}';
+        usMachine += " {" + std::to_string(jvRequired[0]) + ',' + std::to_string(jvRequired[1]) +
+                     ',' + std::to_string(jvRequired[2]) + '}';
 
-        int costLightsExpected = 100;
+        int cprLightsExpected = 100;
         for (int maskPressedButtons = 0; maskPressedButtons < (1 << cbtn); ++maskPressedButtons) {
-            int maskActualLights = 0, cntPresses = 0;
+            int maskActualLights = 0, cpr = 0;
             for (int ibtn = 0; ibtn < cbtn; ++ibtn) {
                 if (maskPressedButtons & (1 << ibtn)) {
                     maskActualLights ^= rgmaskButtons[ibtn];
-                    ++cntPresses;
+                    ++cpr;
                 }
             }
             if (maskActualLights == maskTargetLights)
-                costLightsExpected = std::min(costLightsExpected, cntPresses);
+                cprLightsExpected = std::min(cprLightsExpected, cpr);
         }
-        int costJoltageExpected = 100;
+        int cprJoltageExpected = 100;
         std::vector<int> jvActual(cictr, 0);
-        const auto fnExhaustiveSearch = [&](auto&& fnRecurSearch, int ibtn,
-                                            int cntPresses) -> void {
+        const auto fnExhaustiveSearch = [&](auto&& fnRecurSearch, int ibtn, int cpr) -> void {
             if (ibtn == cbtn) {
-                if (jvActual == jvTarget)
-                    costJoltageExpected = std::min(costJoltageExpected, cntPresses);
+                if (jvActual == jvRequired)
+                    cprJoltageExpected = std::min(cprJoltageExpected, cpr);
                 return;
             }
             for (int cntRepeats = 0; cntRepeats <= 4; ++cntRepeats) {
                 for (int ictr = 0; ictr < cictr; ++ictr)
                     if (rgmaskButtons[ibtn] & (1 << ictr))
                         jvActual[ictr] += cntRepeats;
-                fnRecurSearch(fnRecurSearch, ibtn + 1, cntPresses + cntRepeats);
+                fnRecurSearch(fnRecurSearch, ibtn + 1, cpr + cntRepeats);
                 for (int ictr = 0; ictr < cictr; ++ictr)
                     if (rgmaskButtons[ibtn] & (1 << ictr))
                         jvActual[ictr] -= cntRepeats;
@@ -246,14 +245,14 @@ TEST(Day10, ExactSolversMatchExhaustiveSearchOnSmallMachines) {
 
         Day10 slvDay;
         slvDay.SetInput({usMachine});
-        if (costLightsExpected == 100)
+        if (cprLightsExpected == 100)
             EXPECT_THROW(slvDay.TxtPart1(), std::runtime_error);
         else
-            EXPECT_EQ(slvDay.TxtPart1(), std::to_string(costLightsExpected));
-        if (costJoltageExpected == 100)
+            EXPECT_EQ(slvDay.TxtPart1(), std::to_string(cprLightsExpected));
+        if (cprJoltageExpected == 100)
             EXPECT_THROW(slvDay.TxtPart2(), std::runtime_error);
         else
-            EXPECT_EQ(slvDay.TxtPart2(), std::to_string(costJoltageExpected));
+            EXPECT_EQ(slvDay.TxtPart2(), std::to_string(cprJoltageExpected));
     }
 }
 
@@ -291,36 +290,37 @@ TEST(Day02, MatchesDirectRepeatedDigitDetection) {
 TEST(Day09, ConcavePolygonsMatchExhaustiveTileChecks) {
     std::mt19937 genPolygons(92025);
     for (int iterSample = 0; iterSample < 100; ++iterSample) {
-        std::vector<int> rgdyHeights(3 + genPolygons() % 4);
-        for (auto& lenHeight : rgdyHeights)
+        std::vector<int> rglenHeights(3 + genPolygons() % 4);
+        for (auto& lenHeight : rglenHeights)
             lenHeight = 1 + genPolygons() % 6;
-        const int lenWidth = static_cast<int>(rgdyHeights.size()) * 2;
-        std::vector<std::pair<int, int>> rgptVertices{
-            {0, 0}, {lenWidth, 0}, {lenWidth, rgdyHeights.back()}};
-        for (int idyStrip = static_cast<int>(rgdyHeights.size()) - 1; idyStrip > 0; --idyStrip) {
-            rgptVertices.emplace_back(2 * idyStrip, rgdyHeights[idyStrip]);
-            rgptVertices.emplace_back(2 * idyStrip, rgdyHeights[idyStrip - 1]);
+        const int lenWidth = static_cast<int>(rglenHeights.size()) * 2;
+        std::vector<std::pair<int, int>> rgtlVertices{
+            {0, 0}, {lenWidth, 0}, {lenWidth, rglenHeights.back()}};
+        for (int ilenStrip = static_cast<int>(rglenHeights.size()) - 1; ilenStrip > 0;
+             --ilenStrip) {
+            rgtlVertices.emplace_back(2 * ilenStrip, rglenHeights[ilenStrip]);
+            rgtlVertices.emplace_back(2 * ilenStrip, rglenHeights[ilenStrip - 1]);
         }
-        rgptVertices.emplace_back(0, rgdyHeights.front());
+        rgtlVertices.emplace_back(0, rglenHeights.front());
         std::vector<std::string> rgusLines;
-        for (const auto& [xTile, yTile] : rgptVertices)
+        for (const auto& [xTile, yTile] : rgtlVertices)
             rgusLines.push_back(std::to_string(xTile) + ',' + std::to_string(yTile));
         int areaExpected = 0;
-        for (std::size_t iptFirst = 0; iptFirst < rgptVertices.size(); ++iptFirst) {
-            for (std::size_t iptSecond = iptFirst + 1; iptSecond < rgptVertices.size();
-                 ++iptSecond) {
+        for (std::size_t itlFirst = 0; itlFirst < rgtlVertices.size(); ++itlFirst) {
+            for (std::size_t itlSecond = itlFirst + 1; itlSecond < rgtlVertices.size();
+                 ++itlSecond) {
                 const auto [xFirst, xLast] =
-                    std::minmax(rgptVertices[iptFirst].first, rgptVertices[iptSecond].first);
+                    std::minmax(rgtlVertices[itlFirst].first, rgtlVertices[itlSecond].first);
                 const auto [yFirst, yLast] =
-                    std::minmax(rgptVertices[iptFirst].second, rgptVertices[iptSecond].second);
+                    std::minmax(rgtlVertices[itlFirst].second, rgtlVertices[itlSecond].second);
                 bool fInside = true;
                 for (int xTile = xFirst; xTile <= xLast; ++xTile) {
                     for (int yTile = yFirst; yTile <= yLast; ++yTile) {
                         bool fAllowedTile = false;
-                        for (int idyStrip = 0; idyStrip < static_cast<int>(rgdyHeights.size());
-                             ++idyStrip)
-                            fAllowedTile |= xTile >= 2 * idyStrip && xTile <= 2 * idyStrip + 2 &&
-                                            yTile <= rgdyHeights[idyStrip];
+                        for (int ilenStrip = 0; ilenStrip < static_cast<int>(rglenHeights.size());
+                             ++ilenStrip)
+                            fAllowedTile |= xTile >= 2 * ilenStrip && xTile <= 2 * ilenStrip + 2 &&
+                                            yTile <= rglenHeights[ilenStrip];
                         fInside &= fAllowedTile;
                     }
                 }

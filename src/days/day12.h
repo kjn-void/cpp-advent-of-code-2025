@@ -21,19 +21,19 @@ class Day12 final : public Slv {
         int dxCell, dyCell;
     };
 
-    struct Var {
+    struct Ori {
         int ccol, crw;
         std::vector<Delta> rgdelta;
     };
 
     struct Shp {
         int areaOccupied = 0;
-        std::vector<Var> rgvar;
+        std::vector<Ori> rgori;
     };
 
     struct Reg {
         int ccol, crw;
-        std::vector<int> mpishpcnt;
+        std::vector<int> mpishpcpreRequired;
     };
 
     std::vector<Shp> rgshp_;
@@ -48,13 +48,13 @@ class Day12 final : public Slv {
     GridRotate(const std::vector<std::vector<bool>>& gridSource);
     static std::vector<std::vector<bool>>
     GridReflect(const std::vector<std::vector<bool>>& gridSource);
-    static Var VarFromGrid(const std::vector<std::vector<bool>>& gridSource);
-    static std::string TxtVariantKey(const Var& var);
+    static Ori OriFromGrid(const std::vector<std::vector<bool>>& gridSource);
+    static std::string TxtOrientationKey(const Ori& ori);
 
-    bool FRegionFits(const Reg& reg) const;
+    bool FPresentsFit(const Reg& reg) const;
 
-    bool FCanPackRegion(const Reg& reg) const;
-    bool FPack(std::vector<bool>& mpicelfOccupied, std::vector<int>& mpishpcnt,
-               const std::vector<std::vector<std::vector<std::size_t>>>& mpishprgplc,
-               std::vector<std::size_t>& mpishpiplcFirst) const;
+    bool FPackRegion(const Reg& reg) const;
+    bool FPlaceRemaining(std::vector<bool>& mpicelfOccupied, std::vector<int>& mpishpcpreRemaining,
+                         const std::vector<std::vector<std::vector<std::size_t>>>& mpishprgplc,
+                         std::vector<std::size_t>& mpishpiplcFirst) const;
 };

@@ -23,7 +23,7 @@ std::int64_t AreaRectangle(std::int64_t lenWidth, std::int64_t lenHeight) {
 // ----------------------------------------------------------
 
 void Day09::SetInput(const std::vector<std::string>& rgusLines) {
-    rgptRed_.clear();
+    rgtlRed_.clear();
 
     for (const auto& usLine : rgusLines) {
         if (usLine.empty())
@@ -31,10 +31,9 @@ void Day09::SetInput(const std::vector<std::string>& rgusLines) {
         auto offComma = usLine.find(',');
         if (offComma == std::string::npos)
             throw std::invalid_argument("Expected a coordinate pair");
-        const auto xTile = core::ValParseInteger<int>(std::string_view(usLine).substr(0, offComma));
-        const auto yTile =
-            core::ValParseInteger<int>(std::string_view(usLine).substr(offComma + 1));
-        rgptRed_.push_back({xTile, yTile});
+        const auto x = core::ValParseInteger<int>(std::string_view(usLine).substr(0, offComma));
+        const auto y = core::ValParseInteger<int>(std::string_view(usLine).substr(offComma + 1));
+        rgtlRed_.push_back({x, y});
     }
 }
 
@@ -43,19 +42,19 @@ void Day09::SetInput(const std::vector<std::string>& rgusLines) {
 // ----------------------------------------------------------
 
 std::string Day09::TxtPart1() {
-    return std::to_string(AreaMaxInclusive(rgptRed_));
+    return std::to_string(AreaMaxInclusive(rgtlRed_));
 }
 
-std::int64_t Day09::AreaMaxInclusive(const std::vector<Pt>& rgpt) {
-    int cpt = static_cast<int>(rgpt.size());
+std::int64_t Day09::AreaMaxInclusive(const std::vector<Tl>& rgtl) {
+    int ctl = static_cast<int>(rgtl.size());
     std::int64_t areaLargest = 0;
 
-    for (int iptFirst = 0; iptFirst < cpt; ++iptFirst) {
-        for (int iptSecond = iptFirst + 1; iptSecond < cpt; ++iptSecond) {
+    for (int itlFirst = 0; itlFirst < ctl; ++itlFirst) {
+        for (int itlSecond = itlFirst + 1; itlSecond < ctl; ++itlSecond) {
             std::int64_t lenWidth =
-                std::abs(std::int64_t{rgpt[iptFirst].xTile} - rgpt[iptSecond].xTile) + 1;
+                std::abs(std::int64_t{rgtl[itlFirst].x} - rgtl[itlSecond].x) + 1;
             std::int64_t lenHeight =
-                std::abs(std::int64_t{rgpt[iptFirst].yTile} - rgpt[iptSecond].yTile) + 1;
+                std::abs(std::int64_t{rgtl[itlFirst].y} - rgtl[itlSecond].y) + 1;
             areaLargest = std::max(areaLargest, AreaRectangle(lenWidth, lenHeight));
         }
     }
@@ -67,17 +66,17 @@ std::int64_t Day09::AreaMaxInclusive(const std::vector<Pt>& rgpt) {
 // ----------------------------------------------------------
 
 std::string Day09::TxtPart2() {
-    if (rgptRed_.size() < 2)
+    if (rgtlRed_.size() < 2)
         return "0";
 
     // Each boundary coordinate and its successor start a distinct interval of
     // integer tiles. Interior gaps can be represented by a single compressed cell.
     std::vector<std::int64_t> rgx, rgy;
-    for (const auto& ptRed : rgptRed_) {
-        rgx.push_back(ptRed.xTile);
-        rgx.push_back(std::int64_t{ptRed.xTile} + 1);
-        rgy.push_back(ptRed.yTile);
-        rgy.push_back(std::int64_t{ptRed.yTile} + 1);
+    for (const auto& tl : rgtlRed_) {
+        rgx.push_back(tl.x);
+        rgx.push_back(std::int64_t{tl.x} + 1);
+        rgy.push_back(tl.y);
+        rgy.push_back(std::int64_t{tl.y} + 1);
     }
     const auto fnCompress = [](auto& rgxy) {
         std::ranges::sort(rgxy);
@@ -91,10 +90,10 @@ std::string Day09::TxtPart2() {
         std::size_t colCompressed, rwCompressed;
     };
     std::vector<Cel> rgcelVertices;
-    for (const auto& ptRed : rgptRed_) {
+    for (const auto& tl : rgtlRed_) {
         rgcelVertices.push_back(
-            {static_cast<std::size_t>(std::ranges::lower_bound(rgx, ptRed.xTile) - rgx.begin()),
-             static_cast<std::size_t>(std::ranges::lower_bound(rgy, ptRed.yTile) - rgy.begin())});
+            {static_cast<std::size_t>(std::ranges::lower_bound(rgx, tl.x) - rgx.begin()),
+             static_cast<std::size_t>(std::ranges::lower_bound(rgy, tl.y) - rgy.begin())});
     }
     struct Seg {
         std::size_t colFirst, colLast, rwFirst, rwLast;

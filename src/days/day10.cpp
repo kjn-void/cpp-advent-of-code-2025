@@ -50,21 +50,21 @@ void Day10::SetInput(const std::vector<std::string>& rgusLines) {
             offLightsEnd <= offLightsBegin)
             throw std::invalid_argument("Missing machine lights");
 
-        std::vector<int> rgfLights;
+        std::vector<int> rgfDiagram;
         for (char chLight : usLine.substr(offLightsBegin + 1, offLightsEnd - offLightsBegin - 1)) {
             if (chLight != '#' && chLight != '.')
                 throw std::invalid_argument("Invalid light state");
-            rgfLights.push_back(chLight == '#' ? 1 : 0);
+            rgfDiagram.push_back(chLight == '#' ? 1 : 0);
         }
 
         // joltage
-        std::vector<int> jvTarget;
+        std::vector<int> jvRequired;
         auto offJoltageBegin = usLine.find('{');
         auto offJoltageEnd = usLine.find('}');
         if (offJoltageBegin == std::string::npos || offJoltageEnd == std::string::npos ||
             offJoltageBegin <= offLightsEnd || offJoltageEnd <= offJoltageBegin)
             throw std::invalid_argument("Missing machine joltage");
-        jvTarget =
+        jvRequired =
             RgvalParseList(usLine.substr(offJoltageBegin, offJoltageEnd - offJoltageBegin + 1));
 
         // buttons
@@ -87,15 +87,15 @@ void Day10::SetInput(const std::vector<std::string>& rgusLines) {
         if (!core::UsTrim(std::string_view(usLine).substr(0, offLightsBegin)).empty() ||
             !core::UsTrim(std::string_view(usLine).substr(offJoltageEnd + 1)).empty())
             throw std::invalid_argument("Unexpected text around machine");
-        if (rgfLights.empty() || rgfLights.size() != jvTarget.size() ||
-            std::ranges::any_of(jvTarget, [](int jolTarget) { return jolTarget < 0; }))
+        if (rgfDiagram.empty() || rgfDiagram.size() != jvRequired.size() ||
+            std::ranges::any_of(jvRequired, [](int jolRequired) { return jolRequired < 0; }))
             throw std::invalid_argument("Invalid machine targets");
         for (auto& btn : rgbtn) {
             std::ranges::sort(btn);
             if (std::ranges::any_of(btn,
                                     [&](int ictr) {
                                         return ictr < 0 ||
-                                               ictr >= static_cast<int>(rgfLights.size());
+                                               ictr >= static_cast<int>(rgfDiagram.size());
                                     }) ||
                 std::adjacent_find(btn.begin(), btn.end()) != btn.end())
                 throw std::invalid_argument("Invalid machine button index");
@@ -104,7 +104,7 @@ void Day10::SetInput(const std::vector<std::string>& rgusLines) {
         std::erase_if(rgbtn, [](const auto& btn) { return btn.empty(); });
         std::ranges::sort(rgbtn);
         rgbtn.erase(std::unique(rgbtn.begin(), rgbtn.end()), rgbtn.end());
-        rgmch_.push_back({std::move(rgfLights), std::move(jvTarget), std::move(rgbtn)});
+        rgmch_.push_back({std::move(rgfDiagram), std::move(jvRequired), std::move(rgbtn)});
     }
 }
 
@@ -112,13 +112,13 @@ void Day10::SetInput(const std::vector<std::string>& rgusLines) {
 // Part 1 — GF(2) Gaussian elimination
 // ------------------------------------------------------------
 
-int Day10::CostSolveLights(const Mch& mch) {
-    int cfLights = static_cast<int>(mch.rgfLights.size());
+int Day10::CprSolveLights(const Mch& mch) {
+    int cfLights = static_cast<int>(mch.rgfDiagram.size());
     int cbtn = static_cast<int>(mch.rgbtn.size());
 
     std::vector<std::vector<int>> matLights(cfLights, std::vector<int>(cbtn + 1, 0));
     for (int rwLight = 0; rwLight < cfLights; ++rwLight)
-        matLights[rwLight][cbtn] = mch.rgfLights[rwLight];
+        matLights[rwLight][cbtn] = mch.rgfDiagram[rwLight];
 
     for (int colButton = 0; colButton < cbtn; ++colButton)
         for (int rwLight : mch.rgbtn[colButton])
@@ -161,17 +161,17 @@ int Day10::CostSolveLights(const Mch& mch) {
         if (mpcolrwPivot[colButton] == -1)
             rgcolFree.push_back(colButton);
 
-    int costBest = cbtn + 1;
+    int cprBest = cbtn + 1;
     std::vector<int> mpibtnbitParity(cbtn, 0);
-    const auto fnSearch = [&](auto&& fnRecurSearch, std::size_t icolFree, int cntPresses) -> void {
-        if (cntPresses >= costBest)
+    const auto fnSearch = [&](auto&& fnRecurSearch, std::size_t icolFree, int cpr) -> void {
+        if (cpr >= cprBest)
             return;
         if (icolFree < rgcolFree.size()) {
             const int colFree = rgcolFree[icolFree];
             mpibtnbitParity[colFree] = 0;
-            fnRecurSearch(fnRecurSearch, icolFree + 1, cntPresses);
+            fnRecurSearch(fnRecurSearch, icolFree + 1, cpr);
             mpibtnbitParity[colFree] = 1;
-            fnRecurSearch(fnRecurSearch, icolFree + 1, cntPresses + 1);
+            fnRecurSearch(fnRecurSearch, icolFree + 1, cpr + 1);
             return;
         }
         for (int colButton = cbtn - 1; colButton >= 0; --colButton) {
@@ -182,20 +182,20 @@ int Day10::CostSolveLights(const Mch& mch) {
             for (int colCoefficient = colButton + 1; colCoefficient < cbtn; ++colCoefficient)
                 bitPress ^= matLights[rw][colCoefficient] & mpibtnbitParity[colCoefficient];
             mpibtnbitParity[colButton] = bitPress;
-            cntPresses += bitPress;
+            cpr += bitPress;
         }
-        costBest = std::min(costBest, cntPresses);
+        cprBest = std::min(cprBest, cpr);
     };
     fnSearch(fnSearch, 0, 0);
 
-    return costBest;
+    return cprBest;
 }
 
 // ------------------------------------------------------------
 // Part 2 — exact integer recursion on the binary digits of press counts
 // ------------------------------------------------------------
 
-std::int64_t Day10::CostSolveJoltage(const Mch& mch) {
+std::int64_t Day10::CprSolveJoltage(const Mch& mch) {
     struct Hashrgval {
         std::size_t operator()(const std::vector<int>& rgval) const noexcept {
             std::size_t hash = 0;
@@ -206,80 +206,78 @@ std::int64_t Day10::CostSolveJoltage(const Mch& mch) {
     };
     struct Chc {
         std::vector<int> jvIncrement;
-        int cntPresses;
+        int cpr;
     };
 
-    const auto cictr = mch.jvTarget.size();
+    const auto cictr = mch.jvRequired.size();
     std::unordered_map<std::vector<int>, std::vector<Chc>, Hashrgval> mpparrgchc;
     std::vector<int> jvIncrement(cictr, 0);
-    const auto fnEnumerateParity = [&](auto&& fnRecurSolve, std::size_t ibtn,
-                                       int cntPresses) -> void {
+    const auto fnEnumerateParity = [&](auto&& fnRecurSolve, std::size_t ibtn, int cpr) -> void {
         if (ibtn == mch.rgbtn.size()) {
             auto parTarget = jvIncrement;
             for (auto& valComponent : parTarget)
                 valComponent %= 2;
-            mpparrgchc[parTarget].push_back({jvIncrement, cntPresses});
+            mpparrgchc[parTarget].push_back({jvIncrement, cpr});
             return;
         }
-        fnRecurSolve(fnRecurSolve, ibtn + 1, cntPresses);
+        fnRecurSolve(fnRecurSolve, ibtn + 1, cpr);
         for (int ictr : mch.rgbtn[ibtn])
             ++jvIncrement[ictr];
-        fnRecurSolve(fnRecurSolve, ibtn + 1, cntPresses + 1);
+        fnRecurSolve(fnRecurSolve, ibtn + 1, cpr + 1);
         for (int ictr : mch.rgbtn[ibtn])
             --jvIncrement[ictr];
     };
     fnEnumerateParity(fnEnumerateParity, 0, 0);
 
-    using Optcost = std::optional<std::int64_t>;
-    std::unordered_map<std::vector<int>, Optcost, Hashrgval> mpjvoptcostMemo;
-    const auto fnMinimumPresses = [&](auto&& fnRecurSolve,
-                                      const std::vector<int>& jvTarget) -> Optcost {
-        if (std::ranges::all_of(jvTarget, [](int valComponent) { return valComponent == 0; }))
+    using Optcpr = std::optional<std::int64_t>;
+    std::unordered_map<std::vector<int>, Optcpr, Hashrgval> mpjvoptcprMemo;
+    const auto fnFewestPresses = [&](auto&& fnRecurSolve,
+                                     const std::vector<int>& jvRemaining) -> Optcpr {
+        if (std::ranges::all_of(jvRemaining, [](int jolRemaining) { return jolRemaining == 0; }))
             return 0;
-        if (const auto itCachedCost = mpjvoptcostMemo.find(jvTarget);
-            itCachedCost != mpjvoptcostMemo.end())
-            return itCachedCost->second;
+        if (const auto itCachedPressCount = mpjvoptcprMemo.find(jvRemaining);
+            itCachedPressCount != mpjvoptcprMemo.end())
+            return itCachedPressCount->second;
 
-        auto parTarget = jvTarget;
+        auto parTarget = jvRemaining;
         for (auto& valComponent : parTarget)
             valComponent %= 2;
         const auto itChoices = mpparrgchc.find(parTarget);
-        Optcost optcostBest;
+        Optcpr optcprBest;
         if (itChoices != mpparrgchc.end()) {
             for (const auto& chc : itChoices->second) {
                 std::vector<int> jvHalf(cictr);
                 bool fFeasible = true;
                 for (std::size_t ictr = 0; ictr < cictr; ++ictr) {
-                    if (chc.jvIncrement[ictr] > jvTarget[ictr]) {
+                    if (chc.jvIncrement[ictr] > jvRemaining[ictr]) {
                         fFeasible = false;
                         break;
                     }
-                    jvHalf[ictr] = (jvTarget[ictr] - chc.jvIncrement[ictr]) / 2;
+                    jvHalf[ictr] = (jvRemaining[ictr] - chc.jvIncrement[ictr]) / 2;
                 }
                 if (!fFeasible)
                     continue;
                 // Each press adds at most one to any counter.
-                const auto costLowerBound =
-                    chc.cntPresses + 2 * std::int64_t{std::ranges::max(jvHalf)};
-                if (optcostBest && costLowerBound >= *optcostBest)
+                const auto cprLowerBound = chc.cpr + 2 * std::int64_t{std::ranges::max(jvHalf)};
+                if (optcprBest && cprLowerBound >= *optcprBest)
                     continue;
-                if (const auto optcostRemaining = fnRecurSolve(fnRecurSolve, jvHalf)) {
-                    const auto costTotal = chc.cntPresses + 2 * *optcostRemaining;
-                    if (!optcostBest || costTotal < *optcostBest)
-                        optcostBest = costTotal;
+                if (const auto optcprRemaining = fnRecurSolve(fnRecurSolve, jvHalf)) {
+                    const auto cprTotal = chc.cpr + 2 * *optcprRemaining;
+                    if (!optcprBest || cprTotal < *optcprBest)
+                        optcprBest = cprTotal;
                 }
             }
         }
-        mpjvoptcostMemo.emplace(jvTarget, optcostBest);
-        return optcostBest;
+        mpjvoptcprMemo.emplace(jvRemaining, optcprBest);
+        return optcprBest;
     };
 
     // Any press vector is uniquely x = odd + 2 * rest. Matching target parity
     // makes (target - A * odd) / 2 an exact, smaller integer subproblem.
-    const auto optcostMinimum = fnMinimumPresses(fnMinimumPresses, mch.jvTarget);
-    if (!optcostMinimum)
+    const auto optcprMinimum = fnFewestPresses(fnFewestPresses, mch.jvRequired);
+    if (!optcprMinimum)
         throw std::runtime_error("Unreachable joltage target");
-    return *optcostMinimum;
+    return *optcprMinimum;
 }
 
 // ------------------------------------------------------------
@@ -287,25 +285,25 @@ std::int64_t Day10::CostSolveJoltage(const Mch& mch) {
 // ------------------------------------------------------------
 
 std::string Day10::TxtPart1() {
-    const std::int64_t valSumPresses =
+    const std::int64_t cprTotal =
         core::ValSumIndexed(rgmch_.size(), [&](std::size_t imch) -> std::int64_t {
             const auto& mch = rgmch_[imch];
-            if (mch.rgfLights.empty())
+            if (mch.rgfDiagram.empty())
                 return 0;
-            return static_cast<std::int64_t>(CostSolveLights(mch));
+            return static_cast<std::int64_t>(CprSolveLights(mch));
         });
 
-    return std::to_string(valSumPresses);
+    return std::to_string(cprTotal);
 }
 
 std::string Day10::TxtPart2() {
-    const std::int64_t valSumPresses =
+    const std::int64_t cprTotal =
         core::ValSumIndexed(rgmch_.size(), [&](std::size_t imch) -> std::int64_t {
             const auto& mch = rgmch_[imch];
-            if (mch.jvTarget.empty())
+            if (mch.jvRequired.empty())
                 return 0;
-            return static_cast<std::int64_t>(CostSolveJoltage(mch));
+            return static_cast<std::int64_t>(CprSolveJoltage(mch));
         });
 
-    return std::to_string(valSumPresses);
+    return std::to_string(cprTotal);
 }
