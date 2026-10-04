@@ -9,13 +9,13 @@
 
 class Day05 final : public Solution {
   public:
-    void set_input(const std::vector<std::string>& lines) override;
+    void set_input(const std::vector<std::string>& input_lines) override;
     std::string part1() override;
     std::string part2() override;
 
   private:
-    std::vector<std::pair<std::int64_t, std::int64_t>> ranges_;
-    std::vector<std::int64_t> ids_;
+    std::vector<std::pair<std::int64_t, std::int64_t>> fresh_id_ranges_;
+    std::vector<std::int64_t> available_ingredient_ids_;
 
-    bool is_fresh(std::int64_t id) const;
+    bool is_fresh(std::int64_t ingredient_id) const;
 };

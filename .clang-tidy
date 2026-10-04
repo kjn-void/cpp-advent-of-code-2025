@@ -1,0 +1,18 @@
+# Descriptive puzzle-domain names; meaning is reviewed against README.md / AGENTS.md.
+Checks: '-*,readability-identifier-naming'
+WarningsAsErrors: '*'
+HeaderFilterRegex: '(^|.*/)(src|tests|benchmarks)/.*'
+CheckOptions:
+  readability-identifier-naming.IgnoreMainLikeFunctions: false
+  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.MethodCase: lower_case
+  readability-identifier-naming.VariableCase: lower_case
+  readability-identifier-naming.ParameterCase: lower_case
+  readability-identifier-naming.MemberCase: lower_case
+  readability-identifier-naming.PrivateMemberCase: lower_case
+  readability-identifier-naming.PrivateMemberSuffix: _
+  readability-identifier-naming.ConstantCase: lower_case
+  readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.TypeAliasCase: CamelCase
+  readability-identifier-naming.TypeTemplateParameterCase: CamelCase

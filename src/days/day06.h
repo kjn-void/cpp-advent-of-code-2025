@@ -9,27 +9,27 @@
 
 class Day06 final : public Solution {
   public:
-    void set_input(const std::vector<std::string>& lines) override;
+    void set_input(const std::vector<std::string>& input_lines) override;
     std::string part1() override;
     std::string part2() override;
 
   private:
-    struct Block {
-        int start;
-        int end;
+    struct ProblemColumns {
+        int first_column;
+        int last_column;
     };
 
-    std::vector<std::string> grid_;
-    int R_ = 0;
-    int C_ = 0;
+    std::vector<std::string> worksheet_;
+    int row_count_ = 0;
+    int column_count_ = 0;
 
-    std::vector<Block> find_blocks() const;
-    char get_operator(const Block& b) const;
+    std::vector<ProblemColumns> find_problems() const;
+    char problem_operator(const ProblemColumns& problem) const;
 
-    std::vector<std::int64_t> extract_part1(const Block& b) const;
-    std::vector<std::int64_t> extract_part2(const Block& b) const;
+    std::vector<std::int64_t> read_numbers_by_row(const ProblemColumns& problem) const;
+    std::vector<std::int64_t> read_numbers_by_column(const ProblemColumns& problem) const;
 
-    template <typename Extractor> std::int64_t evaluate_blocks(Extractor&& extractor) const;
+    template <typename Function> std::int64_t grand_total(Function&& read_numbers) const;
 
-    static std::int64_t eval_numbers(std::span<const std::int64_t> nums, char op);
+    static std::int64_t evaluate_problem(std::span<const std::int64_t> numbers, char operation);
 };

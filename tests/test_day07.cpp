@@ -6,7 +6,7 @@
 // Example test data
 // ------------------------
 
-static const std::vector<std::string> day07_example_input = {
+static const std::vector<std::string> example_input = {
     ".......S.......", "...............", ".......^.......", "...............",
     "......^.^......", "...............", ".....^.^.^.....", "...............",
     "....^.^...^....", "...............", "...^.^...^.^...", "...............",
@@ -18,15 +18,15 @@ static const std::vector<std::string> day07_example_input = {
 // ------------------------
 
 TEST(Day07, ExamplePart1) {
-    Day07 d;
-    d.set_input(day07_example_input);
+    Day07 solver;
+    solver.set_input(example_input);
 
-    EXPECT_EQ(d.part1(), "21");
+    EXPECT_EQ(solver.part1(), "21");
 }
 
 TEST(Day07, ExamplePart2) {
-    Day07 d;
-    d.set_input(day07_example_input);
+    Day07 solver;
+    solver.set_input(example_input);
 
-    EXPECT_EQ(d.part2(), "40");
+    EXPECT_EQ(solver.part2(), "40");
 }

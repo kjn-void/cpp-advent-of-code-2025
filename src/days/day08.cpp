@@ -16,97 +16,109 @@ const core::DayRegistration<Day08> registration{8};
 // Parsing
 // -----------------------------------------------------------
 
-static Day08::Vec3 parse_vec3(const std::string& line) {
-    std::stringstream ss(line);
-    Day08::Vec3 v{};
+static Day08::JunctionBox parse_junction_box(const std::string& line) {
+    std::stringstream coordinates(line);
+    Day08::JunctionBox box{};
     char first_comma{}, second_comma{};
-    if (!(ss >> v.x >> first_comma >> v.y >> second_comma >> v.z) || first_comma != ',' ||
-        second_comma != ',' || !(ss >> std::ws).eof())
+    if (!(coordinates >> box.x >> first_comma >> box.y >> second_comma >> box.z) ||
+        first_comma != ',' || second_comma != ',' || !(coordinates >> std::ws).eof())
         throw std::invalid_argument("Expected three comma-separated coordinates");
-    return v;
+    return box;
 }
 
-void Day08::set_input(const std::vector<std::string>& lines) {
-    points.clear();
+void Day08::set_input(const std::vector<std::string>& input_lines) {
+    junction_boxes.clear();
 
-    for (const auto& ln : lines) {
-        if (!ln.empty()) {
-            points.push_back(parse_vec3(ln));
+    for (const auto& line : input_lines) {
+        if (!line.empty()) {
+            junction_boxes.push_back(parse_junction_box(line));
         }
     }
 
-    edges = build_sorted_edges(points);
+    connections = sorted_connections(junction_boxes);
 }
 
 // -----------------------------------------------------------
 // Distance & Edge Preparation
 // -----------------------------------------------------------
 
-std::int64_t Day08::squared_dist(const Vec3& a, const Vec3& b) {
-    std::int64_t total = 0;
-    const auto add_square = [&](std::int64_t left, std::int64_t right) {
+std::int64_t Day08::squared_distance(const JunctionBox& first_box, const JunctionBox& second_box) {
+    std::int64_t squared_distance = 0;
+    const auto add_squared_axis_distance = [&](std::int64_t first_coordinate,
+                                               std::int64_t second_coordinate) {
         // Unsigned subtraction also handles differences spanning the signed range.
-        const auto distance = left >= right ? std::uint64_t(left) - std::uint64_t(right)
-                                            : std::uint64_t(right) - std::uint64_t(left);
-        if (distance > 3037000499ULL)
+        const auto axis_distance =
+            first_coordinate >= second_coordinate
+                ? std::uint64_t(first_coordinate) - std::uint64_t(second_coordinate)
+                : std::uint64_t(second_coordinate) - std::uint64_t(first_coordinate);
+        if (axis_distance > 3037000499ULL)
             throw std::overflow_error("Squared distance exceeds int64_t");
-        const auto squared = static_cast<std::int64_t>(distance * distance);
-        if (squared > std::numeric_limits<std::int64_t>::max() - total)
+        const auto squared_axis_distance = static_cast<std::int64_t>(axis_distance * axis_distance);
+        if (squared_axis_distance > std::numeric_limits<std::int64_t>::max() - squared_distance)
             throw std::overflow_error("Squared distance exceeds int64_t");
-        total += squared;
+        squared_distance += squared_axis_distance;
     };
-    add_square(a.x, b.x);
-    add_square(a.y, b.y);
-    add_square(a.z, b.z);
-    return total;
+    add_squared_axis_distance(first_box.x, second_box.x);
+    add_squared_axis_distance(first_box.y, second_box.y);
+    add_squared_axis_distance(first_box.z, second_box.z);
+    return squared_distance;
 }
 
-std::vector<Day08::Edge> Day08::build_sorted_edges(std::span<const Vec3> pts) {
-    const int n = static_cast<int>(pts.size());
-    std::vector<Edge> out;
-    if (n > 1)
-        out.reserve(pts.size() * (pts.size() - 1) / 2);
+std::vector<Day08::Connection>
+Day08::sorted_connections(std::span<const JunctionBox> junction_boxes) {
+    const int box_count = static_cast<int>(junction_boxes.size());
+    std::vector<Connection> connections;
+    if (box_count > 1)
+        connections.reserve(junction_boxes.size() * (junction_boxes.size() - 1) / 2);
 
-    for (int i = 0; i < n; ++i) {
-        for (int j = i + 1; j < n; ++j) {
-            out.push_back({squared_dist(pts[i], pts[j]), i, j});
+    for (int first_box_index = 0; first_box_index < box_count; ++first_box_index) {
+        for (int second_box_index = first_box_index + 1; second_box_index < box_count;
+             ++second_box_index) {
+            connections.push_back({squared_distance(junction_boxes[first_box_index],
+                                                    junction_boxes[second_box_index]),
+                                   first_box_index, second_box_index});
         }
     }
 
-    std::ranges::sort(out, [](const Edge& a, const Edge& b) {
-        return std::tie(a.dist2, a.i, a.j) < std::tie(b.dist2, b.i, b.j);
-    });
+    std::ranges::sort(
+        connections, [](const Connection& first_connection, const Connection& second_connection) {
+            return std::tie(first_connection.squared_distance, first_connection.first_box_index,
+                            first_connection.second_box_index) <
+                   std::tie(second_connection.squared_distance, second_connection.first_box_index,
+                            second_connection.second_box_index);
+        });
 
-    return out;
+    return connections;
 }
 
 // -----------------------------------------------------------
 // DSU
 // -----------------------------------------------------------
 
-Day08::DSU::DSU(int n) : parent(n), size(n, 1) {
-    for (int i = 0; i < n; ++i)
-        parent[i] = i;
+Day08::CircuitSet::CircuitSet(int box_count)
+    : parent_by_box(box_count), box_count_by_root(box_count, 1) {
+    for (int first_box_index = 0; first_box_index < box_count; ++first_box_index)
+        parent_by_box[first_box_index] = first_box_index;
 }
 
-int Day08::DSU::find(int x) {
-    while (parent[x] != x) {
-        parent[x] = parent[parent[x]];
-        x = parent[x];
+int Day08::CircuitSet::find_circuit(int circuit_root) {
+    while (parent_by_box[circuit_root] != circuit_root) {
+        parent_by_box[circuit_root] = parent_by_box[parent_by_box[circuit_root]];
+        circuit_root = parent_by_box[circuit_root];
     }
-    return x;
+    return circuit_root;
 }
 
-bool Day08::DSU::unite(int a, int b) {
-    a = find(a);
-    b = find(b);
-    if (a == b)
+bool Day08::CircuitSet::join_circuits(int first_root, int second_root) {
+    first_root = find_circuit(first_root);
+    second_root = find_circuit(second_root);
+    if (first_root == second_root)
         return false;
 
-    if (size[a] < size[b])
-        std::swap(a, b);
-    parent[b] = a;
-    size[a] += size[b];
+    if (box_count_by_root[first_root] < box_count_by_root[second_root])
+        std::swap(first_root, second_root);
+    parent_by_box[second_root] = first_root;
+    box_count_by_root[first_root] += box_count_by_root[second_root];
     return true;
 }
 
@@ -114,48 +126,51 @@ bool Day08::DSU::unite(int a, int b) {
 // Core helpers
 // -----------------------------------------------------------
 
-std::vector<int> Day08::run_connections(std::span<const Vec3> pts, std::span<const Edge> eds,
-                                        int k) {
-    if (pts.empty())
+std::vector<int> Day08::circuit_sizes_after_connections(std::span<const JunctionBox> junction_boxes,
+                                                        std::span<const Connection> connections,
+                                                        int connection_limit) {
+    if (junction_boxes.empty())
         return {};
 
-    DSU uf(static_cast<int>(pts.size()));
-    k = std::min(k, static_cast<int>(eds.size()));
+    CircuitSet circuits(static_cast<int>(junction_boxes.size()));
+    connection_limit = std::min(connection_limit, static_cast<int>(connections.size()));
 
-    for (int i = 0; i < k; ++i) {
-        uf.unite(eds[i].i, eds[i].j);
+    for (int connection_index = 0; connection_index < connection_limit; ++connection_index) {
+        circuits.join_circuits(connections[connection_index].first_box_index,
+                               connections[connection_index].second_box_index);
     }
 
-    std::vector<int> sizes;
-    for (int i = 0; i < static_cast<int>(pts.size()); ++i) {
-        if (uf.find(i) == i)
-            sizes.push_back(uf.size[i]);
+    std::vector<int> circuit_sizes;
+    for (int first_box_index = 0; first_box_index < static_cast<int>(junction_boxes.size());
+         ++first_box_index) {
+        if (circuits.find_circuit(first_box_index) == first_box_index)
+            circuit_sizes.push_back(circuits.box_count_by_root[first_box_index]);
     }
 
-    std::ranges::sort(sizes, std::greater<>{});
-    return sizes;
+    std::ranges::sort(circuit_sizes, std::greater<>{});
+    return circuit_sizes;
 }
 
-std::pair<int, int> Day08::run_until_single_circuit(std::span<const Vec3> pts,
-                                                    std::span<const Edge> eds) {
-    if (pts.size() < 2)
+std::pair<int, int> Day08::connect_all_junction_boxes(std::span<const JunctionBox> junction_boxes,
+                                                      std::span<const Connection> connections) {
+    if (junction_boxes.size() < 2)
         return {0, 0};
 
-    DSU uf(static_cast<int>(pts.size()));
-    int components = static_cast<int>(pts.size());
-    int last_i = 0, last_j = 0;
+    CircuitSet circuits(static_cast<int>(junction_boxes.size()));
+    int circuit_count = static_cast<int>(junction_boxes.size());
+    int last_first_box_index = 0, last_second_box_index = 0;
 
-    for (const auto& e : eds) {
-        if (uf.unite(e.i, e.j)) {
-            --components;
-            last_i = e.i;
-            last_j = e.j;
-            if (components == 1)
+    for (const auto& connection : connections) {
+        if (circuits.join_circuits(connection.first_box_index, connection.second_box_index)) {
+            --circuit_count;
+            last_first_box_index = connection.first_box_index;
+            last_second_box_index = connection.second_box_index;
+            if (circuit_count == 1)
                 break;
         }
     }
 
-    return {last_i, last_j};
+    return {last_first_box_index, last_second_box_index};
 }
 
 // -----------------------------------------------------------
@@ -163,35 +178,38 @@ std::pair<int, int> Day08::run_until_single_circuit(std::span<const Vec3> pts,
 // -----------------------------------------------------------
 
 std::string Day08::part1() {
-    auto sizes = run_connections(points, edges, 1000);
-    if (sizes.size() < 3)
+    auto circuit_sizes = circuit_sizes_after_connections(junction_boxes, connections, 1000);
+    if (circuit_sizes.size() < 3)
         return "0";
 
-    std::int64_t result = std::int64_t(sizes[0]) * std::int64_t(sizes[1]) * std::int64_t(sizes[2]);
+    std::int64_t largest_circuits_product = std::int64_t(circuit_sizes[0]) *
+                                            std::int64_t(circuit_sizes[1]) *
+                                            std::int64_t(circuit_sizes[2]);
 
-    return std::to_string(result);
+    return std::to_string(largest_circuits_product);
 }
 
 std::string Day08::part2() {
-    if (points.size() < 2)
+    if (junction_boxes.size() < 2)
         return "0";
 
-    auto [i, j] = run_until_single_circuit(points, edges);
-    const auto a = points[i].x;
-    const auto b = points[j].x;
-    const auto magnitude = [](std::int64_t value) {
-        const auto bits = static_cast<std::uint64_t>(value);
-        return value < 0 ? std::uint64_t{0} - bits : bits;
+    auto [first_box_index, second_box_index] =
+        connect_all_junction_boxes(junction_boxes, connections);
+    const auto first_x = junction_boxes[first_box_index].x;
+    const auto second_x = junction_boxes[second_box_index].x;
+    const auto magnitude = [](std::int64_t signed_value) {
+        const auto bits = static_cast<std::uint64_t>(signed_value);
+        return signed_value < 0 ? std::uint64_t{0} - bits : bits;
     };
-    const bool negative = (a < 0) != (b < 0);
-    const auto limit =
+    const bool negative = (first_x < 0) != (second_x < 0);
+    const auto max_magnitude =
         static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) + negative;
-    const auto left = magnitude(a), right = magnitude(b);
-    if (right != 0 && left > limit / right)
+    const auto first_magnitude = magnitude(first_x), second_magnitude = magnitude(second_x);
+    if (second_magnitude != 0 && first_magnitude > max_magnitude / second_magnitude)
         throw std::overflow_error("Junction coordinate product exceeds int64_t");
-    const auto product = left * right;
-    if (negative && product == limit)
+    const auto product_magnitude = first_magnitude * second_magnitude;
+    if (negative && product_magnitude == max_magnitude)
         return std::to_string(std::numeric_limits<std::int64_t>::min());
-    const auto signed_product = static_cast<std::int64_t>(product);
+    const auto signed_product = static_cast<std::int64_t>(product_magnitude);
     return std::to_string(negative ? -signed_product : signed_product);
 }

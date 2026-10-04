@@ -16,35 +16,36 @@ const core::DayRegistration<Day04> registration{4};
 // ------------------------------------------------------------
 // Direction table (8 neighbors)
 // ------------------------------------------------------------
-static constexpr std::array<std::pair<int, int>, 8> DIRS{
+static constexpr std::array<std::pair<int, int>, 8> neighbor_offsets{
     {{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}}};
 
 // ------------------------------------------------------------
 
-void Day04::set_input(const std::vector<std::string>& lines) {
-    if (!lines.empty() && !std::ranges::all_of(lines, [&](const auto& row) {
-            return row.size() == lines.front().size();
+void Day04::set_input(const std::vector<std::string>& input_lines) {
+    if (!input_lines.empty() && !std::ranges::all_of(input_lines, [&](const auto& input_row) {
+            return input_row.size() == input_lines.front().size();
         }))
         throw std::invalid_argument("Paper roll grid must be rectangular");
-    grid_ = lines;
-    rows_ = static_cast<int>(grid_.size());
-    cols_ = rows_ ? static_cast<int>(grid_[0].size()) : 0;
+    paper_rolls_ = input_lines;
+    row_count_ = static_cast<int>(paper_rolls_.size());
+    column_count_ = row_count_ ? static_cast<int>(paper_rolls_[0].size()) : 0;
 }
 
 // ------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------
 
-int Day04::count_adjacent(int r, int c) const {
-    int count = 0;
-    for (auto [dr, dc] : DIRS) {
-        int nr = r + dr;
-        int nc = c + dc;
-        if (nr >= 0 && nr < rows_ && nc >= 0 && nc < cols_ && grid_[nr][nc] == '@') {
-            ++count;
+int Day04::count_adjacent_rolls(int row, int column) const {
+    int adjacent_roll_count = 0;
+    for (auto [row_offset, column_offset] : neighbor_offsets) {
+        int neighbor_row = row + row_offset;
+        int neighbor_column = column + column_offset;
+        if (neighbor_row >= 0 && neighbor_row < row_count_ && neighbor_column >= 0 &&
+            neighbor_column < column_count_ && paper_rolls_[neighbor_row][neighbor_column] == '@') {
+            ++adjacent_roll_count;
         }
     }
-    return count;
+    return adjacent_roll_count;
 }
 
 // ------------------------------------------------------------
@@ -52,19 +53,19 @@ int Day04::count_adjacent(int r, int c) const {
 // ------------------------------------------------------------
 
 std::string Day04::part1() {
-    if (rows_ == 0 || cols_ == 0)
+    if (row_count_ == 0 || column_count_ == 0)
         return "0";
 
-    int total = 0;
-    for (int r = 0; r < rows_; ++r) {
-        for (int c = 0; c < cols_; ++c) {
-            if (grid_[r][c] != '@')
+    int accessible_roll_count = 0;
+    for (int row = 0; row < row_count_; ++row) {
+        for (int column = 0; column < column_count_; ++column) {
+            if (paper_rolls_[row][column] != '@')
                 continue;
-            if (count_adjacent(r, c) < 4)
-                ++total;
+            if (count_adjacent_rolls(row, column) < 4)
+                ++accessible_roll_count;
         }
     }
-    return std::to_string(total);
+    return std::to_string(accessible_roll_count);
 }
 
 // ------------------------------------------------------------
@@ -72,65 +73,70 @@ std::string Day04::part1() {
 // ------------------------------------------------------------
 
 std::string Day04::part2() {
-    if (rows_ == 0 || cols_ == 0)
+    if (row_count_ == 0 || column_count_ == 0)
         return "0";
 
     // on-grid
-    std::vector<std::vector<bool>> on(rows_, std::vector<bool>(cols_, false));
-    for (int r = 0; r < rows_; ++r)
-        for (int c = 0; c < cols_; ++c)
-            on[r][c] = (grid_[r][c] == '@');
+    std::vector<std::vector<bool>> roll_present(row_count_,
+                                                std::vector<bool>(column_count_, false));
+    for (int row = 0; row < row_count_; ++row)
+        for (int column = 0; column < column_count_; ++column)
+            roll_present[row][column] = (paper_rolls_[row][column] == '@');
 
     // degree grid
-    std::vector<std::vector<int>> deg(rows_, std::vector<int>(cols_, 0));
-    for (int r = 0; r < rows_; ++r) {
-        for (int c = 0; c < cols_; ++c) {
-            if (!on[r][c])
+    std::vector<std::vector<int>> adjacent_roll_counts(row_count_,
+                                                       std::vector<int>(column_count_, 0));
+    for (int row = 0; row < row_count_; ++row) {
+        for (int column = 0; column < column_count_; ++column) {
+            if (!roll_present[row][column])
                 continue;
-            for (auto [dr, dc] : DIRS) {
-                int nr = r + dr;
-                int nc = c + dc;
-                if (nr >= 0 && nr < rows_ && nc >= 0 && nc < cols_ && on[nr][nc]) {
-                    ++deg[r][c];
+            for (auto [row_offset, column_offset] : neighbor_offsets) {
+                int neighbor_row = row + row_offset;
+                int neighbor_column = column + column_offset;
+                if (neighbor_row >= 0 && neighbor_row < row_count_ && neighbor_column >= 0 &&
+                    neighbor_column < column_count_ &&
+                    roll_present[neighbor_row][neighbor_column]) {
+                    ++adjacent_roll_counts[row][column];
                 }
             }
         }
     }
 
     struct Cell {
-        int r, c;
+        int row, column;
     };
-    std::queue<Cell> q;
+    std::queue<Cell> removable_rolls;
 
-    for (int r = 0; r < rows_; ++r)
-        for (int c = 0; c < cols_; ++c)
-            if (on[r][c] && deg[r][c] < 4)
-                q.push({r, c});
+    for (int row = 0; row < row_count_; ++row)
+        for (int column = 0; column < column_count_; ++column)
+            if (roll_present[row][column] && adjacent_roll_counts[row][column] < 4)
+                removable_rolls.push({row, column});
 
-    int removed = 0;
+    int removed_roll_count = 0;
 
-    while (!q.empty()) {
-        auto [r, c] = q.front();
-        q.pop();
+    while (!removable_rolls.empty()) {
+        auto [row, column] = removable_rolls.front();
+        removable_rolls.pop();
 
-        if (!on[r][c])
+        if (!roll_present[row][column])
             continue;
 
-        on[r][c] = false;
-        ++removed;
+        roll_present[row][column] = false;
+        ++removed_roll_count;
 
-        for (auto [dr, dc] : DIRS) {
-            int nr = r + dr;
-            int nc = c + dc;
-            if (nr < 0 || nr >= rows_ || nc < 0 || nc >= cols_)
+        for (auto [row_offset, column_offset] : neighbor_offsets) {
+            int neighbor_row = row + row_offset;
+            int neighbor_column = column + column_offset;
+            if (neighbor_row < 0 || neighbor_row >= row_count_ || neighbor_column < 0 ||
+                neighbor_column >= column_count_)
                 continue;
-            if (!on[nr][nc])
+            if (!roll_present[neighbor_row][neighbor_column])
                 continue;
 
-            if (--deg[nr][nc] == 3)
-                q.push({nr, nc});
+            if (--adjacent_roll_counts[neighbor_row][neighbor_column] == 3)
+                removable_rolls.push({neighbor_row, neighbor_column});
         }
     }
 
-    return std::to_string(removed);
+    return std::to_string(removed_roll_count);
 }

@@ -6,13 +6,13 @@ static std::vector<std::string> example_input() {
 }
 
 TEST(Day05, ExamplePart1) {
-    Day05 d;
-    d.set_input(example_input());
-    EXPECT_EQ(d.part1(), "3");
+    Day05 solver;
+    solver.set_input(example_input());
+    EXPECT_EQ(solver.part1(), "3");
 }
 
 TEST(Day05, ExamplePart2) {
-    Day05 d;
-    d.set_input(example_input());
-    EXPECT_EQ(d.part2(), "14");
+    Day05 solver;
+    solver.set_input(example_input());
+    EXPECT_EQ(solver.part2(), "14");
 }

@@ -11,19 +11,21 @@ namespace core {
 
 inline std::string_view trim(std::string_view text) {
     constexpr std::string_view whitespace = " \t\r\n";
-    const auto first = text.find_first_not_of(whitespace);
-    if (first == std::string_view::npos)
+    const auto first_non_whitespace = text.find_first_not_of(whitespace);
+    if (first_non_whitespace == std::string_view::npos)
         return {};
-    return text.substr(first, text.find_last_not_of(whitespace) - first + 1);
+    return text.substr(first_non_whitespace,
+                       text.find_last_not_of(whitespace) - first_non_whitespace + 1);
 }
 
-template <std::integral T> T parse_integer(std::string_view text) {
+template <std::integral Integer> Integer parse_integer(std::string_view text) {
     text = trim(text);
     if (text.empty())
         throw std::invalid_argument("Expected an integer");
-    T value{};
-    const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), value);
-    if (error != std::errc{} || end != text.data() + text.size()) {
+    Integer value{};
+    const auto [parsed_end, parse_error] =
+        std::from_chars(text.data(), text.data() + text.size(), value);
+    if (parse_error != std::errc{} || parsed_end != text.data() + text.size()) {
         throw std::invalid_argument("Invalid integer: " + std::string(text));
     }
     return value;

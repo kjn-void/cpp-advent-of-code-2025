@@ -1,7 +1,7 @@
 #include "days/day08.h"
 #include <gtest/gtest.h>
 
-static const std::vector<std::string> example_day08 = {
+static const std::vector<std::string> example_input = {
     "162,817,812", "57,618,57",   "906,360,560", "592,479,940", "352,342,300",
     "466,668,158", "542,29,236",  "431,825,988", "739,650,466", "52,470,668",
     "216,146,977", "819,987,18",  "117,168,530", "805,96,715",  "346,949,466",
@@ -9,19 +9,22 @@ static const std::vector<std::string> example_day08 = {
 };
 
 TEST(Day08, ExamplePart1) {
-    Day08 d;
-    d.set_input(example_day08);
+    Day08 solver;
+    solver.set_input(example_input);
 
     // Example uses 10 shortest connections
-    auto sizes = Day08::run_connections(d.points, d.edges, 10);
-    ASSERT_GE(sizes.size(), 3);
-    EXPECT_EQ(sizes[0] * sizes[1] * sizes[2], 40);
+    auto circuit_sizes =
+        Day08::circuit_sizes_after_connections(solver.junction_boxes, solver.connections, 10);
+    ASSERT_GE(circuit_sizes.size(), 3);
+    EXPECT_EQ(circuit_sizes[0] * circuit_sizes[1] * circuit_sizes[2], 40);
 }
 
 TEST(Day08, ExamplePart2) {
-    Day08 d;
-    d.set_input(example_day08);
+    Day08 solver;
+    solver.set_input(example_input);
 
-    auto [i, j] = Day08::run_until_single_circuit(d.points, d.edges);
-    EXPECT_EQ(d.points[i].x * d.points[j].x, 25272);
+    auto [first_box_index, second_box_index] =
+        Day08::connect_all_junction_boxes(solver.junction_boxes, solver.connections);
+    EXPECT_EQ(solver.junction_boxes[first_box_index].x * solver.junction_boxes[second_box_index].x,
+              25272);
 }

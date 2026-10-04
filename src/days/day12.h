@@ -8,7 +8,7 @@
 
 class Day12 final : public Solution {
   public:
-    void set_input(const std::vector<std::string>& lines) override;
+    void set_input(const std::vector<std::string>& input_lines) override;
     std::string part1() override;
     std::string part2() override;
 
@@ -17,42 +17,45 @@ class Day12 final : public Solution {
     // Data types
     // ------------------------------------------------------------
 
-    struct Point {
-        int x, y;
+    struct CellOffset {
+        int column_offset, row_offset;
     };
 
-    struct Variant {
+    struct PresentOrientation {
         int width, height;
-        std::vector<Point> cells;
+        std::vector<CellOffset> cell_offsets;
     };
 
-    struct Shape {
-        int area = 0;
-        std::vector<Variant> variants;
+    struct PresentShape {
+        int occupied_area = 0;
+        std::vector<PresentOrientation> orientations;
     };
 
-    struct Region {
+    struct TreeRegion {
         int width, height;
-        std::vector<int> counts;
+        std::vector<int> present_counts;
     };
 
-    std::vector<Shape> shapes;
-    std::vector<Region> regions;
+    std::vector<PresentShape> present_shapes_;
+    std::vector<TreeRegion> tree_regions_;
 
     // ------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------
 
-    static Shape build_shape(const std::vector<std::string>& rows);
-    static std::vector<std::vector<bool>> rotate_grid(const std::vector<std::vector<bool>>& g);
-    static std::vector<std::vector<bool>> flip_grid_h(const std::vector<std::vector<bool>>& g);
-    static Variant grid_to_variant(const std::vector<std::vector<bool>>& g);
-    static std::string variant_key(const Variant& v);
+    static PresentShape make_present_shape(const std::vector<std::string>& shape_rows);
+    static std::vector<std::vector<bool>>
+    rotate_clockwise(const std::vector<std::vector<bool>>& grid);
+    static std::vector<std::vector<bool>>
+    reflect_horizontally(const std::vector<std::vector<bool>>& grid);
+    static PresentOrientation grid_to_orientation(const std::vector<std::vector<bool>>& grid);
+    static std::string orientation_key(const PresentOrientation& orientation);
 
-    bool region_can_fit(const Region& r) const;
+    bool presents_fit(const TreeRegion& region) const;
 
-    bool can_pack_region(const Region& r) const;
-    bool pack(std::vector<bool>& board, std::vector<int>& counts,
-              const std::vector<std::vector<std::vector<std::size_t>>>& placements,
-              std::vector<std::size_t>& first_placement) const;
+    bool try_pack_region(const TreeRegion& region) const;
+    bool place_remaining_presents(
+        std::vector<bool>& occupied_cells, std::vector<int>& remaining_counts,
+        const std::vector<std::vector<std::vector<std::size_t>>>& placements_by_shape,
+        std::vector<std::size_t>& first_placement_by_shape) const;
 };

@@ -12,39 +12,42 @@
 
 class Day08 final : public Solution {
   public:
-    void set_input(const std::vector<std::string>& lines) override;
+    void set_input(const std::vector<std::string>& input_lines) override;
     std::string part1() override;
     std::string part2() override;
 
-    struct Vec3 {
+    struct JunctionBox {
         std::int64_t x, y, z;
     };
 
-    struct Edge {
-        std::int64_t dist2;
-        int i, j;
+    struct Connection {
+        std::int64_t squared_distance;
+        int first_box_index, second_box_index;
     };
 
-    std::vector<Vec3> points;
-    std::vector<Edge> edges;
+    std::vector<JunctionBox> junction_boxes;
+    std::vector<Connection> connections;
 
     // Helpers
-    static std::int64_t squared_dist(const Vec3& a, const Vec3& b);
-    static std::vector<Edge> build_sorted_edges(std::span<const Vec3> pts);
+    static std::int64_t squared_distance(const JunctionBox& first_box,
+                                         const JunctionBox& second_box);
+    static std::vector<Connection> sorted_connections(std::span<const JunctionBox> junction_boxes);
 
     // DSU
-    struct DSU {
-        std::vector<int> parent;
-        std::vector<int> size;
+    struct CircuitSet {
+        std::vector<int> parent_by_box;
+        std::vector<int> box_count_by_root;
 
-        explicit DSU(int n);
-        int find(int x);
-        bool unite(int a, int b);
+        explicit CircuitSet(int box_count);
+        int find_circuit(int circuit_root);
+        bool join_circuits(int first_root, int second_root);
     };
 
-    static std::vector<int> run_connections(std::span<const Vec3> points,
-                                            std::span<const Edge> edges, int k);
+    static std::vector<int>
+    circuit_sizes_after_connections(std::span<const JunctionBox> junction_boxes,
+                                    std::span<const Connection> connections, int connection_limit);
 
-    static std::pair<int, int> run_until_single_circuit(std::span<const Vec3> points,
-                                                        std::span<const Edge> edges);
+    static std::pair<int, int>
+    connect_all_junction_boxes(std::span<const JunctionBox> junction_boxes,
+                               std::span<const Connection> connections);
 };

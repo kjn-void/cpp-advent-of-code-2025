@@ -10,39 +10,40 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    int exitCode = 0;
+    int exit_code = 0;
 
-    for (int argIndex = 1; argIndex < argc; argIndex++) {
+    for (int argument_index = 1; argument_index < argc; argument_index++) {
         int day = 0;
         try {
-            day = core::parse_integer<int>(argv[argIndex]);
-        } catch (const std::exception& ex) {
-            std::cerr << "Invalid day argument '" << argv[argIndex] << "': " << ex.what() << "\n";
-            exitCode = 1;
+            day = core::parse_integer<int>(argv[argument_index]);
+        } catch (const std::exception& error) {
+            std::cerr << "Invalid day argument '" << argv[argument_index] << "': " << error.what()
+                      << "\n";
+            exit_code = 1;
             continue;
         }
 
         auto solver = Registry::instance().make(day);
         if (!solver) {
             std::cerr << "Day " << day << " not implemented\n";
-            exitCode = 1;
+            exit_code = 1;
             continue;
         }
 
         try {
-            auto lines = core::read_input(day);
-            solver->set_input(lines);
+            auto input_lines = core::read_input(day);
+            solver->set_input(input_lines);
 
-            const auto part1 = solver->part1();
-            const auto part2 = solver->part2();
+            const auto part1_answer = solver->part1();
+            const auto part2_answer = solver->part2();
             std::cout << "Day " << day << "\n";
-            std::cout << "  Part 1: " << part1 << "\n";
-            std::cout << "  Part 2: " << part2 << "\n";
-        } catch (const std::exception& ex) {
-            std::cerr << "Day " << day << " failed: " << ex.what() << "\n";
-            exitCode = 1;
+            std::cout << "  Part 1: " << part1_answer << "\n";
+            std::cout << "  Part 2: " << part2_answer << "\n";
+        } catch (const std::exception& error) {
+            std::cerr << "Day " << day << " failed: " << error.what() << "\n";
+            exit_code = 1;
         }
     }
 
-    return exitCode;
+    return exit_code;
 }

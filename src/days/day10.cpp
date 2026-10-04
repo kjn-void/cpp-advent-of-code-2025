@@ -19,87 +19,96 @@ const core::DayRegistration<Day10> registration{10};
 // Parsing helpers
 // ------------------------------------------------------------
 
-std::vector<int> Day10::parse_list(std::string_view s) {
-    std::vector<int> out;
-    if (s.size() < 2)
-        return out;
+std::vector<int> Day10::parse_integer_list(std::string_view list_text) {
+    std::vector<int> values;
+    if (list_text.size() < 2)
+        return values;
 
-    const auto inner = s.substr(1, s.size() - 2);
+    const auto list_contents = list_text.substr(1, list_text.size() - 2);
     std::string token;
-    std::istringstream ss(std::string{inner});
+    std::istringstream list_input(std::string{list_contents});
 
-    while (std::getline(ss, token, ',')) {
-        out.push_back(core::parse_integer<int>(token));
+    while (std::getline(list_input, token, ',')) {
+        values.push_back(core::parse_integer<int>(token));
     }
-    if (!inner.empty() && inner.back() == ',')
+    if (!list_contents.empty() && list_contents.back() == ',')
         throw std::invalid_argument("Trailing comma in machine list");
-    return out;
+    return values;
 }
 
-void Day10::set_input(const std::vector<std::string>& lines) {
-    machines.clear();
+void Day10::set_input(const std::vector<std::string>& input_lines) {
+    machines_.clear();
 
-    for (const auto& line : lines) {
+    for (const auto& line : input_lines) {
         if (line.empty())
             continue;
 
         // lights
-        auto lb = line.find('[');
-        auto rb = line.find(']');
-        if (lb == std::string::npos || rb == std::string::npos || rb <= lb)
+        auto lights_open = line.find('[');
+        auto lights_close = line.find(']');
+        if (lights_open == std::string::npos || lights_close == std::string::npos ||
+            lights_close <= lights_open)
             throw std::invalid_argument("Missing machine lights");
 
-        std::vector<int> lights;
-        for (char c : line.substr(lb + 1, rb - lb - 1)) {
-            if (c != '#' && c != '.')
+        std::vector<int> light_diagram;
+        for (char light_symbol : line.substr(lights_open + 1, lights_close - lights_open - 1)) {
+            if (light_symbol != '#' && light_symbol != '.')
                 throw std::invalid_argument("Invalid light state");
-            lights.push_back(c == '#' ? 1 : 0);
+            light_diagram.push_back(light_symbol == '#' ? 1 : 0);
         }
 
         // joltage
-        std::vector<int> joltage;
-        auto lcb = line.find('{');
-        auto rcb = line.find('}');
-        if (lcb == std::string::npos || rcb == std::string::npos || lcb <= rb || rcb <= lcb)
+        std::vector<int> joltage_requirements;
+        auto joltage_open = line.find('{');
+        auto joltage_close = line.find('}');
+        if (joltage_open == std::string::npos || joltage_close == std::string::npos ||
+            joltage_open <= lights_close || joltage_close <= joltage_open)
             throw std::invalid_argument("Missing machine joltage");
-        joltage = parse_list(line.substr(lcb, rcb - lcb + 1));
+        joltage_requirements =
+            parse_integer_list(line.substr(joltage_open, joltage_close - joltage_open + 1));
 
         // buttons
-        std::vector<std::vector<int>> buttons;
-        auto mid = core::trim(std::string_view(line).substr(rb + 1, lcb - rb - 1));
+        std::vector<std::vector<int>> button_wirings;
+        auto wiring_text = core::trim(
+            std::string_view(line).substr(lights_close + 1, joltage_open - lights_close - 1));
 
-        std::size_t pos = 0;
-        while (!mid.empty()) {
-            if (mid.front() != '(')
+        std::size_t button_open = 0;
+        while (!wiring_text.empty()) {
+            if (wiring_text.front() != '(')
                 throw std::invalid_argument("Expected a machine button");
-            auto end = mid.find(')', pos);
-            if (end == std::string::npos)
+            auto button_close = wiring_text.find(')', button_open);
+            if (button_close == std::string::npos)
                 throw std::invalid_argument("Unclosed machine button");
-            buttons.push_back(parse_list(mid.substr(pos, end - pos + 1)));
-            mid = core::trim(mid.substr(end + 1));
+            button_wirings.push_back(parse_integer_list(
+                wiring_text.substr(button_open, button_close - button_open + 1)));
+            wiring_text = core::trim(wiring_text.substr(button_close + 1));
         }
 
-        if (!core::trim(std::string_view(line).substr(0, lb)).empty() ||
-            !core::trim(std::string_view(line).substr(rcb + 1)).empty())
+        if (!core::trim(std::string_view(line).substr(0, lights_open)).empty() ||
+            !core::trim(std::string_view(line).substr(joltage_close + 1)).empty())
             throw std::invalid_argument("Unexpected text around machine");
-        if (lights.empty() || lights.size() != joltage.size() ||
-            std::ranges::any_of(joltage, [](int value) { return value < 0; }))
+        if (light_diagram.empty() || light_diagram.size() != joltage_requirements.size() ||
+            std::ranges::any_of(joltage_requirements,
+                                [](int required_joltage) { return required_joltage < 0; }))
             throw std::invalid_argument("Invalid machine targets");
-        for (auto& button : buttons) {
-            std::ranges::sort(button);
-            if (std::ranges::any_of(button,
-                                    [&](int index) {
-                                        return index < 0 ||
-                                               index >= static_cast<int>(lights.size());
+        for (auto& wiring : button_wirings) {
+            std::ranges::sort(wiring);
+            if (std::ranges::any_of(wiring,
+                                    [&](int counter_index) {
+                                        return counter_index < 0 ||
+                                               counter_index >=
+                                                   static_cast<int>(light_diagram.size());
                                     }) ||
-                std::adjacent_find(button.begin(), button.end()) != button.end())
+                std::adjacent_find(wiring.begin(), wiring.end()) != wiring.end())
                 throw std::invalid_argument("Invalid machine button index");
         }
         // Repeated or empty buttons cannot improve a minimum-press solution.
-        std::erase_if(buttons, [](const auto& button) { return button.empty(); });
-        std::ranges::sort(buttons);
-        buttons.erase(std::unique(buttons.begin(), buttons.end()), buttons.end());
-        machines.push_back({std::move(lights), std::move(joltage), std::move(buttons)});
+        std::erase_if(button_wirings, [](const auto& wiring) { return wiring.empty(); });
+        std::ranges::sort(button_wirings);
+        button_wirings.erase(std::unique(button_wirings.begin(), button_wirings.end()),
+                             button_wirings.end());
+        machines_.push_back(
+            {std::move(light_diagram), std::move(joltage_requirements), std::move(button_wirings)});
     }
 }
 
@@ -107,170 +116,189 @@ void Day10::set_input(const std::vector<std::string>& lines) {
 // Part 1 — GF(2) Gaussian elimination
 // ------------------------------------------------------------
 
-int Day10::solve_lights(const MachineData& m) {
-    int N = static_cast<int>(m.targetLights.size());
-    int M = static_cast<int>(m.buttons.size());
+int Day10::fewest_presses_for_lights(const MachineDefinition& machine) {
+    int light_count = static_cast<int>(machine.light_diagram.size());
+    int button_count = static_cast<int>(machine.button_wirings.size());
 
-    std::vector<std::vector<int>> mat(N, std::vector<int>(M + 1, 0));
-    for (int i = 0; i < N; ++i)
-        mat[i][M] = m.targetLights[i];
+    std::vector<std::vector<int>> light_equations(light_count,
+                                                  std::vector<int>(button_count + 1, 0));
+    for (int light_index = 0; light_index < light_count; ++light_index)
+        light_equations[light_index][button_count] = machine.light_diagram[light_index];
 
-    for (int j = 0; j < M; ++j)
-        for (int idx : m.buttons[j])
-            if (idx < N)
-                mat[idx][j] = 1;
+    for (int button_column = 0; button_column < button_count; ++button_column)
+        for (int light_index : machine.button_wirings[button_column])
+            if (light_index < light_count)
+                light_equations[light_index][button_column] = 1;
 
-    int row = 0;
-    std::vector<int> pivotCol(M, -1);
+    int pivot_row = 0;
+    std::vector<int> pivot_row_by_column(button_count, -1);
 
-    for (int col = 0; col < M && row < N; ++col) {
-        int sel = -1;
-        for (int r = row; r < N; ++r) {
-            if (mat[r][col]) {
-                sel = r;
+    for (int pivot_column = 0; pivot_column < button_count && pivot_row < light_count;
+         ++pivot_column) {
+        int selected_row = -1;
+        for (int row = pivot_row; row < light_count; ++row) {
+            if (light_equations[row][pivot_column]) {
+                selected_row = row;
                 break;
             }
         }
-        if (sel == -1)
+        if (selected_row == -1)
             continue;
 
-        std::swap(mat[row], mat[sel]);
-        pivotCol[col] = row;
+        std::swap(light_equations[pivot_row], light_equations[selected_row]);
+        pivot_row_by_column[pivot_column] = pivot_row;
 
-        for (int r = 0; r < N; ++r) {
-            if (r != row && mat[r][col]) {
-                for (int k = col; k <= M; ++k)
-                    mat[r][k] ^= mat[row][k];
+        for (int row = 0; row < light_count; ++row) {
+            if (row != pivot_row && light_equations[row][pivot_column]) {
+                for (int coefficient_column = pivot_column; coefficient_column <= button_count;
+                     ++coefficient_column)
+                    light_equations[row][coefficient_column] ^=
+                        light_equations[pivot_row][coefficient_column];
             }
         }
-        row++;
+        pivot_row++;
     }
 
-    for (int r = row; r < N; ++r) {
-        if (mat[r][M] != 0)
+    for (int row = pivot_row; row < light_count; ++row) {
+        if (light_equations[row][button_count] != 0)
             throw std::runtime_error("Unreachable light target");
     }
 
-    std::vector<int> freeVars;
-    for (int c = 0; c < M; ++c)
-        if (pivotCol[c] == -1)
-            freeVars.push_back(c);
+    std::vector<int> free_columns;
+    for (int button_column = 0; button_column < button_count; ++button_column)
+        if (pivot_row_by_column[button_column] == -1)
+            free_columns.push_back(button_column);
 
-    int best = M + 1;
-    std::vector<int> x(M, 0);
-    const auto search = [&](auto&& self, std::size_t index, int presses) -> void {
-        if (presses >= best)
+    int minimum_press_count = button_count + 1;
+    std::vector<int> button_parity(button_count, 0);
+    const auto search_parities = [&](auto&& recurse, std::size_t free_variable_index,
+                                     int press_count) -> void {
+        if (press_count >= minimum_press_count)
             return;
-        if (index < freeVars.size()) {
-            const int column = freeVars[index];
-            x[column] = 0;
-            self(self, index + 1, presses);
-            x[column] = 1;
-            self(self, index + 1, presses + 1);
+        if (free_variable_index < free_columns.size()) {
+            const int free_column = free_columns[free_variable_index];
+            button_parity[free_column] = 0;
+            recurse(recurse, free_variable_index + 1, press_count);
+            button_parity[free_column] = 1;
+            recurse(recurse, free_variable_index + 1, press_count + 1);
             return;
         }
-        for (int c = M - 1; c >= 0; --c) {
-            if (pivotCol[c] == -1)
+        for (int button_column = button_count - 1; button_column >= 0; --button_column) {
+            if (pivot_row_by_column[button_column] == -1)
                 continue;
-            const int r = pivotCol[c];
-            int value = mat[r][M];
-            for (int k = c + 1; k < M; ++k)
-                value ^= mat[r][k] & x[k];
-            x[c] = value;
-            presses += value;
+            const int row = pivot_row_by_column[button_column];
+            int press_parity = light_equations[row][button_count];
+            for (int coefficient_column = button_column + 1; coefficient_column < button_count;
+                 ++coefficient_column)
+                press_parity ^=
+                    light_equations[row][coefficient_column] & button_parity[coefficient_column];
+            button_parity[button_column] = press_parity;
+            press_count += press_parity;
         }
-        best = std::min(best, presses);
+        minimum_press_count = std::min(minimum_press_count, press_count);
     };
-    search(search, 0, 0);
+    search_parities(search_parities, 0, 0);
 
-    return best;
+    return minimum_press_count;
 }
 
 // ------------------------------------------------------------
 // Part 2 — exact integer recursion on the binary digits of press counts
 // ------------------------------------------------------------
 
-std::int64_t Day10::solve_joltage(const MachineData& machine) {
-    struct VectorHash {
-        std::size_t operator()(const std::vector<int>& values) const noexcept {
-            std::size_t hash = 0;
-            for (int value : values)
-                hash ^= std::hash<int>{}(value) + 0x9e3779b9U + (hash << 6) + (hash >> 2);
-            return hash;
+std::int64_t Day10::fewest_presses_for_joltage(const MachineDefinition& machine) {
+    struct CounterVectorHash {
+        std::size_t operator()(const std::vector<int>& counter_values) const noexcept {
+            std::size_t hash_value = 0;
+            for (int counter_value : counter_values)
+                hash_value ^= std::hash<int>{}(counter_value) + 0x9e3779b9U + (hash_value << 6) +
+                              (hash_value >> 2);
+            return hash_value;
         }
     };
-    struct Choice {
-        std::vector<int> increments;
-        int presses;
+    struct ParityChoice {
+        std::vector<int> counter_increments;
+        int press_count;
     };
 
-    const auto counters = machine.targetJoltage.size();
-    std::unordered_map<std::vector<int>, std::vector<Choice>, VectorHash> choices_by_parity;
-    std::vector<int> increments(counters, 0);
-    const auto enumerate = [&](auto&& self, std::size_t button, int presses) -> void {
-        if (button == machine.buttons.size()) {
-            auto parity = increments;
-            for (auto& value : parity)
-                value %= 2;
-            choices_by_parity[parity].push_back({increments, presses});
+    const auto counter_count = machine.joltage_requirements.size();
+    std::unordered_map<std::vector<int>, std::vector<ParityChoice>, CounterVectorHash>
+        choices_by_parity;
+    std::vector<int> counter_increments(counter_count, 0);
+    const auto enumerate_parities = [&](auto&& recurse, std::size_t button_index,
+                                        int press_count) -> void {
+        if (button_index == machine.button_wirings.size()) {
+            auto target_parity = counter_increments;
+            for (auto& counter_value : target_parity)
+                counter_value %= 2;
+            choices_by_parity[target_parity].push_back({counter_increments, press_count});
             return;
         }
-        self(self, button + 1, presses);
-        for (int counter : machine.buttons[button])
-            ++increments[counter];
-        self(self, button + 1, presses + 1);
-        for (int counter : machine.buttons[button])
-            --increments[counter];
+        recurse(recurse, button_index + 1, press_count);
+        for (int counter_index : machine.button_wirings[button_index])
+            ++counter_increments[counter_index];
+        recurse(recurse, button_index + 1, press_count + 1);
+        for (int counter_index : machine.button_wirings[button_index])
+            --counter_increments[counter_index];
     };
-    enumerate(enumerate, 0, 0);
+    enumerate_parities(enumerate_parities, 0, 0);
 
-    using Cost = std::optional<std::int64_t>;
-    std::unordered_map<std::vector<int>, Cost, VectorHash> memo;
-    const auto minimum_presses = [&](auto&& self, const std::vector<int>& target) -> Cost {
-        if (std::ranges::all_of(target, [](int value) { return value == 0; }))
+    using PressCountResult = std::optional<std::int64_t>;
+    std::unordered_map<std::vector<int>, PressCountResult, CounterVectorHash>
+        minimum_presses_by_target;
+    const auto minimum_presses =
+        [&](auto&& recurse, const std::vector<int>& remaining_joltage) -> PressCountResult {
+        if (std::ranges::all_of(remaining_joltage,
+                                [](int counter_value) { return counter_value == 0; }))
             return 0;
-        if (const auto cached = memo.find(target); cached != memo.end())
-            return cached->second;
+        if (const auto cached_cost = minimum_presses_by_target.find(remaining_joltage);
+            cached_cost != minimum_presses_by_target.end())
+            return cached_cost->second;
 
-        auto parity = target;
-        for (auto& value : parity)
-            value %= 2;
-        const auto choices = choices_by_parity.find(parity);
-        Cost best;
-        if (choices != choices_by_parity.end()) {
-            for (const auto& choice : choices->second) {
-                std::vector<int> half(counters);
+        auto target_parity = remaining_joltage;
+        for (auto& counter_value : target_parity)
+            counter_value %= 2;
+        const auto matching_choices = choices_by_parity.find(target_parity);
+        PressCountResult minimum_press_count;
+        if (matching_choices != choices_by_parity.end()) {
+            for (const auto& choice : matching_choices->second) {
+                std::vector<int> half_target(counter_count);
                 bool feasible = true;
-                for (std::size_t i = 0; i < counters; ++i) {
-                    if (choice.increments[i] > target[i]) {
+                for (std::size_t counter_index = 0; counter_index < counter_count;
+                     ++counter_index) {
+                    if (choice.counter_increments[counter_index] >
+                        remaining_joltage[counter_index]) {
                         feasible = false;
                         break;
                     }
-                    half[i] = (target[i] - choice.increments[i]) / 2;
+                    half_target[counter_index] = (remaining_joltage[counter_index] -
+                                                  choice.counter_increments[counter_index]) /
+                                                 2;
                 }
                 if (!feasible)
                     continue;
                 // Each press adds at most one to any counter.
-                const auto lower_bound = choice.presses + 2 * std::int64_t{std::ranges::max(half)};
-                if (best && lower_bound >= *best)
+                const auto press_count_lower_bound =
+                    choice.press_count + 2 * std::int64_t{std::ranges::max(half_target)};
+                if (minimum_press_count && press_count_lower_bound >= *minimum_press_count)
                     continue;
-                if (const auto remaining = self(self, half)) {
-                    const auto total = choice.presses + 2 * *remaining;
-                    if (!best || total < *best)
-                        best = total;
+                if (const auto remaining_press_count = recurse(recurse, half_target)) {
+                    const auto total_presses = choice.press_count + 2 * *remaining_press_count;
+                    if (!minimum_press_count || total_presses < *minimum_press_count)
+                        minimum_press_count = total_presses;
                 }
             }
         }
-        memo.emplace(target, best);
-        return best;
+        minimum_presses_by_target.emplace(remaining_joltage, minimum_press_count);
+        return minimum_press_count;
     };
 
     // Any press vector is uniquely x = odd + 2 * rest. Matching target parity
     // makes (target - A * odd) / 2 an exact, smaller integer subproblem.
-    const auto result = minimum_presses(minimum_presses, machine.targetJoltage);
-    if (!result)
+    const auto minimum_press_count = minimum_presses(minimum_presses, machine.joltage_requirements);
+    if (!minimum_press_count)
         throw std::runtime_error("Unreachable joltage target");
-    return *result;
+    return *minimum_press_count;
 }
 
 // ------------------------------------------------------------
@@ -278,25 +306,25 @@ std::int64_t Day10::solve_joltage(const MachineData& machine) {
 // ------------------------------------------------------------
 
 std::string Day10::part1() {
-    const std::int64_t total =
-        core::parallel_sum_indexed(machines.size(), [&](std::size_t i) -> std::int64_t {
-            const auto& m = machines[i];
-            if (m.targetLights.empty())
+    const std::int64_t total_presses = core::parallel_sum_indexed(
+        machines_.size(), [&](std::size_t machine_index) -> std::int64_t {
+            const auto& machine = machines_[machine_index];
+            if (machine.light_diagram.empty())
                 return 0;
-            return static_cast<std::int64_t>(solve_lights(m));
+            return static_cast<std::int64_t>(fewest_presses_for_lights(machine));
         });
 
-    return std::to_string(total);
+    return std::to_string(total_presses);
 }
 
 std::string Day10::part2() {
-    const std::int64_t total =
-        core::parallel_sum_indexed(machines.size(), [&](std::size_t i) -> std::int64_t {
-            const auto& m = machines[i];
-            if (m.targetJoltage.empty())
+    const std::int64_t total_presses = core::parallel_sum_indexed(
+        machines_.size(), [&](std::size_t machine_index) -> std::int64_t {
+            const auto& machine = machines_[machine_index];
+            if (machine.joltage_requirements.empty())
                 return 0;
-            return static_cast<std::int64_t>(solve_joltage(m));
+            return static_cast<std::int64_t>(fewest_presses_for_joltage(machine));
         });
 
-    return std::to_string(total);
+    return std::to_string(total_presses);
 }

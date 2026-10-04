@@ -12,21 +12,22 @@ const core::DayRegistration<Day07> registration{7};
 
 // ------------------------------------------------------------
 
-void Day07::set_input(const std::vector<std::string>& lines) {
-    grid_ = lines;
-    rows_ = static_cast<int>(grid_.size());
-    cols_ = 0;
-    start_col_ = -1;
-    for (const auto& row : grid_)
-        cols_ = std::max(cols_, static_cast<int>(row.size()));
-    if (cols_ == 0)
+void Day07::set_input(const std::vector<std::string>& input_lines) {
+    manifold_ = input_lines;
+    row_count_ = static_cast<int>(manifold_.size());
+    column_count_ = 0;
+    start_column_ = -1;
+    for (const auto& input_row : manifold_)
+        column_count_ = std::max(column_count_, static_cast<int>(input_row.size()));
+    if (column_count_ == 0)
         return;
-    for (auto& row : grid_)
-        row.resize(cols_, '.');
-    const auto start = grid_.front().find('S');
-    if (start == std::string::npos || grid_.front().find('S', start + 1) != std::string::npos)
+    for (auto& input_row : manifold_)
+        input_row.resize(column_count_, '.');
+    const auto start_column = manifold_.front().find('S');
+    if (start_column == std::string::npos ||
+        manifold_.front().find('S', start_column + 1) != std::string::npos)
         throw std::invalid_argument("Tachyon grid must have one start in its first row");
-    start_col_ = static_cast<int>(start);
+    start_column_ = static_cast<int>(start_column);
 }
 
 // ------------------------------------------------------------
@@ -34,38 +35,38 @@ void Day07::set_input(const std::vector<std::string>& lines) {
 // ------------------------------------------------------------
 
 std::string Day07::part1() {
-    if (start_col_ < 0)
+    if (start_column_ < 0)
         return "0";
-    std::vector<bool> bufA(cols_, false);
-    std::vector<bool> bufB(cols_, false);
+    std::vector<bool> beam_buffer_a(column_count_, false);
+    std::vector<bool> beam_buffer_b(column_count_, false);
 
-    auto* active = &bufA;
-    auto* next = &bufB;
+    auto* active_beams = &beam_buffer_a;
+    auto* next_beams = &beam_buffer_b;
 
-    (*active)[start_col_] = true;
+    (*active_beams)[start_column_] = true;
 
     int split_count = 0;
 
-    for (int r = 1; r < rows_; ++r) {
-        std::fill(next->begin(), next->end(), false);
-        const auto& row = grid_[r];
+    for (int row = 1; row < row_count_; ++row) {
+        std::fill(next_beams->begin(), next_beams->end(), false);
+        const auto& input_row = manifold_[row];
 
-        for (int c = 0; c < cols_; ++c) {
-            if (!(*active)[c])
+        for (int column = 0; column < column_count_; ++column) {
+            if (!(*active_beams)[column])
                 continue;
 
-            if (row[c] == '^') {
+            if (input_row[column] == '^') {
                 split_count++;
-                if (c > 0)
-                    (*next)[c - 1] = true;
-                if (c + 1 < cols_)
-                    (*next)[c + 1] = true;
+                if (column > 0)
+                    (*next_beams)[column - 1] = true;
+                if (column + 1 < column_count_)
+                    (*next_beams)[column + 1] = true;
             } else {
-                (*next)[c] = true;
+                (*next_beams)[column] = true;
             }
         }
 
-        std::swap(active, next);
+        std::swap(active_beams, next_beams);
     }
 
     return std::to_string(split_count);
@@ -76,44 +77,45 @@ std::string Day07::part1() {
 // ------------------------------------------------------------
 
 std::string Day07::part2() {
-    if (start_col_ < 0)
+    if (start_column_ < 0)
         return "0";
-    std::int64_t exited = 0;
-    std::vector<std::int64_t> bufA(cols_, 0);
-    std::vector<std::int64_t> bufB(cols_, 0);
+    std::int64_t exited_timelines = 0;
+    std::vector<std::int64_t> timeline_buffer_a(column_count_, 0);
+    std::vector<std::int64_t> timeline_buffer_b(column_count_, 0);
 
-    auto* active = &bufA;
-    auto* next = &bufB;
+    auto* active_timelines = &timeline_buffer_a;
+    auto* next_timelines = &timeline_buffer_b;
 
-    (*active)[start_col_] = 1;
+    (*active_timelines)[start_column_] = 1;
 
-    for (int r = 1; r < rows_; ++r) {
-        std::fill(next->begin(), next->end(), 0);
-        const auto& row = grid_[r];
+    for (int row = 1; row < row_count_; ++row) {
+        std::fill(next_timelines->begin(), next_timelines->end(), 0);
+        const auto& input_row = manifold_[row];
 
-        for (int c = 0; c < cols_; ++c) {
-            std::int64_t count = (*active)[c];
-            if (count == 0)
+        for (int column = 0; column < column_count_; ++column) {
+            std::int64_t timeline_count = (*active_timelines)[column];
+            if (timeline_count == 0)
                 continue;
 
-            if (row[c] == '^') {
-                if (c > 0)
-                    (*next)[c - 1] += count;
+            if (input_row[column] == '^') {
+                if (column > 0)
+                    (*next_timelines)[column - 1] += timeline_count;
                 else
-                    exited += count;
-                if (c + 1 < cols_)
-                    (*next)[c + 1] += count;
+                    exited_timelines += timeline_count;
+                if (column + 1 < column_count_)
+                    (*next_timelines)[column + 1] += timeline_count;
                 else
-                    exited += count;
+                    exited_timelines += timeline_count;
             } else {
-                (*next)[c] += count;
+                (*next_timelines)[column] += timeline_count;
             }
         }
 
-        std::swap(active, next);
+        std::swap(active_timelines, next_timelines);
     }
 
-    std::int64_t total = std::accumulate(active->begin(), active->end(), std::int64_t{0});
+    std::int64_t total_timelines =
+        std::accumulate(active_timelines->begin(), active_timelines->end(), std::int64_t{0});
 
-    return std::to_string(total + exited);
+    return std::to_string(total_timelines + exited_timelines);
 }

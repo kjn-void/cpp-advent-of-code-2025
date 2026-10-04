@@ -2,7 +2,7 @@
 #include "test_utils.h"
 #include <gtest/gtest.h>
 
-static const char* example = R"(
+static const char* example_text = R"(
 0:
 ###
 ##.
@@ -39,7 +39,7 @@ static const char* example = R"(
 )";
 
 TEST(Day12, ExamplePart1) {
-    Day12 d;
-    d.set_input(splitLines(example));
-    EXPECT_EQ(d.part1(), "2");
+    Day12 solver;
+    solver.set_input(split_lines(example_text));
+    EXPECT_EQ(solver.part1(), "2");
 }

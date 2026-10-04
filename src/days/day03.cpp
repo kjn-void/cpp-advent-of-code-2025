@@ -17,21 +17,21 @@ const core::DayRegistration<Day03> registration{3};
 // Input
 // ------------------------------------------------------------
 
-void Day03::set_input(const std::vector<std::string>& lines) {
-    banks.clear();
-    banks.reserve(lines.size());
+void Day03::set_input(const std::vector<std::string>& input_lines) {
+    battery_banks_.clear();
+    battery_banks_.reserve(input_lines.size());
 
-    for (const auto& line : lines) {
-        std::vector<int> digits;
-        digits.reserve(line.size());
+    for (const auto& line : input_lines) {
+        std::vector<int> battery_ratings;
+        battery_ratings.reserve(line.size());
 
-        for (char ch : line) {
-            if (ch < '0' || ch > '9')
+        for (char digit : line) {
+            if (digit < '0' || digit > '9')
                 throw std::invalid_argument("Battery bank must contain digits");
-            digits.push_back(ch - '0');
+            battery_ratings.push_back(digit - '0');
         }
 
-        banks.push_back(std::move(digits));
+        battery_banks_.push_back(std::move(battery_ratings));
     }
 }
 
@@ -40,55 +40,55 @@ void Day03::set_input(const std::vector<std::string>& lines) {
 // ------------------------------------------------------------
 
 std::string Day03::part1() {
-    return max_joltage(2);
+    return total_output_joltage(2);
 }
 
 std::string Day03::part2() {
-    return max_joltage(12);
+    return total_output_joltage(12);
 }
 
 // ------------------------------------------------------------
 // Core logic
 // ------------------------------------------------------------
 
-std::string Day03::max_joltage(int pick) const {
-    std::int64_t total = 0;
+std::string Day03::total_output_joltage(int batteries_to_select) const {
+    std::int64_t total_joltage = 0;
 
-    for (const auto& bank : banks) {
-        const int n = static_cast<int>(bank.size());
+    for (const auto& bank : battery_banks_) {
+        const int battery_count = static_cast<int>(bank.size());
 
-        int need = pick;
-        std::vector<int> stack;
-        stack.reserve(pick);
+        int batteries_needed = batteries_to_select;
+        std::vector<int> selected_ratings;
+        selected_ratings.reserve(batteries_to_select);
 
-        for (int i = 0; i < n; ++i) {
-            int dig = bank[i];
+        for (int battery_index = 0; battery_index < battery_count; ++battery_index) {
+            int rating = bank[battery_index];
 
-            int remaining = n - i;
-            bool can_pop = !stack.empty() && remaining > need;
+            int batteries_remaining = battery_count - battery_index;
+            bool can_discard = !selected_ratings.empty() && batteries_remaining > batteries_needed;
 
-            while (can_pop && stack.back() < dig) {
-                stack.pop_back();
-                ++need;
-                can_pop = !stack.empty() && remaining > need;
+            while (can_discard && selected_ratings.back() < rating) {
+                selected_ratings.pop_back();
+                ++batteries_needed;
+                can_discard = !selected_ratings.empty() && batteries_remaining > batteries_needed;
             }
 
-            if (need > 0) {
-                stack.push_back(dig);
-                --need;
+            if (batteries_needed > 0) {
+                selected_ratings.push_back(rating);
+                --batteries_needed;
             }
         }
 
-        total += stack_to_number(stack);
+        total_joltage += joltage_from_ratings(selected_ratings);
     }
 
-    return std::to_string(total);
+    return std::to_string(total_joltage);
 }
 
-std::int64_t Day03::stack_to_number(std::span<const int> stack) {
-    std::int64_t value = 0;
-    for (int d : stack) {
-        value = value * 10 + d;
+std::int64_t Day03::joltage_from_ratings(std::span<const int> selected_ratings) {
+    std::int64_t bank_joltage = 0;
+    for (int rating : selected_ratings) {
+        bank_joltage = bank_joltage * 10 + rating;
     }
-    return value;
+    return bank_joltage;
 }

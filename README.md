@@ -1,7 +1,8 @@
 # Advent of Code 2025 — C++20
 
 Solutions for days 1–12, with a command-line runner, GoogleTest tests, and Google
-Benchmark benchmarks. Requires CMake 3.20 or newer and a C++20 compiler.
+Benchmark benchmarks. Requires CMake 3.20 or newer and a C++20 compiler/standard library, including
+`std::jthread`. With Apple's toolchain, use Xcode/Command Line Tools 26 or newer.
 
 ## Build and run
 
@@ -62,6 +63,64 @@ cmake --build build-sanitize --parallel
 ctest --test-dir build-sanitize --output-on-failure
 ```
 
+## Development tools and naming checks
+
+Names follow the original [2025 puzzle descriptions](https://adventofcode.com/2025).
+Use descriptive `snake_case` for variables and functions, `PascalCase` for types,
+and a trailing underscore for private state. [AGENTS.md](AGENTS.md) defines the
+review rules and exceptions. For example, `pivot_row_by_column` identifies both
+sides of the mapping, while `remaining_counts` distinguishes the packing search
+state from a region's requested `present_counts`.
+
+On macOS, install the Xcode Command Line Tools (or select a full Xcode toolchain)
+and the following Homebrew packages:
+
+```sh
+xcode-select --install  # only when no Apple development toolchain is installed
+brew install cmake llvm clang-format python googletest google-benchmark
+```
+
+CMake drives builds; LLVM supplies `clang-tidy`; `clang-format` checks formatting;
+Python 3 runs the validation scripts without pip dependencies. GoogleTest and
+Google Benchmark supply the optional test and benchmark targets. The CLI itself
+requires only a C++20 compiler and CMake. The style script finds Homebrew's keg-only
+LLVM automatically and obtains Apple's SDK from `xcrun`. On other platforms,
+provide `clang-tidy`, `clang-format`, and Python 3 on PATH (or use the script's
+`--clang-tidy` and `--clang-format` options).
+
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_TESTING=ON -DAOC_BUILD_BENCHMARKS=ON
+python3 tools/test_style_guardrails.py
+python3 tools/check_style.py --build-dir build
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+```
+
+For workflow maintenance, the optional Homebrew tools used here are `actionlint`
+(to validate GitHub Actions YAML) and `gh` (to inspect remote CI runs after
+`gh auth login`). Homebrew also installs `shellcheck` for actionlint's shell checks:
+
+```sh
+brew install actionlint gh
+actionlint .github/workflows/ci.yml
+```
+
+Keep both optional targets enabled in the **lint build's** compilation database:
+the checker visits every first-party translation unit, including benchmark source
+and project headers. It fails on missing sources/tools, formatting violations,
+invalid names, or compiler diagnostics. `.clang-tidy` checks declaration capitalization and private-member suffixes;
+code review must still check that names match the puzzle and the actual values.
+The guardrail tests exercise valid/invalid declarations and missing compilation
+units. LLVM/clang-format 23.1.2 were used for local validation of this migration.
+
+[CI](.github/workflows/ci.yml) runs on macOS 26 on every push and pull request.
+This supplies the required C++20 thread library. It validates
+formatting and naming, runs all unit/CLI tests in Release and with ASan/UBSan, and
+checks the dependency-free CLI build. **CI neither builds nor runs the benchmark
+executable**; it configures and lints its source only. Actual benchmarks require
+the proper puzzle inputs and the reference M4 described below.
+
 ## Reference M4 benchmarks
 
 Measured on **2026-10-03** on the reference **Apple M4 (10 CPU cores, 16 GiB RAM)**,
@@ -101,6 +160,30 @@ cmake --build build --parallel --target benchmarks
 ```
 
 These are measurements for the saved puzzle inputs, not worst-case bounds.
+The naming migration preserves the algorithms; this table retains the measured
+cleanup results rather than presenting new timings for renamed code.
+
+## Puzzle vocabulary
+
+| Day and original problem | Names used in the implementation |
+| --- | --- |
+| [1: Secret Entrance](https://adventofcode.com/2025/day/1) | rotations, clicks, dial position, zero crossings |
+| [2: Gift Shop](https://adventofcode.com/2025/day/2) | product ID ranges, repeated digit blocks, invalid ID sum |
+| [3: Lobby](https://adventofcode.com/2025/day/3) | battery banks, selected ratings, output joltage |
+| [4: Printing Department](https://adventofcode.com/2025/day/4) | paper rolls, adjacent roll counts, removable rolls |
+| [5: Cafeteria](https://adventofcode.com/2025/day/5) | fresh ID ranges, available ingredient IDs |
+| [6: Trash Compactor](https://adventofcode.com/2025/day/6) | worksheet, problem columns, numbers, grand total |
+| [7: Laboratories](https://adventofcode.com/2025/day/7) | manifold, beams, splitters, timelines |
+| [8: Playground](https://adventofcode.com/2025/day/8) | junction boxes, connections, circuits |
+| [9: Movie Theater](https://adventofcode.com/2025/day/9) | red tiles, rectangle area, compressed vertices, boundary segments |
+| [10: Factory](https://adventofcode.com/2025/day/10) | light diagram, button wirings, joltage requirements, press counts |
+| [11: Reactor](https://adventofcode.com/2025/day/11) | devices, outputs, paths, required-device visits |
+| [12: Christmas Tree Farm](https://adventofcode.com/2025/day/12) | present shapes, orientations, tree regions, present counts |
+
+Coordinates (`x`, `y`, `z`) remain distinct from grid rows/columns and sequence
+indices. Inclusive endpoints use `first`/`last`; exclusive endpoints use `end`.
+Algorithm terms such as pivot rows, parity, and prefix sums remain explicit where
+they explain the implementation better than a story noun.
 
 ## Structure and conventions
 
@@ -113,7 +196,7 @@ These are measurements for the saved puzzle inputs, not worst-case bounds.
 Solvers implement `Solution::set_input`, `part1`, and `part2`. Calling either part
 repeatedly is supported; `set_input` replaces the previous input. An object library
 ensures the linker includes every day's static registration. Registration uses the
-constrained `core::DayRegistration<Day>` template.
+constrained `core::DayRegistration<DaySolver>` template.
 
 The implementation uses standard C++20 facilities, including ranges algorithms,
 `std::span` for non-owning helper parameters, `std::from_chars` for integer parsing,

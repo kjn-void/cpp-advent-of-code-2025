@@ -23,15 +23,15 @@ TEST(Parse, RejectsPartialAndOutOfRangeIntegers) {
 }
 
 TEST(ParallelSum, ProcessesEveryIndexExactlyOnce) {
-    std::vector<std::atomic_int> visits(1000);
-    EXPECT_EQ(core::parallel_sum_indexed(visits.size(),
-                                         [&](std::size_t i) {
-                                             ++visits[i];
-                                             return static_cast<std::int64_t>(i);
+    std::vector<std::atomic_int> visit_counts(1000);
+    EXPECT_EQ(core::parallel_sum_indexed(visit_counts.size(),
+                                         [&](std::size_t item_index) {
+                                             ++visit_counts[item_index];
+                                             return static_cast<std::int64_t>(item_index);
                                          }),
               499500);
-    for (const auto& visits_at_index : visits)
-        EXPECT_EQ(visits_at_index.load(), 1);
+    for (const auto& visit_count : visit_counts)
+        EXPECT_EQ(visit_count.load(), 1);
     EXPECT_EQ(core::parallel_sum_indexed(0, [](std::size_t) { return 99; }), 0);
     EXPECT_EQ(core::parallel_sum_indexed(1, [](std::size_t) { return 99; }), 99);
 }

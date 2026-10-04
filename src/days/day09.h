@@ -8,16 +8,16 @@
 
 class Day09 final : public Solution {
   public:
-    void set_input(const std::vector<std::string>& lines) override;
+    void set_input(const std::vector<std::string>& input_lines) override;
     std::string part1() override;
     std::string part2() override;
 
   private:
-    struct Pt {
+    struct Tile {
         int x, y;
     };
 
-    std::vector<Pt> reds;
+    std::vector<Tile> red_tiles_;
 
-    static std::int64_t max_area_inclusive(const std::vector<Pt>& points);
+    static std::int64_t largest_rectangle_area(const std::vector<Tile>& red_tiles);
 };

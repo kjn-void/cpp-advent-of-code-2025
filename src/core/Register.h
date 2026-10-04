@@ -8,9 +8,9 @@
 
 namespace core {
 
-template <std::derived_from<Solution> Day> struct DayRegistration {
+template <std::derived_from<Solution> DaySolver> struct DayRegistration {
     explicit DayRegistration(int day) {
-        Registry::instance().register_day(day, [] { return std::make_unique<Day>(); });
+        Registry::instance().register_day(day, [] { return std::make_unique<DaySolver>(); });
     }
 };
 

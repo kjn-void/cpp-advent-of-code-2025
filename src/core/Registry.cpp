@@ -4,8 +4,8 @@
 #include <algorithm>
 
 Registry& Registry::instance() {
-    static Registry inst;
-    return inst;
+    static Registry registry;
+    return registry;
 }
 
 void Registry::register_day(int day, Factory factory) {
@@ -13,8 +13,8 @@ void Registry::register_day(int day, Factory factory) {
 }
 
 std::unique_ptr<Solution> Registry::make(int day) const {
-    if (auto it = factories_.find(day); it != factories_.end()) {
-        return it->second();
+    if (auto factory_entry = factories_.find(day); factory_entry != factories_.end()) {
+        return factory_entry->second();
     }
     return nullptr;
 }
@@ -22,7 +22,7 @@ std::unique_ptr<Solution> Registry::make(int day) const {
 std::vector<int> Registry::implemented_days() const {
     std::vector<int> days;
     days.reserve(factories_.size());
-    for (const auto& [day, _] : factories_) {
+    for (const auto& [day, unused_factory] : factories_) {
         days.push_back(day);
     }
     std::ranges::sort(days);

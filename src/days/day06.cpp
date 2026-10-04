@@ -16,67 +16,67 @@ const core::DayRegistration<Day06> registration{6};
 // Input
 // -----------------------------------------------------------------------------
 
-void Day06::set_input(const std::vector<std::string>& lines) {
-    grid_ = lines;
+void Day06::set_input(const std::vector<std::string>& input_lines) {
+    worksheet_ = input_lines;
 
     // normalize width
-    C_ = 0;
-    for (const auto& row : grid_) {
-        C_ = std::max(C_, static_cast<int>(row.size()));
+    column_count_ = 0;
+    for (const auto& input_row : worksheet_) {
+        column_count_ = std::max(column_count_, static_cast<int>(input_row.size()));
     }
-    for (auto& row : grid_) {
-        if (static_cast<int>(row.size()) < C_) {
-            row.append(C_ - row.size(), ' ');
+    for (auto& input_row : worksheet_) {
+        if (static_cast<int>(input_row.size()) < column_count_) {
+            input_row.append(column_count_ - input_row.size(), ' ');
         }
     }
 
-    R_ = static_cast<int>(grid_.size());
+    row_count_ = static_cast<int>(worksheet_.size());
 }
 
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
 
-std::vector<Day06::Block> Day06::find_blocks() const {
-    std::vector<bool> blank(C_, true);
+std::vector<Day06::ProblemColumns> Day06::find_problems() const {
+    std::vector<bool> blank_columns(column_count_, true);
 
-    for (int c = 0; c < C_; ++c) {
-        for (int r = 0; r < R_; ++r) {
-            if (grid_[r][c] != ' ') {
-                blank[c] = false;
+    for (int column = 0; column < column_count_; ++column) {
+        for (int row = 0; row < row_count_; ++row) {
+            if (worksheet_[row][column] != ' ') {
+                blank_columns[column] = false;
                 break;
             }
         }
     }
 
-    std::vector<Block> blocks;
-    bool in_block = false;
-    int start = 0;
+    std::vector<ProblemColumns> problems;
+    bool in_problem = false;
+    int first_column = 0;
 
-    for (int c = 0; c < C_; ++c) {
-        if (!blank[c]) {
-            if (!in_block) {
-                in_block = true;
-                start = c;
+    for (int column = 0; column < column_count_; ++column) {
+        if (!blank_columns[column]) {
+            if (!in_problem) {
+                in_problem = true;
+                first_column = column;
             }
-        } else if (in_block) {
-            blocks.push_back({start, c - 1});
-            in_block = false;
+        } else if (in_problem) {
+            problems.push_back({first_column, column - 1});
+            in_problem = false;
         }
     }
 
-    if (in_block) {
-        blocks.push_back({start, C_ - 1});
+    if (in_problem) {
+        problems.push_back({first_column, column_count_ - 1});
     }
 
-    return blocks;
+    return problems;
 }
 
-char Day06::get_operator(const Block& b) const {
-    const auto& row = grid_[R_ - 1];
-    for (int c = b.start; c <= b.end; ++c) {
-        if (row[c] == '+' || row[c] == '*') {
-            return row[c];
+char Day06::problem_operator(const ProblemColumns& problem) const {
+    const auto& input_row = worksheet_[row_count_ - 1];
+    for (int column = problem.first_column; column <= problem.last_column; ++column) {
+        if (input_row[column] == '+' || input_row[column] == '*') {
+            return input_row[column];
         }
     }
     throw std::invalid_argument("Missing worksheet operator");
@@ -86,60 +86,61 @@ char Day06::get_operator(const Block& b) const {
 // Extractors
 // -----------------------------------------------------------------------------
 
-std::vector<std::int64_t> Day06::extract_part1(const Block& b) const {
-    std::vector<std::int64_t> nums;
-    nums.reserve(R_);
+std::vector<std::int64_t> Day06::read_numbers_by_row(const ProblemColumns& problem) const {
+    std::vector<std::int64_t> numbers;
+    numbers.reserve(row_count_);
 
-    for (int r = 0; r < R_ - 1; ++r) {
-        std::string s = grid_[r].substr(b.start, b.end - b.start + 1);
-        s.erase(0, s.find_first_not_of(' '));
-        s.erase(s.find_last_not_of(' ') + 1);
-        nums.push_back(core::parse_integer<std::int64_t>(s));
+    for (int row = 0; row < row_count_ - 1; ++row) {
+        std::string number_text = worksheet_[row].substr(
+            problem.first_column, problem.last_column - problem.first_column + 1);
+        number_text.erase(0, number_text.find_first_not_of(' '));
+        number_text.erase(number_text.find_last_not_of(' ') + 1);
+        numbers.push_back(core::parse_integer<std::int64_t>(number_text));
     }
-    return nums;
+    return numbers;
 }
 
-std::vector<std::int64_t> Day06::extract_part2(const Block& b) const {
-    std::vector<std::int64_t> nums;
-    nums.reserve(b.end - b.start + 1);
+std::vector<std::int64_t> Day06::read_numbers_by_column(const ProblemColumns& problem) const {
+    std::vector<std::int64_t> numbers;
+    numbers.reserve(problem.last_column - problem.first_column + 1);
 
-    for (int c = b.start; c <= b.end; ++c) {
-        std::string s;
-        for (int r = 0; r < R_ - 1; ++r) {
-            char ch = grid_[r][c];
-            if (ch != ' ')
-                s.push_back(ch);
+    for (int column = problem.first_column; column <= problem.last_column; ++column) {
+        std::string number_text;
+        for (int row = 0; row < row_count_ - 1; ++row) {
+            char digit = worksheet_[row][column];
+            if (digit != ' ')
+                number_text.push_back(digit);
         }
-        nums.push_back(core::parse_integer<std::int64_t>(s));
+        numbers.push_back(core::parse_integer<std::int64_t>(number_text));
     }
-    return nums;
+    return numbers;
 }
 
 // -----------------------------------------------------------------------------
 // Evaluation
 // -----------------------------------------------------------------------------
 
-std::int64_t Day06::eval_numbers(std::span<const std::int64_t> nums, char op) {
-    if (op == '+') {
+std::int64_t Day06::evaluate_problem(std::span<const std::int64_t> numbers, char operation) {
+    if (operation == '+') {
         std::int64_t sum = 0;
-        for (auto v : nums)
-            sum += v;
+        for (auto number : numbers)
+            sum += number;
         return sum;
     }
 
-    std::int64_t prod = 1;
-    for (auto v : nums)
-        prod *= v;
-    return prod;
+    std::int64_t product = 1;
+    for (auto number : numbers)
+        product *= number;
+    return product;
 }
 
-template <typename Extractor> std::int64_t Day06::evaluate_blocks(Extractor&& extractor) const {
+template <typename Function> std::int64_t Day06::grand_total(Function&& read_numbers) const {
     std::int64_t total = 0;
 
-    for (const auto& b : find_blocks()) {
-        auto nums = extractor(b);
-        char op = get_operator(b);
-        total += eval_numbers(nums, op);
+    for (const auto& problem : find_problems()) {
+        auto numbers = read_numbers(problem);
+        char operation = problem_operator(problem);
+        total += evaluate_problem(numbers, operation);
     }
     return total;
 }
@@ -149,9 +150,11 @@ template <typename Extractor> std::int64_t Day06::evaluate_blocks(Extractor&& ex
 // -----------------------------------------------------------------------------
 
 std::string Day06::part1() {
-    return std::to_string(evaluate_blocks([this](const Block& b) { return extract_part1(b); }));
+    return std::to_string(grand_total(
+        [this](const ProblemColumns& problem) { return read_numbers_by_row(problem); }));
 }
 
 std::string Day06::part2() {
-    return std::to_string(evaluate_blocks([this](const Block& b) { return extract_part2(b); }));
+    return std::to_string(grand_total(
+        [this](const ProblemColumns& problem) { return read_numbers_by_column(problem); }));
 }

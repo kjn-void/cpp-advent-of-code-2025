@@ -7,13 +7,13 @@ static std::vector<std::string> example_input() {
 }
 
 TEST(Day04, ExamplePart1) {
-    Day04 d;
-    d.set_input(example_input());
-    EXPECT_EQ(d.part1(), "13");
+    Day04 solver;
+    solver.set_input(example_input());
+    EXPECT_EQ(solver.part1(), "13");
 }
 
 TEST(Day04, ExamplePart2) {
-    Day04 d;
-    d.set_input(example_input());
-    EXPECT_EQ(d.part2(), "43");
+    Day04 solver;
+    solver.set_input(example_input());
+    EXPECT_EQ(solver.part2(), "43");
 }

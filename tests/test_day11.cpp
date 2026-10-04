@@ -2,7 +2,7 @@
 #include "test_utils.h"
 #include <gtest/gtest.h>
 
-static const char* example_part1 = R"(
+static const char* part1_example = R"(
 aaa: you hhh
 you: bbb ccc
 bbb: ddd eee
@@ -15,7 +15,7 @@ hhh: ccc fff iii
 iii: out
 )";
 
-static const char* example_part2 = R"(
+static const char* part2_example = R"(
 svr: aaa bbb
 aaa: fft
 fft: ccc
@@ -32,13 +32,13 @@ hhh: out
 )";
 
 TEST(Day11, ExamplePart1) {
-    Day11 d;
-    d.set_input(splitLines(example_part1));
-    EXPECT_EQ(d.part1(), "5");
+    Day11 solver;
+    solver.set_input(split_lines(part1_example));
+    EXPECT_EQ(solver.part1(), "5");
 }
 
 TEST(Day11, ExamplePart2) {
-    Day11 d;
-    d.set_input(splitLines(example_part2));
-    EXPECT_EQ(d.part2(), "2");
+    Day11 solver;
+    solver.set_input(split_lines(part2_example));
+    EXPECT_EQ(solver.part2(), "2");
 }

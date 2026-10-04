@@ -18,72 +18,76 @@ const core::DayRegistration<Day02> registration{2};
 // Helpers
 // ------------------------------------------------------------
 
-static constexpr std::array<std::uint64_t, 20> pow10_table() {
-    std::array<std::uint64_t, 20> t{};
-    std::uint64_t x = 1;
-    for (std::size_t i = 0; i < t.size(); ++i) {
-        t[i] = x;
-        if (i + 1 < t.size())
-            x *= 10;
+static constexpr std::array<std::uint64_t, 20> make_powers_of_ten() {
+    std::array<std::uint64_t, 20> powers{};
+    std::uint64_t power_of_ten = 1;
+    for (std::size_t exponent = 0; exponent < powers.size(); ++exponent) {
+        powers[exponent] = power_of_ten;
+        if (exponent + 1 < powers.size())
+            power_of_ten *= 10;
     }
-    return t;
+    return powers;
 }
 
-static constexpr auto POW10 = pow10_table();
+static constexpr auto powers_of_ten = make_powers_of_ten();
 
-int Day02::smallest_block(const std::string& s) {
-    const int n = static_cast<int>(s.size());
-    for (int k = 1; k <= n / 2; ++k) {
-        if (n % k != 0)
+int Day02::shortest_repeating_block_length(const std::string& digits) {
+    const int digit_count = static_cast<int>(digits.size());
+    for (int block_length = 1; block_length <= digit_count / 2; ++block_length) {
+        if (digit_count % block_length != 0)
             continue;
 
-        const std::string_view block{s.data(), static_cast<std::size_t>(k)};
-        bool ok = true;
+        const std::string_view digit_block{digits.data(), static_cast<std::size_t>(block_length)};
+        bool repeats = true;
 
-        for (int i = k; i < n; i += k) {
-            if (std::string_view{s.data() + i, static_cast<std::size_t>(k)} != block) {
-                ok = false;
+        for (int block_offset = block_length; block_offset < digit_count;
+             block_offset += block_length) {
+            if (std::string_view{digits.data() + block_offset,
+                                 static_cast<std::size_t>(block_length)} != digit_block) {
+                repeats = false;
                 break;
             }
         }
 
-        if (ok)
-            return k;
+        if (repeats)
+            return block_length;
     }
-    return n;
+    return digit_count;
 }
 
 // ------------------------------------------------------------
 // Input
 // ------------------------------------------------------------
 
-void Day02::set_input(const std::vector<std::string>& lines) {
-    ranges_.clear();
-    if (lines.empty())
+void Day02::set_input(const std::vector<std::string>& input_lines) {
+    product_id_ranges_.clear();
+    if (input_lines.empty())
         return;
 
-    const auto line = core::trim(lines.front());
+    const auto line = core::trim(input_lines.front());
     if (!line.empty() && line.back() == ',')
         throw std::invalid_argument("Trailing comma in ID ranges");
-    std::size_t pos = 0;
+    std::size_t range_offset = 0;
 
-    while (pos < line.size()) {
-        std::size_t comma = line.find(',', pos);
-        if (comma == std::string::npos)
-            comma = line.size();
+    while (range_offset < line.size()) {
+        std::size_t comma_offset = line.find(',', range_offset);
+        if (comma_offset == std::string::npos)
+            comma_offset = line.size();
 
-        std::string_view part(line.data() + pos, comma - pos);
-        std::size_t dash = part.find('-');
+        std::string_view id_range_text(line.data() + range_offset, comma_offset - range_offset);
+        std::size_t dash_offset = id_range_text.find('-');
 
-        if (dash == std::string_view::npos)
+        if (dash_offset == std::string_view::npos)
             throw std::invalid_argument("Expected an ID range");
-        const auto lo = core::parse_integer<std::int64_t>(part.substr(0, dash));
-        const auto hi = core::parse_integer<std::int64_t>(part.substr(dash + 1));
-        if (lo < 0 || hi < lo)
+        const auto first_id =
+            core::parse_integer<std::int64_t>(id_range_text.substr(0, dash_offset));
+        const auto last_id =
+            core::parse_integer<std::int64_t>(id_range_text.substr(dash_offset + 1));
+        if (first_id < 0 || last_id < first_id)
             throw std::invalid_argument("Invalid ID range");
 
-        ranges_.emplace_back(lo, hi);
-        pos = comma + 1;
+        product_id_ranges_.emplace_back(first_id, last_id);
+        range_offset = comma_offset + 1;
     }
 }
 
@@ -92,41 +96,43 @@ void Day02::set_input(const std::vector<std::string>& lines) {
 // ------------------------------------------------------------
 
 std::string Day02::part1() {
-    std::int64_t sum = 0;
+    std::int64_t invalid_id_sum = 0;
 
-    for (auto [L, R] : ranges_) {
-        int max_digits = static_cast<int>(std::to_string(R).size());
+    for (auto [first_id, last_id] : product_id_ranges_) {
+        int max_digit_count = static_cast<int>(std::to_string(last_id).size());
 
-        for (int k = 1; 2 * k <= max_digits; ++k) {
-            std::int64_t base = POW10[k];
-            std::int64_t rep = base + 1;
+        for (int block_length = 1; 2 * block_length <= max_digit_count; ++block_length) {
+            std::int64_t block_base = powers_of_ten[block_length];
+            std::int64_t repetition_factor = block_base + 1;
 
-            std::int64_t d_lo = POW10[k - 1];
-            std::int64_t d_hi = base - 1;
+            std::int64_t smallest_block = powers_of_ten[block_length - 1];
+            std::int64_t largest_block = block_base - 1;
 
-            std::int64_t cmin = L / rep + (L % rep != 0);
-            std::int64_t cmax = R / rep;
+            std::int64_t first_candidate =
+                first_id / repetition_factor + (first_id % repetition_factor != 0);
+            std::int64_t last_candidate = last_id / repetition_factor;
 
-            cmin = std::max(cmin, d_lo);
-            cmax = std::min(cmax, d_hi);
-            if (cmin > cmax)
+            first_candidate = std::max(first_candidate, smallest_block);
+            last_candidate = std::min(last_candidate, largest_block);
+            if (first_candidate > last_candidate)
                 continue;
 
             // Sum the arithmetic progression without enumerating every repeated ID.
-            auto count = cmax - cmin + 1;
-            auto endpoints = cmin + cmax;
-            if (count % 2 == 0)
-                count /= 2;
+            auto candidate_count = last_candidate - first_candidate + 1;
+            auto endpoint_sum = first_candidate + last_candidate;
+            if (candidate_count % 2 == 0)
+                candidate_count /= 2;
             else
-                endpoints /= 2;
-            const auto available = std::numeric_limits<std::int64_t>::max() - sum;
-            if (endpoints > available / rep / count)
+                endpoint_sum /= 2;
+            const auto remaining_sum_capacity =
+                std::numeric_limits<std::int64_t>::max() - invalid_id_sum;
+            if (endpoint_sum > remaining_sum_capacity / repetition_factor / candidate_count)
                 throw std::overflow_error("ID sum exceeds int64_t");
-            sum += endpoints * count * rep;
+            invalid_id_sum += endpoint_sum * candidate_count * repetition_factor;
         }
     }
 
-    return std::to_string(sum);
+    return std::to_string(invalid_id_sum);
 }
 
 // ------------------------------------------------------------
@@ -134,45 +140,49 @@ std::string Day02::part1() {
 // ------------------------------------------------------------
 
 std::string Day02::part2() {
-    std::int64_t total = 0;
+    std::int64_t invalid_id_sum = 0;
 
-    for (auto [L, R] : ranges_) {
-        int max_digits = static_cast<int>(std::to_string(R).size());
+    for (auto [first_id, last_id] : product_id_ranges_) {
+        int max_digit_count = static_cast<int>(std::to_string(last_id).size());
 
-        for (int total_digits = 2; total_digits <= max_digits; ++total_digits) {
-            const auto ten_len = POW10[total_digits];
+        for (int total_digits = 2; total_digits <= max_digit_count; ++total_digits) {
+            const auto total_digit_base = powers_of_ten[total_digits];
 
-            for (int m = 2; m <= total_digits; ++m) {
-                if (total_digits % m != 0)
+            for (int repetitions = 2; repetitions <= total_digits; ++repetitions) {
+                if (total_digits % repetitions != 0)
                     continue;
 
-                int k = total_digits / m;
-                std::int64_t base_k = POW10[k];
-                const auto rep = static_cast<std::int64_t>((ten_len - 1) / (base_k - 1));
+                int block_length = total_digits / repetitions;
+                std::int64_t block_base = powers_of_ten[block_length];
+                const auto repetition_factor =
+                    static_cast<std::int64_t>((total_digit_base - 1) / (block_base - 1));
 
-                std::int64_t d_lo = POW10[k - 1];
-                std::int64_t d_hi = base_k - 1;
+                std::int64_t smallest_block = powers_of_ten[block_length - 1];
+                std::int64_t largest_block = block_base - 1;
 
-                std::int64_t cmin = L / rep + (L % rep != 0);
-                std::int64_t cmax = R / rep;
+                std::int64_t first_candidate =
+                    first_id / repetition_factor + (first_id % repetition_factor != 0);
+                std::int64_t last_candidate = last_id / repetition_factor;
 
-                cmin = std::max(cmin, d_lo);
-                cmax = std::min(cmax, d_hi);
-                if (cmin > cmax)
+                first_candidate = std::max(first_candidate, smallest_block);
+                last_candidate = std::min(last_candidate, largest_block);
+                if (first_candidate > last_candidate)
                     continue;
 
-                for (std::int64_t d = cmin; d <= cmax; ++d) {
-                    std::string ds = std::to_string(d);
-                    if (smallest_block(ds) != static_cast<int>(ds.size()))
+                for (std::int64_t block_value = first_candidate; block_value <= last_candidate;
+                     ++block_value) {
+                    std::string block_text = std::to_string(block_value);
+                    if (shortest_repeating_block_length(block_text) !=
+                        static_cast<int>(block_text.size()))
                         continue;
-                    const auto value = d * rep;
-                    if (value > std::numeric_limits<std::int64_t>::max() - total)
+                    const auto repeated_id = block_value * repetition_factor;
+                    if (repeated_id > std::numeric_limits<std::int64_t>::max() - invalid_id_sum)
                         throw std::overflow_error("ID sum exceeds std::int64_t");
-                    total += value;
+                    invalid_id_sum += repeated_id;
                 }
             }
         }
     }
 
-    return std::to_string(total);
+    return std::to_string(invalid_id_sum);
 }
