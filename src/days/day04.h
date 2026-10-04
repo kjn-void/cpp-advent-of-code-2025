@@ -11,7 +11,7 @@ class Day04 final : public Solution {
     std::string part2() override;
 
   private:
-    std::vector<std::string> paper_rolls_;
+    std::vector<std::string> paper_roll_diagram_;
     int row_count_ = 0;
     int column_count_ = 0;
 

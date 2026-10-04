@@ -26,9 +26,9 @@ void Day04::set_input(const std::vector<std::string>& input_lines) {
             return input_row.size() == input_lines.front().size();
         }))
         throw std::invalid_argument("Paper roll grid must be rectangular");
-    paper_rolls_ = input_lines;
-    row_count_ = static_cast<int>(paper_rolls_.size());
-    column_count_ = row_count_ ? static_cast<int>(paper_rolls_[0].size()) : 0;
+    paper_roll_diagram_ = input_lines;
+    row_count_ = static_cast<int>(paper_roll_diagram_.size());
+    column_count_ = row_count_ ? static_cast<int>(paper_roll_diagram_[0].size()) : 0;
 }
 
 // ------------------------------------------------------------
@@ -41,7 +41,8 @@ int Day04::count_adjacent_rolls(int row, int column) const {
         int neighbor_row = row + row_offset;
         int neighbor_column = column + column_offset;
         if (neighbor_row >= 0 && neighbor_row < row_count_ && neighbor_column >= 0 &&
-            neighbor_column < column_count_ && paper_rolls_[neighbor_row][neighbor_column] == '@') {
+            neighbor_column < column_count_ &&
+            paper_roll_diagram_[neighbor_row][neighbor_column] == '@') {
             ++adjacent_roll_count;
         }
     }
@@ -59,7 +60,7 @@ std::string Day04::part1() {
     int accessible_roll_count = 0;
     for (int row = 0; row < row_count_; ++row) {
         for (int column = 0; column < column_count_; ++column) {
-            if (paper_rolls_[row][column] != '@')
+            if (paper_roll_diagram_[row][column] != '@')
                 continue;
             if (count_adjacent_rolls(row, column) < 4)
                 ++accessible_roll_count;
@@ -76,26 +77,24 @@ std::string Day04::part2() {
     if (row_count_ == 0 || column_count_ == 0)
         return "0";
 
-    // on-grid
-    std::vector<std::vector<bool>> roll_present(row_count_,
-                                                std::vector<bool>(column_count_, false));
+    // Rolls still in the diagram
+    std::vector<std::vector<bool>> has_roll(row_count_, std::vector<bool>(column_count_, false));
     for (int row = 0; row < row_count_; ++row)
         for (int column = 0; column < column_count_; ++column)
-            roll_present[row][column] = (paper_rolls_[row][column] == '@');
+            has_roll[row][column] = (paper_roll_diagram_[row][column] == '@');
 
-    // degree grid
+    // Adjacent roll count for each roll
     std::vector<std::vector<int>> adjacent_roll_counts(row_count_,
                                                        std::vector<int>(column_count_, 0));
     for (int row = 0; row < row_count_; ++row) {
         for (int column = 0; column < column_count_; ++column) {
-            if (!roll_present[row][column])
+            if (!has_roll[row][column])
                 continue;
             for (auto [row_offset, column_offset] : neighbor_offsets) {
                 int neighbor_row = row + row_offset;
                 int neighbor_column = column + column_offset;
                 if (neighbor_row >= 0 && neighbor_row < row_count_ && neighbor_column >= 0 &&
-                    neighbor_column < column_count_ &&
-                    roll_present[neighbor_row][neighbor_column]) {
+                    neighbor_column < column_count_ && has_roll[neighbor_row][neighbor_column]) {
                     ++adjacent_roll_counts[row][column];
                 }
             }
@@ -109,7 +108,7 @@ std::string Day04::part2() {
 
     for (int row = 0; row < row_count_; ++row)
         for (int column = 0; column < column_count_; ++column)
-            if (roll_present[row][column] && adjacent_roll_counts[row][column] < 4)
+            if (has_roll[row][column] && adjacent_roll_counts[row][column] < 4)
                 removable_rolls.push({row, column});
 
     int removed_roll_count = 0;
@@ -118,10 +117,10 @@ std::string Day04::part2() {
         auto [row, column] = removable_rolls.front();
         removable_rolls.pop();
 
-        if (!roll_present[row][column])
+        if (!has_roll[row][column])
             continue;
 
-        roll_present[row][column] = false;
+        has_roll[row][column] = false;
         ++removed_roll_count;
 
         for (auto [row_offset, column_offset] : neighbor_offsets) {
@@ -130,7 +129,7 @@ std::string Day04::part2() {
             if (neighbor_row < 0 || neighbor_row >= row_count_ || neighbor_column < 0 ||
                 neighbor_column >= column_count_)
                 continue;
-            if (!roll_present[neighbor_row][neighbor_column])
+            if (!has_roll[neighbor_row][neighbor_column])
                 continue;
 
             if (--adjacent_roll_counts[neighbor_row][neighbor_column] == 3)

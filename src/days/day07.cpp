@@ -26,7 +26,7 @@ void Day07::set_input(const std::vector<std::string>& input_lines) {
     const auto start_column = manifold_.front().find('S');
     if (start_column == std::string::npos ||
         manifold_.front().find('S', start_column + 1) != std::string::npos)
-        throw std::invalid_argument("Tachyon grid must have one start in its first row");
+        throw std::invalid_argument("Tachyon manifold must have one start in its first row");
     start_column_ = static_cast<int>(start_column);
 }
 

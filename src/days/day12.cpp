@@ -63,11 +63,11 @@ void Day12::set_input(const std::vector<std::string>& input_lines) {
             for (std::string count_text; counts_input >> count_text;) {
                 const auto present_count = core::parse_integer<int>(count_text);
                 if (present_count < 0)
-                    throw std::invalid_argument("Shape counts must be nonnegative");
+                    throw std::invalid_argument("Present counts must be nonnegative");
                 present_counts.push_back(present_count);
             }
             if (present_counts.size() != present_shapes_.size())
-                throw std::invalid_argument("Expected one count per shape");
+                throw std::invalid_argument("Expected one present count per shape");
             tree_regions_.push_back({width, height, std::move(present_counts)});
         }
     }
@@ -101,8 +101,8 @@ Day12::PresentShape Day12::make_present_shape(const std::vector<std::string>& sh
                 (reflection_index == 0) ? rotated_grid : reflect_horizontally(rotated_grid);
             auto orientation = grid_to_orientation(reflected_grid);
             if (!orientation.cell_offsets.empty()) {
-                auto variant_key_text = orientation_key(orientation);
-                if (orientation_keys.insert(variant_key_text).second)
+                auto orientation_key_text = orientation_key(orientation);
+                if (orientation_keys.insert(orientation_key_text).second)
                     orientations.push_back(std::move(orientation));
             }
         }
@@ -118,22 +118,22 @@ Day12::PresentShape Day12::make_present_shape(const std::vector<std::string>& sh
 std::vector<std::vector<bool>> Day12::rotate_clockwise(const std::vector<std::vector<bool>>& grid) {
     int height = grid.size();
     int width = grid[0].size();
-    std::vector<std::vector<bool>> result(width, std::vector<bool>(height));
+    std::vector<std::vector<bool>> rotated_grid(width, std::vector<bool>(height));
     for (int row = 0; row < height; ++row)
         for (int column = 0; column < width; ++column)
-            result[column][height - 1 - row] = grid[row][column];
-    return result;
+            rotated_grid[column][height - 1 - row] = grid[row][column];
+    return rotated_grid;
 }
 
 std::vector<std::vector<bool>>
 Day12::reflect_horizontally(const std::vector<std::vector<bool>>& grid) {
     int height = grid.size();
     int width = grid[0].size();
-    std::vector<std::vector<bool>> result(height, std::vector<bool>(width));
+    std::vector<std::vector<bool>> reflected_grid(height, std::vector<bool>(width));
     for (int row = 0; row < height; ++row)
         for (int column = 0; column < width; ++column)
-            result[row][width - 1 - column] = grid[row][column];
-    return result;
+            reflected_grid[row][width - 1 - column] = grid[row][column];
+    return reflected_grid;
 }
 
 Day12::PresentOrientation Day12::grid_to_orientation(const std::vector<std::vector<bool>>& grid) {
@@ -185,7 +185,8 @@ std::string Day12::part1() {
 }
 
 std::string Day12::part2() {
-    return "0"; // Day 12 has no second computational puzzle.
+    // Day 12 has no second puzzle; its star is awarded once the other 23 are earned.
+    return "0";
 }
 
 bool Day12::presents_fit(const TreeRegion& region) const {
@@ -217,14 +218,14 @@ bool Day12::presents_fit(const TreeRegion& region) const {
     const auto slot_count = std::int64_t{region.width / slot_width} * (region.height / slot_height);
     if (present_count <= slot_count)
         return true;
-    return try_pack_region(region);
+    return can_pack_region(region);
 }
 
 // ------------------------------------------------------------
 // Exact packing when area and bounding boxes do not decide the result
 // ------------------------------------------------------------
 
-bool Day12::try_pack_region(const TreeRegion& region) const {
+bool Day12::can_pack_region(const TreeRegion& region) const {
     int width = region.width, height = region.height;
     std::vector<std::vector<std::vector<std::size_t>>> placements_by_shape(present_shapes_.size());
 
@@ -259,42 +260,43 @@ bool Day12::place_remaining_presents(
     const auto free_cell_count = std::ranges::count(occupied_cells, false);
 
     std::int64_t required_area = 0;
-    bool all_placed = true;
+    bool all_presents_placed = true;
     for (std::size_t shape_index = 0;
          shape_index < remaining_counts.size() && shape_index < present_shapes_.size();
          ++shape_index) {
         if (remaining_counts[shape_index] > 0) {
-            all_placed = false;
+            all_presents_placed = false;
             required_area += std::int64_t{remaining_counts[shape_index]} *
                              present_shapes_[shape_index].occupied_area;
         }
     }
 
-    if (all_placed)
+    if (all_presents_placed)
         return true;
     if (required_area > free_cell_count)
         return false;
 
-    std::size_t chosen_shape_index = 0, fewest_placements = std::numeric_limits<std::size_t>::max();
+    std::size_t chosen_shape_index = 0,
+                fewest_feasible_placements = std::numeric_limits<std::size_t>::max();
 
     for (std::size_t shape_index = 0; shape_index < remaining_counts.size(); ++shape_index) {
         if (remaining_counts[shape_index] <= 0)
             continue;
-        std::size_t feasible_placements = 0;
+        std::size_t feasible_placement_count = 0;
         for (std::size_t placement_index = first_placement_by_shape[shape_index];
              placement_index < placements_by_shape[shape_index].size(); ++placement_index) {
             const auto& placement = placements_by_shape[shape_index][placement_index];
             if (std::all_of(placement.begin(), placement.end(),
                             [&](std::size_t cell_index) { return !occupied_cells[cell_index]; })) {
-                ++feasible_placements;
-                if (feasible_placements >= fewest_placements)
+                ++feasible_placement_count;
+                if (feasible_placement_count >= fewest_feasible_placements)
                     break;
             }
         }
-        if (feasible_placements == 0)
+        if (feasible_placement_count == 0)
             return false;
-        if (feasible_placements < fewest_placements) {
-            fewest_placements = feasible_placements;
+        if (feasible_placement_count < fewest_feasible_placements) {
+            fewest_feasible_placements = feasible_placement_count;
             chosen_shape_index = shape_index;
         }
     }

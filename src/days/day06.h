@@ -24,12 +24,12 @@ class Day06 final : public Solution {
     int column_count_ = 0;
 
     std::vector<ProblemColumns> find_problems() const;
-    char problem_operator(const ProblemColumns& problem) const;
+    char problem_operation(const ProblemColumns& problem) const;
 
     std::vector<std::int64_t> read_numbers_by_row(const ProblemColumns& problem) const;
     std::vector<std::int64_t> read_numbers_by_column(const ProblemColumns& problem) const;
 
-    template <typename Function> std::int64_t grand_total(Function&& read_numbers) const;
+    template <typename NumberReader> std::int64_t grand_total(NumberReader&& read_numbers) const;
 
     static std::int64_t evaluate_problem(std::span<const std::int64_t> numbers, char operation);
 };

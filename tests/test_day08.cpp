@@ -12,9 +12,9 @@ TEST(Day08, ExamplePart1) {
     Day08 solver;
     solver.set_input(example_input);
 
-    // Example uses 10 shortest connections
+    // The example connects the 10 closest pairs.
     auto circuit_sizes =
-        Day08::circuit_sizes_after_connections(solver.junction_boxes, solver.connections, 10);
+        Day08::circuit_sizes_after_connections(solver.junction_boxes, solver.pairs_by_distance, 10);
     ASSERT_GE(circuit_sizes.size(), 3);
     EXPECT_EQ(circuit_sizes[0] * circuit_sizes[1] * circuit_sizes[2], 40);
 }
@@ -23,8 +23,9 @@ TEST(Day08, ExamplePart2) {
     Day08 solver;
     solver.set_input(example_input);
 
-    auto [first_box_index, second_box_index] =
-        Day08::connect_all_junction_boxes(solver.junction_boxes, solver.connections);
-    EXPECT_EQ(solver.junction_boxes[first_box_index].x * solver.junction_boxes[second_box_index].x,
+    const auto final_connection =
+        Day08::connect_all_junction_boxes(solver.junction_boxes, solver.pairs_by_distance);
+    EXPECT_EQ(solver.junction_boxes[final_connection.first_box_index].x *
+                  solver.junction_boxes[final_connection.second_box_index].x,
               25272);
 }

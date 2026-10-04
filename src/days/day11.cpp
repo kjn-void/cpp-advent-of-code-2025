@@ -9,6 +9,10 @@
 // Registration
 namespace {
 const core::DayRegistration<Day11> registration{11};
+
+constexpr int first_required_visit_bit = 1;
+constexpr int second_required_visit_bit = 2;
+constexpr int all_required_visits_mask = first_required_visit_bit | second_required_visit_bit;
 } // namespace
 
 // ------------------------------------------------------------
@@ -50,7 +54,7 @@ void Day11::set_input(const std::vector<std::string>& input_lines) {
 std::int64_t
 Day11::count_paths_from(const std::string& device,
                         std::unordered_map<std::string, std::int64_t>& path_counts_by_device,
-                        std::unordered_set<std::string>& active_devices) {
+                        std::unordered_set<std::string>& devices_on_path) {
     if (device == "out") {
         return 1;
     }
@@ -60,17 +64,17 @@ Day11::count_paths_from(const std::string& device,
     }
 
     // cycle guard (should not happen for valid input)
-    if (!active_devices.insert(device).second) {
+    if (!devices_on_path.insert(device).second) {
         throw std::invalid_argument("Device graph contains a cycle");
     }
 
     std::int64_t path_count = 0;
     if (const auto found = outputs_by_device_.find(device); found != outputs_by_device_.end()) {
         for (const auto& next_device : found->second)
-            path_count += count_paths_from(next_device, path_counts_by_device, active_devices);
+            path_count += count_paths_from(next_device, path_counts_by_device, devices_on_path);
     }
 
-    active_devices.erase(device);
+    devices_on_path.erase(device);
     path_counts_by_device[device] = path_count;
     return path_count;
 }
@@ -81,67 +85,67 @@ std::string Day11::part1() {
     }
 
     std::unordered_map<std::string, std::int64_t> path_counts_by_device;
-    std::unordered_set<std::string> active_devices;
+    std::unordered_set<std::string> devices_on_path;
 
-    std::int64_t path_count = count_paths_from("you", path_counts_by_device, active_devices);
+    std::int64_t path_count = count_paths_from("you", path_counts_by_device, devices_on_path);
     return std::to_string(path_count);
 }
 
 // ------------------------------------------------------------
-// Part 2 — paths that visit both required nodes
+// Part 2 — paths from "svr" to "out" that visit both "dac" and "fft"
 // ------------------------------------------------------------
 
-std::int64_t Day11::count_paths_with_required(const std::string& start_device,
-                                              const std::string& end_device,
-                                              const std::string& first_required_device,
-                                              const std::string& second_required_device) {
+std::int64_t Day11::count_paths_through_required_devices(
+    const std::string& start_device, const std::string& end_device,
+    const std::string& first_required_device, const std::string& second_required_device) {
     if (outputs_by_device_.empty()) {
         return 0;
     }
 
     std::unordered_map<VisitState, std::int64_t, VisitStateHash> path_counts_by_state;
-    std::unordered_set<VisitState, VisitStateHash> active_states;
+    std::unordered_set<VisitState, VisitStateHash> states_on_path;
 
-    int initial_visits = 0;
+    int initial_visit_mask = 0;
     if (start_device == first_required_device)
-        initial_visits |= 1;
+        initial_visit_mask |= first_required_visit_bit;
     if (start_device == second_required_device)
-        initial_visits |= 2;
+        initial_visit_mask |= second_required_visit_bit;
 
     const auto count_paths = [&](auto&& recurse, const std::string& device,
-                                 int visited_required_devices) -> std::int64_t {
-        VisitState state{device, visited_required_devices};
+                                 int required_visit_mask) -> std::int64_t {
+        VisitState state{device, required_visit_mask};
 
         if (auto found = path_counts_by_state.find(state); found != path_counts_by_state.end()) {
             return found->second;
         }
 
         if (device == end_device) {
-            return path_counts_by_state[state] = (visited_required_devices == 3 ? 1 : 0);
+            return path_counts_by_state[state] =
+                       (required_visit_mask == all_required_visits_mask ? 1 : 0);
         }
 
-        if (!active_states.insert(state).second)
+        if (!states_on_path.insert(state).second)
             throw std::invalid_argument("Device graph contains a cycle");
         std::int64_t path_count = 0;
         if (const auto found = outputs_by_device_.find(device); found != outputs_by_device_.end()) {
             for (const auto& next_device : found->second) {
-                int next_visits = visited_required_devices;
+                int next_visit_mask = required_visit_mask;
                 if (next_device == first_required_device)
-                    next_visits |= 1;
+                    next_visit_mask |= first_required_visit_bit;
                 if (next_device == second_required_device)
-                    next_visits |= 2;
-                path_count += recurse(recurse, next_device, next_visits);
+                    next_visit_mask |= second_required_visit_bit;
+                path_count += recurse(recurse, next_device, next_visit_mask);
             }
         }
-        active_states.erase(state);
+        states_on_path.erase(state);
         path_counts_by_state[state] = path_count;
         return path_count;
     };
 
-    return count_paths(count_paths, start_device, initial_visits);
+    return count_paths(count_paths, start_device, initial_visit_mask);
 }
 
 std::string Day11::part2() {
-    std::int64_t path_count = count_paths_with_required("svr", "out", "dac", "fft");
+    std::int64_t path_count = count_paths_through_required_devices("svr", "out", "dac", "fft");
     return std::to_string(path_count);
 }

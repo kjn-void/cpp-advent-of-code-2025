@@ -108,27 +108,27 @@ std::string Day02::part1() {
             std::int64_t smallest_block = powers_of_ten[block_length - 1];
             std::int64_t largest_block = block_base - 1;
 
-            std::int64_t first_candidate =
+            std::int64_t first_block =
                 first_id / repetition_factor + (first_id % repetition_factor != 0);
-            std::int64_t last_candidate = last_id / repetition_factor;
+            std::int64_t last_block = last_id / repetition_factor;
 
-            first_candidate = std::max(first_candidate, smallest_block);
-            last_candidate = std::min(last_candidate, largest_block);
-            if (first_candidate > last_candidate)
+            first_block = std::max(first_block, smallest_block);
+            last_block = std::min(last_block, largest_block);
+            if (first_block > last_block)
                 continue;
 
             // Sum the arithmetic progression without enumerating every repeated ID.
-            auto candidate_count = last_candidate - first_candidate + 1;
-            auto endpoint_sum = first_candidate + last_candidate;
-            if (candidate_count % 2 == 0)
-                candidate_count /= 2;
+            auto block_count = last_block - first_block + 1;
+            auto endpoint_sum = first_block + last_block;
+            if (block_count % 2 == 0)
+                block_count /= 2;
             else
                 endpoint_sum /= 2;
             const auto remaining_sum_capacity =
                 std::numeric_limits<std::int64_t>::max() - invalid_id_sum;
-            if (endpoint_sum > remaining_sum_capacity / repetition_factor / candidate_count)
+            if (endpoint_sum > remaining_sum_capacity / repetition_factor / block_count)
                 throw std::overflow_error("ID sum exceeds int64_t");
-            invalid_id_sum += endpoint_sum * candidate_count * repetition_factor;
+            invalid_id_sum += endpoint_sum * block_count * repetition_factor;
         }
     }
 
@@ -145,39 +145,38 @@ std::string Day02::part2() {
     for (auto [first_id, last_id] : product_id_ranges_) {
         int max_digit_count = static_cast<int>(std::to_string(last_id).size());
 
-        for (int total_digits = 2; total_digits <= max_digit_count; ++total_digits) {
-            const auto total_digit_base = powers_of_ten[total_digits];
+        for (int id_digit_count = 2; id_digit_count <= max_digit_count; ++id_digit_count) {
+            const auto id_digit_base = powers_of_ten[id_digit_count];
 
-            for (int repetitions = 2; repetitions <= total_digits; ++repetitions) {
-                if (total_digits % repetitions != 0)
+            for (int repetition_count = 2; repetition_count <= id_digit_count; ++repetition_count) {
+                if (id_digit_count % repetition_count != 0)
                     continue;
 
-                int block_length = total_digits / repetitions;
+                int block_length = id_digit_count / repetition_count;
                 std::int64_t block_base = powers_of_ten[block_length];
                 const auto repetition_factor =
-                    static_cast<std::int64_t>((total_digit_base - 1) / (block_base - 1));
+                    static_cast<std::int64_t>((id_digit_base - 1) / (block_base - 1));
 
                 std::int64_t smallest_block = powers_of_ten[block_length - 1];
                 std::int64_t largest_block = block_base - 1;
 
-                std::int64_t first_candidate =
+                std::int64_t first_block =
                     first_id / repetition_factor + (first_id % repetition_factor != 0);
-                std::int64_t last_candidate = last_id / repetition_factor;
+                std::int64_t last_block = last_id / repetition_factor;
 
-                first_candidate = std::max(first_candidate, smallest_block);
-                last_candidate = std::min(last_candidate, largest_block);
-                if (first_candidate > last_candidate)
+                first_block = std::max(first_block, smallest_block);
+                last_block = std::min(last_block, largest_block);
+                if (first_block > last_block)
                     continue;
 
-                for (std::int64_t block_value = first_candidate; block_value <= last_candidate;
-                     ++block_value) {
-                    std::string block_text = std::to_string(block_value);
+                for (std::int64_t block = first_block; block <= last_block; ++block) {
+                    std::string block_text = std::to_string(block);
                     if (shortest_repeating_block_length(block_text) !=
                         static_cast<int>(block_text.size()))
                         continue;
-                    const auto repeated_id = block_value * repetition_factor;
+                    const auto repeated_id = block * repetition_factor;
                     if (repeated_id > std::numeric_limits<std::int64_t>::max() - invalid_id_sum)
-                        throw std::overflow_error("ID sum exceeds std::int64_t");
+                        throw std::overflow_error("ID sum exceeds int64_t");
                     invalid_id_sum += repeated_id;
                 }
             }

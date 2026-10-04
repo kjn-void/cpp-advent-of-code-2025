@@ -46,11 +46,11 @@ std::string Day09::part1() {
 }
 
 std::int64_t Day09::largest_rectangle_area(const std::vector<Tile>& red_tiles) {
-    int tile_count = static_cast<int>(red_tiles.size());
+    int red_tile_count = static_cast<int>(red_tiles.size());
     std::int64_t largest_area = 0;
 
-    for (int first_tile_index = 0; first_tile_index < tile_count; ++first_tile_index) {
-        for (int second_tile_index = first_tile_index + 1; second_tile_index < tile_count;
+    for (int first_tile_index = 0; first_tile_index < red_tile_count; ++first_tile_index) {
+        for (int second_tile_index = first_tile_index + 1; second_tile_index < red_tile_count;
              ++second_tile_index) {
             std::int64_t width = std::abs(std::int64_t{red_tiles[first_tile_index].x} -
                                           red_tiles[second_tile_index].x) +
@@ -92,9 +92,9 @@ std::string Day09::part2() {
     struct CompressedCell {
         std::size_t column, row;
     };
-    std::vector<CompressedCell> compressed_vertices;
+    std::vector<CompressedCell> compressed_red_tiles;
     for (const auto& tile : red_tiles_) {
-        compressed_vertices.push_back(
+        compressed_red_tiles.push_back(
             {static_cast<std::size_t>(std::ranges::lower_bound(x_boundaries, tile.x) -
                                       x_boundaries.begin()),
              static_cast<std::size_t>(std::ranges::lower_bound(y_boundaries, tile.y) -
@@ -102,25 +102,23 @@ std::string Day09::part2() {
     }
     struct BoundarySegment {
         std::size_t first_column, last_column, first_row, last_row;
-        bool horizontal;
+        bool is_horizontal;
     };
     std::vector<BoundarySegment> boundary_segments;
-    for (std::size_t first_vertex_index = 0; first_vertex_index < compressed_vertices.size();
-         ++first_vertex_index) {
-        const auto first_cell = compressed_vertices[first_vertex_index];
-        const auto second_cell =
-            compressed_vertices[(first_vertex_index + 1) % compressed_vertices.size()];
-        if (first_cell.column != second_cell.column && first_cell.row != second_cell.row)
+    for (std::size_t tile_index = 0; tile_index < compressed_red_tiles.size(); ++tile_index) {
+        const auto tile = compressed_red_tiles[tile_index];
+        const auto next_tile = compressed_red_tiles[(tile_index + 1) % compressed_red_tiles.size()];
+        if (tile.column != next_tile.column && tile.row != next_tile.row)
             throw std::invalid_argument("Polygon edges must be axis-aligned");
-        boundary_segments.push_back({std::min(first_cell.column, second_cell.column),
-                                     std::max(first_cell.column, second_cell.column),
-                                     std::min(first_cell.row, second_cell.row),
-                                     std::max(first_cell.row, second_cell.row),
-                                     first_cell.row == second_cell.row});
+        boundary_segments.push_back({std::min(tile.column, next_tile.column),
+                                     std::max(tile.column, next_tile.column),
+                                     std::min(tile.row, next_tile.row),
+                                     std::max(tile.row, next_tile.row), tile.row == next_tile.row});
     }
 
-    // Scan each compressed row, then build a prefix sum of forbidden cells.
-    // A rectangle is valid precisely when its forbidden-cell count is zero.
+    // Scan each compressed row, then build a prefix sum of forbidden cells: those
+    // that are neither red nor green. A rectangle is valid precisely when its
+    // forbidden-cell count is zero.
     const auto prefix_stride = x_boundaries.size();
     std::vector<std::int64_t> forbidden_prefix_sum(prefix_stride * y_boundaries.size(), 0);
     std::vector<int> coverage_deltas(prefix_stride);
@@ -133,7 +131,7 @@ std::string Day09::part2() {
             --coverage_deltas[last_column + 1];
         };
         for (const auto& segment : boundary_segments) {
-            if (segment.horizontal) {
+            if (segment.is_horizontal) {
                 if (row == segment.first_row)
                     cover_columns(segment.first_column, segment.last_column);
             } else {
@@ -150,37 +148,37 @@ std::string Day09::part2() {
         for (std::size_t crossing_index = 0; crossing_index < crossing_columns.size();
              crossing_index += 2)
             cover_columns(crossing_columns[crossing_index], crossing_columns[crossing_index + 1]);
-        int coverage = 0;
+        int red_green_coverage = 0;
         for (std::size_t column = 0; column + 1 < x_boundaries.size(); ++column) {
-            coverage += coverage_deltas[column];
+            red_green_coverage += coverage_deltas[column];
             forbidden_prefix_sum[(row + 1) * prefix_stride + column + 1] =
-                (coverage == 0) + forbidden_prefix_sum[row * prefix_stride + column + 1] +
+                (red_green_coverage == 0) + forbidden_prefix_sum[row * prefix_stride + column + 1] +
                 forbidden_prefix_sum[(row + 1) * prefix_stride + column] -
                 forbidden_prefix_sum[row * prefix_stride + column];
         }
     }
 
     std::int64_t largest_area = 0;
-    for (std::size_t first_vertex_index = 0; first_vertex_index < compressed_vertices.size();
-         ++first_vertex_index) {
-        for (std::size_t second_vertex_index = first_vertex_index + 1;
-             second_vertex_index < compressed_vertices.size(); ++second_vertex_index) {
-            const auto first_column = std::min(compressed_vertices[first_vertex_index].column,
-                                               compressed_vertices[second_vertex_index].column);
-            const auto column_end = std::max(compressed_vertices[first_vertex_index].column,
-                                             compressed_vertices[second_vertex_index].column) +
+    for (std::size_t first_tile_index = 0; first_tile_index < compressed_red_tiles.size();
+         ++first_tile_index) {
+        for (std::size_t second_tile_index = first_tile_index + 1;
+             second_tile_index < compressed_red_tiles.size(); ++second_tile_index) {
+            const auto first_column = std::min(compressed_red_tiles[first_tile_index].column,
+                                               compressed_red_tiles[second_tile_index].column);
+            const auto column_end = std::max(compressed_red_tiles[first_tile_index].column,
+                                             compressed_red_tiles[second_tile_index].column) +
                                     1;
-            const auto first_row = std::min(compressed_vertices[first_vertex_index].row,
-                                            compressed_vertices[second_vertex_index].row);
-            const auto row_end = std::max(compressed_vertices[first_vertex_index].row,
-                                          compressed_vertices[second_vertex_index].row) +
+            const auto first_row = std::min(compressed_red_tiles[first_tile_index].row,
+                                            compressed_red_tiles[second_tile_index].row);
+            const auto row_end = std::max(compressed_red_tiles[first_tile_index].row,
+                                          compressed_red_tiles[second_tile_index].row) +
                                  1;
-            const auto forbidden_cells =
+            const auto forbidden_cell_count =
                 forbidden_prefix_sum[row_end * prefix_stride + column_end] -
                 forbidden_prefix_sum[first_row * prefix_stride + column_end] -
                 forbidden_prefix_sum[row_end * prefix_stride + first_column] +
                 forbidden_prefix_sum[first_row * prefix_stride + first_column];
-            if (forbidden_cells == 0)
+            if (forbidden_cell_count == 0)
                 largest_area =
                     std::max(largest_area,
                              rectangle_area(x_boundaries[column_end] - x_boundaries[first_column],

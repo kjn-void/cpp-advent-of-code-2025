@@ -38,12 +38,12 @@ void Day06::set_input(const std::vector<std::string>& input_lines) {
 // -----------------------------------------------------------------------------
 
 std::vector<Day06::ProblemColumns> Day06::find_problems() const {
-    std::vector<bool> blank_columns(column_count_, true);
+    std::vector<bool> is_blank_column(column_count_, true);
 
     for (int column = 0; column < column_count_; ++column) {
         for (int row = 0; row < row_count_; ++row) {
             if (worksheet_[row][column] != ' ') {
-                blank_columns[column] = false;
+                is_blank_column[column] = false;
                 break;
             }
         }
@@ -54,7 +54,7 @@ std::vector<Day06::ProblemColumns> Day06::find_problems() const {
     int first_column = 0;
 
     for (int column = 0; column < column_count_; ++column) {
-        if (!blank_columns[column]) {
+        if (!is_blank_column[column]) {
             if (!in_problem) {
                 in_problem = true;
                 first_column = column;
@@ -72,7 +72,7 @@ std::vector<Day06::ProblemColumns> Day06::find_problems() const {
     return problems;
 }
 
-char Day06::problem_operator(const ProblemColumns& problem) const {
+char Day06::problem_operation(const ProblemColumns& problem) const {
     const auto& input_row = worksheet_[row_count_ - 1];
     for (int column = problem.first_column; column <= problem.last_column; ++column) {
         if (input_row[column] == '+' || input_row[column] == '*') {
@@ -134,12 +134,13 @@ std::int64_t Day06::evaluate_problem(std::span<const std::int64_t> numbers, char
     return product;
 }
 
-template <typename Function> std::int64_t Day06::grand_total(Function&& read_numbers) const {
+template <typename NumberReader>
+std::int64_t Day06::grand_total(NumberReader&& read_numbers) const {
     std::int64_t total = 0;
 
     for (const auto& problem : find_problems()) {
         auto numbers = read_numbers(problem);
-        char operation = problem_operator(problem);
+        char operation = problem_operation(problem);
         total += evaluate_problem(numbers, operation);
     }
     return total;

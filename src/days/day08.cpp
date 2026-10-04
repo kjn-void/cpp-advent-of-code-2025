@@ -35,11 +35,11 @@ void Day08::set_input(const std::vector<std::string>& input_lines) {
         }
     }
 
-    connections = sorted_connections(junction_boxes);
+    pairs_by_distance = sort_pairs_by_distance(junction_boxes);
 }
 
 // -----------------------------------------------------------
-// Distance & Edge Preparation
+// Distances and candidate pairs
 // -----------------------------------------------------------
 
 std::int64_t Day08::squared_distance(const JunctionBox& first_box, const JunctionBox& second_box) {
@@ -64,54 +64,53 @@ std::int64_t Day08::squared_distance(const JunctionBox& first_box, const Junctio
     return squared_distance;
 }
 
-std::vector<Day08::Connection>
-Day08::sorted_connections(std::span<const JunctionBox> junction_boxes) {
+std::vector<Day08::BoxPair>
+Day08::sort_pairs_by_distance(std::span<const JunctionBox> junction_boxes) {
     const int box_count = static_cast<int>(junction_boxes.size());
-    std::vector<Connection> connections;
+    std::vector<BoxPair> pairs_by_distance;
     if (box_count > 1)
-        connections.reserve(junction_boxes.size() * (junction_boxes.size() - 1) / 2);
+        pairs_by_distance.reserve(junction_boxes.size() * (junction_boxes.size() - 1) / 2);
 
     for (int first_box_index = 0; first_box_index < box_count; ++first_box_index) {
         for (int second_box_index = first_box_index + 1; second_box_index < box_count;
              ++second_box_index) {
-            connections.push_back({squared_distance(junction_boxes[first_box_index],
-                                                    junction_boxes[second_box_index]),
-                                   first_box_index, second_box_index});
+            pairs_by_distance.push_back({squared_distance(junction_boxes[first_box_index],
+                                                          junction_boxes[second_box_index]),
+                                         first_box_index, second_box_index});
         }
     }
 
-    std::ranges::sort(
-        connections, [](const Connection& first_connection, const Connection& second_connection) {
-            return std::tie(first_connection.squared_distance, first_connection.first_box_index,
-                            first_connection.second_box_index) <
-                   std::tie(second_connection.squared_distance, second_connection.first_box_index,
-                            second_connection.second_box_index);
-        });
+    std::ranges::sort(pairs_by_distance, [](const BoxPair& first_pair, const BoxPair& second_pair) {
+        return std::tie(first_pair.squared_distance, first_pair.first_box_index,
+                        first_pair.second_box_index) < std::tie(second_pair.squared_distance,
+                                                                second_pair.first_box_index,
+                                                                second_pair.second_box_index);
+    });
 
-    return connections;
+    return pairs_by_distance;
 }
 
 // -----------------------------------------------------------
-// DSU
+// Union-find
 // -----------------------------------------------------------
 
 Day08::CircuitSet::CircuitSet(int box_count)
     : parent_by_box(box_count), box_count_by_root(box_count, 1) {
-    for (int first_box_index = 0; first_box_index < box_count; ++first_box_index)
-        parent_by_box[first_box_index] = first_box_index;
+    for (int box_index = 0; box_index < box_count; ++box_index)
+        parent_by_box[box_index] = box_index;
 }
 
-int Day08::CircuitSet::find_circuit(int circuit_root) {
-    while (parent_by_box[circuit_root] != circuit_root) {
-        parent_by_box[circuit_root] = parent_by_box[parent_by_box[circuit_root]];
-        circuit_root = parent_by_box[circuit_root];
+int Day08::CircuitSet::find_circuit_root(int box_index) {
+    while (parent_by_box[box_index] != box_index) {
+        parent_by_box[box_index] = parent_by_box[parent_by_box[box_index]];
+        box_index = parent_by_box[box_index];
     }
-    return circuit_root;
+    return box_index;
 }
 
-bool Day08::CircuitSet::join_circuits(int first_root, int second_root) {
-    first_root = find_circuit(first_root);
-    second_root = find_circuit(second_root);
+bool Day08::CircuitSet::join_circuits(int first_box_index, int second_box_index) {
+    int first_root = find_circuit_root(first_box_index);
+    int second_root = find_circuit_root(second_box_index);
     if (first_root == second_root)
         return false;
 
@@ -127,50 +126,48 @@ bool Day08::CircuitSet::join_circuits(int first_root, int second_root) {
 // -----------------------------------------------------------
 
 std::vector<int> Day08::circuit_sizes_after_connections(std::span<const JunctionBox> junction_boxes,
-                                                        std::span<const Connection> connections,
-                                                        int connection_limit) {
+                                                        std::span<const BoxPair> pairs_by_distance,
+                                                        int connection_count) {
     if (junction_boxes.empty())
         return {};
 
     CircuitSet circuits(static_cast<int>(junction_boxes.size()));
-    connection_limit = std::min(connection_limit, static_cast<int>(connections.size()));
+    connection_count = std::min(connection_count, static_cast<int>(pairs_by_distance.size()));
 
-    for (int connection_index = 0; connection_index < connection_limit; ++connection_index) {
-        circuits.join_circuits(connections[connection_index].first_box_index,
-                               connections[connection_index].second_box_index);
+    for (int pair_index = 0; pair_index < connection_count; ++pair_index) {
+        circuits.join_circuits(pairs_by_distance[pair_index].first_box_index,
+                               pairs_by_distance[pair_index].second_box_index);
     }
 
     std::vector<int> circuit_sizes;
-    for (int first_box_index = 0; first_box_index < static_cast<int>(junction_boxes.size());
-         ++first_box_index) {
-        if (circuits.find_circuit(first_box_index) == first_box_index)
-            circuit_sizes.push_back(circuits.box_count_by_root[first_box_index]);
+    for (int box_index = 0; box_index < static_cast<int>(junction_boxes.size()); ++box_index) {
+        if (circuits.find_circuit_root(box_index) == box_index)
+            circuit_sizes.push_back(circuits.box_count_by_root[box_index]);
     }
 
     std::ranges::sort(circuit_sizes, std::greater<>{});
     return circuit_sizes;
 }
 
-std::pair<int, int> Day08::connect_all_junction_boxes(std::span<const JunctionBox> junction_boxes,
-                                                      std::span<const Connection> connections) {
+Day08::BoxPair Day08::connect_all_junction_boxes(std::span<const JunctionBox> junction_boxes,
+                                                 std::span<const BoxPair> pairs_by_distance) {
     if (junction_boxes.size() < 2)
-        return {0, 0};
+        return {0, 0, 0};
 
     CircuitSet circuits(static_cast<int>(junction_boxes.size()));
     int circuit_count = static_cast<int>(junction_boxes.size());
-    int last_first_box_index = 0, last_second_box_index = 0;
+    BoxPair final_connection{0, 0, 0};
 
-    for (const auto& connection : connections) {
-        if (circuits.join_circuits(connection.first_box_index, connection.second_box_index)) {
+    for (const auto& box_pair : pairs_by_distance) {
+        if (circuits.join_circuits(box_pair.first_box_index, box_pair.second_box_index)) {
             --circuit_count;
-            last_first_box_index = connection.first_box_index;
-            last_second_box_index = connection.second_box_index;
+            final_connection = box_pair;
             if (circuit_count == 1)
                 break;
         }
     }
 
-    return {last_first_box_index, last_second_box_index};
+    return final_connection;
 }
 
 // -----------------------------------------------------------
@@ -178,38 +175,37 @@ std::pair<int, int> Day08::connect_all_junction_boxes(std::span<const JunctionBo
 // -----------------------------------------------------------
 
 std::string Day08::part1() {
-    auto circuit_sizes = circuit_sizes_after_connections(junction_boxes, connections, 1000);
+    auto circuit_sizes = circuit_sizes_after_connections(junction_boxes, pairs_by_distance, 1000);
     if (circuit_sizes.size() < 3)
         return "0";
 
-    std::int64_t largest_circuits_product = std::int64_t(circuit_sizes[0]) *
-                                            std::int64_t(circuit_sizes[1]) *
-                                            std::int64_t(circuit_sizes[2]);
+    std::int64_t three_largest_circuits_product = std::int64_t(circuit_sizes[0]) *
+                                                  std::int64_t(circuit_sizes[1]) *
+                                                  std::int64_t(circuit_sizes[2]);
 
-    return std::to_string(largest_circuits_product);
+    return std::to_string(three_largest_circuits_product);
 }
 
 std::string Day08::part2() {
     if (junction_boxes.size() < 2)
         return "0";
 
-    auto [first_box_index, second_box_index] =
-        connect_all_junction_boxes(junction_boxes, connections);
-    const auto first_x = junction_boxes[first_box_index].x;
-    const auto second_x = junction_boxes[second_box_index].x;
+    const auto final_connection = connect_all_junction_boxes(junction_boxes, pairs_by_distance);
+    const auto first_x = junction_boxes[final_connection.first_box_index].x;
+    const auto second_x = junction_boxes[final_connection.second_box_index].x;
     const auto magnitude = [](std::int64_t signed_value) {
         const auto bits = static_cast<std::uint64_t>(signed_value);
         return signed_value < 0 ? std::uint64_t{0} - bits : bits;
     };
-    const bool negative = (first_x < 0) != (second_x < 0);
+    const bool product_is_negative = (first_x < 0) != (second_x < 0);
     const auto max_magnitude =
-        static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) + negative;
+        static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()) + product_is_negative;
     const auto first_magnitude = magnitude(first_x), second_magnitude = magnitude(second_x);
     if (second_magnitude != 0 && first_magnitude > max_magnitude / second_magnitude)
-        throw std::overflow_error("Junction coordinate product exceeds int64_t");
+        throw std::overflow_error("X coordinate product exceeds int64_t");
     const auto product_magnitude = first_magnitude * second_magnitude;
-    if (negative && product_magnitude == max_magnitude)
+    if (product_is_negative && product_magnitude == max_magnitude)
         return std::to_string(std::numeric_limits<std::int64_t>::min());
     const auto signed_product = static_cast<std::int64_t>(product_magnitude);
-    return std::to_string(negative ? -signed_product : signed_product);
+    return std::to_string(product_is_negative ? -signed_product : signed_product);
 }

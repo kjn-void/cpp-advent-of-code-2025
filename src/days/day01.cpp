@@ -37,21 +37,21 @@ class Day01 final : public Solution {
     };
     std::vector<Rotation> rotations_;
 
-    std::string calculate_password(bool count_zero_crossings) const {
+    std::string calculate_password(bool count_zero_clicks) const {
         int dial_position = 50;
         std::int64_t zero_count = 0;
         for (const auto& [turns_left, click_count] : rotations_) {
             const auto remaining_clicks = static_cast<int>(click_count % 100);
-            if (count_zero_crossings) {
+            if (count_zero_clicks) {
                 zero_count += click_count / 100;
-                // Starting on zero does not itself count as a crossing.
+                // Starting on zero does not itself count as a click onto zero.
                 const int clicks_to_zero =
                     turns_left ? (dial_position == 0 ? 100 : dial_position) : 100 - dial_position;
                 zero_count += remaining_clicks >= clicks_to_zero;
             }
             dial_position =
                 (dial_position + (turns_left ? -remaining_clicks : remaining_clicks) + 100) % 100;
-            if (!count_zero_crossings && dial_position == 0)
+            if (!count_zero_clicks && dial_position == 0)
                 ++zero_count;
         }
         return std::to_string(zero_count);

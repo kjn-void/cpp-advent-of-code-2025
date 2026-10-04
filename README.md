@@ -22,7 +22,8 @@ With a multi-configuration generator such as Visual Studio, build using
 
 The runner accepts one or more day numbers. Invalid arguments, missing inputs, and
 solver errors produce a nonzero exit status; other requested days still run.
-Day 12 returns `0` for part two because it has no second computational puzzle.
+Day 12 returns `0` for part two: it has no second puzzle, and its star is awarded once
+the other 23 stars are earned.
 
 To build just the runner without GoogleTest or Google Benchmark:
 
@@ -167,18 +168,18 @@ cleanup results rather than presenting new timings for renamed code.
 
 | Day and original problem | Names used in the implementation |
 | --- | --- |
-| [1: Secret Entrance](https://adventofcode.com/2025/day/1) | rotations, clicks, dial position, zero crossings |
+| [1: Secret Entrance](https://adventofcode.com/2025/day/1) | rotations, clicks, dial position, clicks that land on zero |
 | [2: Gift Shop](https://adventofcode.com/2025/day/2) | product ID ranges, repeated digit blocks, invalid ID sum |
 | [3: Lobby](https://adventofcode.com/2025/day/3) | battery banks, selected ratings, output joltage |
-| [4: Printing Department](https://adventofcode.com/2025/day/4) | paper rolls, adjacent roll counts, removable rolls |
+| [4: Printing Department](https://adventofcode.com/2025/day/4) | paper roll diagram, adjacent roll counts, accessible and removed rolls |
 | [5: Cafeteria](https://adventofcode.com/2025/day/5) | fresh ID ranges, available ingredient IDs |
 | [6: Trash Compactor](https://adventofcode.com/2025/day/6) | worksheet, problem columns, numbers, grand total |
-| [7: Laboratories](https://adventofcode.com/2025/day/7) | manifold, beams, splitters, timelines |
-| [8: Playground](https://adventofcode.com/2025/day/8) | junction boxes, connections, circuits |
-| [9: Movie Theater](https://adventofcode.com/2025/day/9) | red tiles, rectangle area, compressed vertices, boundary segments |
-| [10: Factory](https://adventofcode.com/2025/day/10) | light diagram, button wirings, joltage requirements, press counts |
-| [11: Reactor](https://adventofcode.com/2025/day/11) | devices, outputs, paths, required-device visits |
-| [12: Christmas Tree Farm](https://adventofcode.com/2025/day/12) | present shapes, orientations, tree regions, present counts |
+| [7: Laboratories](https://adventofcode.com/2025/day/7) | tachyon manifold, beams, splitters, timelines |
+| [8: Playground](https://adventofcode.com/2025/day/8) | junction boxes, box pairs by distance, connections, circuits |
+| [9: Movie Theater](https://adventofcode.com/2025/day/9) | red and green tiles, rectangle area, compressed red tiles, boundary segments, forbidden (neither red nor green) cells |
+| [10: Factory](https://adventofcode.com/2025/day/10) | indicator light diagram, button wirings, joltage counters and requirements, press counts |
+| [11: Reactor](https://adventofcode.com/2025/day/11) | devices, outputs, paths from `you` / `svr` to `out`, required visits to `dac` and `fft` |
+| [12: Christmas Tree Farm](https://adventofcode.com/2025/day/12) | present shapes, orientations, tree regions, present counts; part 2 is the 24th star |
 
 Coordinates (`x`, `y`, `z`) remain distinct from grid rows/columns and sequence
 indices. Inclusive endpoints use `first`/`last`; exclusive endpoints use `end`.
@@ -203,7 +204,7 @@ The implementation uses standard C++20 facilities, including ranges algorithms,
 and `std::jthread` for worker lifetimes. Worker exceptions are rethrown on the
 calling thread. Formatting is defined in `.clang-format`.
 
-Day 1 counts dial crossings arithmetically. Day 9 uses coordinate compression and
+Day 1 counts clicks that land on zero arithmetically. Day 9 uses coordinate compression and
 a prefix sum of forbidden tiles to check rectangles exactly. Day 10 solves lights
 over GF(2) and joltage using exact integer parity recursion: write each button's press count as
 `odd + 2 * rest`, enumerate the odd presses, and solve the halved remaining target.

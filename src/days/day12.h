@@ -53,7 +53,7 @@ class Day12 final : public Solution {
 
     bool presents_fit(const TreeRegion& region) const;
 
-    bool try_pack_region(const TreeRegion& region) const;
+    bool can_pack_region(const TreeRegion& region) const;
     bool place_remaining_presents(
         std::vector<bool>& occupied_cells, std::vector<int>& remaining_counts,
         const std::vector<std::vector<std::vector<std::size_t>>>& placements_by_shape,

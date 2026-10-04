@@ -2,8 +2,6 @@
 
 #include <span>
 
-#include <utility>
-
 #include "core/Solution.h"
 
 #include <cstdint>
@@ -20,34 +18,35 @@ class Day08 final : public Solution {
         std::int64_t x, y, z;
     };
 
-    struct Connection {
+    // Every pair of junction boxes, a candidate for connection.
+    struct BoxPair {
         std::int64_t squared_distance;
         int first_box_index, second_box_index;
     };
 
     std::vector<JunctionBox> junction_boxes;
-    std::vector<Connection> connections;
+    std::vector<BoxPair> pairs_by_distance;
 
     // Helpers
     static std::int64_t squared_distance(const JunctionBox& first_box,
                                          const JunctionBox& second_box);
-    static std::vector<Connection> sorted_connections(std::span<const JunctionBox> junction_boxes);
+    static std::vector<BoxPair> sort_pairs_by_distance(std::span<const JunctionBox> junction_boxes);
 
-    // DSU
+    // Union-find
     struct CircuitSet {
         std::vector<int> parent_by_box;
         std::vector<int> box_count_by_root;
 
         explicit CircuitSet(int box_count);
-        int find_circuit(int circuit_root);
-        bool join_circuits(int first_root, int second_root);
+        int find_circuit_root(int box_index);
+        bool join_circuits(int first_box_index, int second_box_index);
     };
 
     static std::vector<int>
     circuit_sizes_after_connections(std::span<const JunctionBox> junction_boxes,
-                                    std::span<const Connection> connections, int connection_limit);
+                                    std::span<const BoxPair> pairs_by_distance,
+                                    int connection_count);
 
-    static std::pair<int, int>
-    connect_all_junction_boxes(std::span<const JunctionBox> junction_boxes,
-                               std::span<const Connection> connections);
+    static BoxPair connect_all_junction_boxes(std::span<const JunctionBox> junction_boxes,
+                                              std::span<const BoxPair> pairs_by_distance);
 };
